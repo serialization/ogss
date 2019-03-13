@@ -1,0 +1,344 @@
+/**
+ * The root of a specification in the OGSS Intermediate Language.
+ *
+ * @note An .oil-file must contain one type context whose projected fields are false
+ * @note An .oil-file must not contain two type contexts whose projected fields are identical
+ * @note All type contexts in a file must be semantically equivalent.
+ * @note TypeDefinitions and FieldLikes are not shared between contexts.
+ *       Other entities (Comments, Identifier, ...) can be shared.
+ * @author Timm Felden
+ */
+TypeContext {
+  bool projectedInterfaces;
+  bool projectedTypeDefinitions;
+
+  /**
+   * get a type in a context by name.
+   *
+   * @note types are unique by name within a context
+   */
+  map<string, TypeDefinition> byName;
+
+  ClassDef[] classes;
+  InterfaceDef[] interfaces;
+  EnumDef enums;
+  TypeAlias[] aliases;
+}
+
+/**
+ * A comment that explains types or fields.
+ *
+ * @author Timm Felden
+ */
+Comment {
+  string[] text;
+  CommentTag[] tags;
+}
+
+/**
+ * The tag part of a comment. Can be used for easy inspection of comments.
+ *
+ * @author Timm Felden
+ */
+CommentTag {
+  string name;
+  string[] text;
+}
+
+/**
+ * Identifiers are split into parts to allow code generators to emit names that fit better into the naming convention
+ * of the target language.
+ * Splitting is performed on Capital letters, on the last letter of an acronym and on the first underscore.
+ * Capitalization inside parts is maintained to preserve acronyms.
+ * For instance, typeName -> [type, Name], RGBColor -> [RGB, Color], uint8_t -> [uint8, t], CPP_WChar -> [CPP, W, Char].
+ *
+ * @note not supporting CPP_WChar as output is intentional
+ * @author Timm Felden
+ */
+Identifier {
+
+  /**
+   * The parts of the identifier used construct target language identifiers.
+   */
+  string[] parts;
+
+  /**
+   * The OGSS representation of the identifier. It is identical to CapitalCase, as parts can be reconstructed from that.
+   */
+  string ogss;
+
+  /**
+   * Separate by _, capitalize first character of each part.
+   */
+  auto string Ada_Style;
+
+  /**
+   * Separate by _, all lowercase.
+   *
+   * @note one cannot reconstruct parts from this style (incorrect handling of acronyms)
+   */
+  auto string c_style;
+
+  /**
+   * No separation, lower case first character of first part, capitalize first character of other parts.
+   */
+  auto string camelCase;
+
+  /**
+   * No separation, capitalize first character of each part.
+   *
+   * @note same as ogss
+   */
+  auto string CapitalCase;
+
+  /**
+   * No separation, all lowercase.
+   *
+   * @note one cannot reconstruct parts from this style
+   */
+  auto string lowercase;
+}
+
+/**
+ * The root of the type hierachy.
+ */
+TypeDefinition {
+  /**
+   * the name of this type
+   */
+  Identifier name;
+
+  /**
+   * Static type ID of this type.
+   * Types without static type ID have ID -1.
+   *
+   * @note we silently assume that there are less then 2^31 type definitions.
+   **/
+  i32 stid;
+}
+
+/**
+ * Any explicit type definition may have a comment.
+ */
+interface UserDefinedType extends TypeDefinition {
+
+  /**
+   * Any type definition obtained from a specification may have a comment.
+   */
+  Comment comment;
+}
+
+/**
+ * For now, we will only allow TypeDefinitions that rename other types. Also, in contrast to SKilL, it is no longer legal to
+ * use TypeDefinitions in super type declarations.
+ *
+ * @note projection rules are: All usages of TypeDefinitions follow target until they reach a type that is not a TypeAlias.
+ */
+TypeAlias extends TypeDefinition {
+  /**
+   * The target of this type alias.
+   */
+  TypeDefinition target;
+}
+
+/**
+ * The representation of the 10 predefined types.
+ */
+BuiltinType extends TypeDefinition {
+
+}
+
+/**
+ * The representation of enum definitions
+ *
+ * @author Timm Felden
+ */
+EnumDef extends TypeDefinition with UserDefinedType {
+  /**
+   * The known values of this enum. Cannot be empty.
+   */
+  EnumConstant[] values;
+}
+
+/**
+ * An enum constant may have a comment.
+ *
+ * @author Timm Felden
+ */
+EnumConstant {
+  Identifier name;
+
+  Comment comment;
+}
+
+
+/**
+ * Base class of container types.
+ * Container types are created implicitly.
+ */
+ContainerType extends TypeDefinition {
+
+  /**
+   * The known container constructor.
+   */
+  i32 kcc;
+}
+
+/**
+ * Base class of sequential container types.
+ *
+ * @note In terms of OGSS, this includes set.
+ * @author Timm Felden
+ */
+SeqType extends TypeDefinition {
+  /**
+   * Sequential types have a single base type.
+   */
+  TypeDefinition baseType;
+}
+
+ArrayType extends SeqType {}
+ListType extends SeqType {}
+SetType extends SeqType {}
+
+MapType extends SeqType {
+  TypeDefinition keyType;
+  TypeDefinition valueType;
+}
+
+/**
+ * A type definition that has inheritance.
+ *
+ * @note types with inheritance are the only types with fields.
+ */
+WithInheritance extends TypeDefinition with UserDefinedType {
+  /**
+   * This can be null iff the type is an unrooted interface or its own base type
+   */
+  ClassDef baseType;
+  ClassDef superType;
+  InterfaceDef[] superInterfaces;
+
+  /**
+   * All types using this as direct superType or direct superInterface.
+   */
+  WithInheritance[] subTypes;
+
+  /**
+   * Fields owned by this definition.
+   */
+  Field[] fields;
+
+  /**
+   * Language customizations grouped by language.
+   *
+   * @todo should be map<string, CustomField[]>.
+   */
+  CustomField[] customs;
+
+  /**
+   * Views owned by this definition.
+   */
+  View[] views;
+}
+
+/**
+ * A class definition.
+ */
+ClassDef extends WithInheritance {
+}
+
+/**
+ * A definition of an interface.
+ *
+ * @note projection rules are defined in [Felden17] §5.4.1
+ * @author Timm Felden
+ */
+InterfaceDef extends WithInheritance {
+}
+
+/**
+ * Common properties of field-like definitions.
+ */
+FieldLike {
+  /**
+   * The type defining this field.
+   */
+  WithInheritance owner;
+
+  /**
+   * The name of this field.
+   */
+  Identifier name;
+
+  /**
+   * Any field-like definition may have a comment.
+   */
+  Comment comment;
+}
+
+/**
+ * A field definition.
+ */
+Field extends FieldLike {
+
+  /**
+   * The type of this field.
+   */
+  TypeDefinition t;
+
+  /**
+   * True if this field is not serialized.
+   */
+  bool isTransient;
+}
+
+
+/**
+ * A language-custom field
+ */
+CustomField extends FieldLike {
+
+  /**
+   * The name of the language that treats this fields
+   */
+  string language;
+
+  /**
+   * Back-end specific options.
+   */
+  CustomFieldOption[] options;
+
+  /**
+   * The type name that will be used to create a language specific field type
+   */
+  string typename;
+}
+
+/**
+ * An option passed to a custom field
+ */
+CustomFieldOption {
+  string name;
+  string[] arguments;
+}
+
+/**
+ * Covariant retyping of another field.
+ *
+ * @note views are not projected from specifications, as ignoring them is not harmful
+ * @note inv: this.name == target.name
+ * @note inv: this.owner <: target.owner & this.owner != target.owner
+ */
+View extends FieldLike {
+  /**
+   * Either a field, or another view can be retyped.
+   */
+  FieldLike target;
+
+  /**
+   * The type of this view.
+   * It must be a subtype of target.t.
+   */
+  TypeDefinition t;
+}

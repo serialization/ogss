@@ -21,3 +21,28 @@
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
+
+#various project files
+*.pydevproject
+.project
+.metadata
+bin/**
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.classpath
+.settings/
+.loadpath
+.idea/
+
+# sbt project
+project/**
+!project/plugins.sbt
+target/**
+src/test/scala/de/ust/skill/generator/cpp/target/
+
+# Mac OS X
+.DS_Store
+/bin/
