@@ -89,15 +89,21 @@ object CommandLine {
         target.getName.endsWith(f.extension)
       }.getOrElse(error("no available front-end matches the file extension. Provide one explicitly via -F"))
 
-      val IR = frontEnd.run(target)
+      // write IR to temporary file, so we do not have to care about misbehaving back-ends
+      val tmpPath = File.createTempFile("ogss", ".oil")
+      tmpPath.deleteOnExit()
+
+      frontEnd.out = OGFile.open(tmpPath, Mode.Create, Mode.Write)
+      frontEnd.run(target)
+      val IR = frontEnd.out
 
       // TODO calculate projections
 
-      // write IR to temporary file, so we do not have to care about misbehaving back-ends
-      val tmpPath = File.createTempFile("", ".oil")
-      tmpPath.deleteOnExit()
-      IR.changePath(tmpPath.toPath())
-      IR.close()
+      // ensure that we do not modify an existing file accidentally
+      if (IR.currentPath() != tmpPath.toPath()) {
+        IR.changePath(tmpPath.toPath())
+        IR.close()
+      }
 
       val failures = HashMap[String, Exception]()
       for (lang ← languages.par) {

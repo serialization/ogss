@@ -30,7 +30,12 @@ class Parser extends FrontEnd {
   def extension = ".skill"
   def description = "SKilL Specification"
 
-  def run(path : File) : OGFile = {
-    ???
+  override def run(path : File) {
+    // parse all definitions
+    val files = new FileParser(this)
+    files.process(path)
+    val definitions = files.definitions
+    for (n ← definitions.keySet)
+      println(n.getOgss)
   }
 }

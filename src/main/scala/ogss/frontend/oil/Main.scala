@@ -20,6 +20,7 @@ import java.io.File
 
 import ogss.frontend.common.FrontEnd
 import ogss.oil.OGFile
+import ogss.common.java.api.Mode
 
 /**
  * Read an existing .oil-file.
@@ -30,7 +31,7 @@ class Main extends FrontEnd {
   def extension = ".oil"
   def description = "OGSS Intermediate Language"
 
-  def run(path : File) : OGFile = {
-    ???
+  def run(path : File) {
+    out = OGFile.open(path, Mode.Read, Mode.ReadOnly)
   }
 }
