@@ -14,8 +14,21 @@
  * limitations under the License.
  */
 
-package ogss.frontend.common.ogss.frontend.skill
+package ogss.main
 
-class Parser {
+import ogss.frontend._;
 
+/**
+ * Known front-ends have to be registered here.
+ *
+ * @author Timm Felden
+ */
+object KnownFrontEnds {
+
+  val allClasses : Array[Class[_ <: common.FrontEnd]] = Array(
+    classOf[oil.Main],
+    classOf[skill.Parser]
+  )
+
+  val all = allClasses.map(_.newInstance)
 }
