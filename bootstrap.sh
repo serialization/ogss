@@ -6,7 +6,7 @@ cd `dirname .`
 rm -rv tmp; mkdir tmp
 cd tmp
 ln -s ../deps .
-java -jar ../skill.jar ../src/main/spec/oil.skill -L ogss --package ogss.oil -d ../lib
+java -jar ../ogss.jar build ../src/main/spec/oil.skill -L Java --package ogss.oil -d ../lib
 cd ..
 
 rm -rv src/main/java/ogss/oil
