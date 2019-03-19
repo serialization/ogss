@@ -140,6 +140,9 @@ abstract class BackEnd extends IRUtils {
    * @return a nicely formatted string, very similar to scala's mkString, except that it tries to fill lines
    */
   protected def format(c : Comment, prefix : String, linePrefix : String, postfix : String) : String = {
+    if (null == c)
+      return ""
+
     val sb = new StringBuilder(prefix);
 
     formatText(c.getText.asScala, linePrefix, sb, null);
@@ -184,16 +187,37 @@ abstract class BackEnd extends IRUtils {
   def escapedLonely(target : String) : String;
 
   /**
-   * Translation of a type to its representation in the source code
-   *
-   * TODO default naming convention
+   * If the backend supports it, the given convention is used for the generation
+   * of type names
    */
-  protected def name(t : Type) : String = escapedLonely(???)
+  var typeNameConvention = "capital"
+  /**
+   * If the backend supports it, the given convention is used for the generation
+   * of field names
+   */
+  var fieldNameConvention = "camel"
+
+  /**
+   * Translation of a type to its representation in the source code
+   */
+  protected def name(t : Type) : String = escapedLonely(typeNameConvention match {
+    case "ada"       ⇒ adaStyle(t.getName)
+    case "c"         ⇒ cStyle(t.getName)
+    case "camel"     ⇒ camel(t.getName)
+    case "capital"   ⇒ capital(t.getName)
+    case "lowercase" ⇒ lowercase(t.getName)
+  })
   /**
    * Translation of a field to its representation in the source
    * code
    *
    * TODO default naming convention
    */
-  protected def name(f : FieldLike) : String = escapedLonely(???)
+  protected def name(f : FieldLike) : String = escapedLonely(fieldNameConvention match {
+    case "ada"       ⇒ adaStyle(f.getName)
+    case "c"         ⇒ cStyle(f.getName)
+    case "camel"     ⇒ camel(f.getName)
+    case "capital"   ⇒ capital(f.getName)
+    case "lowercase" ⇒ lowercase(f.getName)
+  })
 }
