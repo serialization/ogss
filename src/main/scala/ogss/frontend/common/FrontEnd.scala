@@ -389,6 +389,28 @@ abstract class FrontEnd {
           c.setViews(new ArrayList)
       }
     }
+
+    // normalize fieldLike orders
+    {
+      for (c ← out.WithInheritances.asScala) {
+        c.getCustoms.sort { (l, r) ⇒
+          val cmp = Integer.compare(l.getName.getOgss.length(), r.getName.getOgss.length())
+          if (0 != cmp) cmp
+          else l.getName.getOgss.compareTo(r.getName.getOgss)
+        }
+        c.getFields.sort { (l, r) ⇒
+          val cmp = Integer.compare(l.getName.getOgss.length(), r.getName.getOgss.length())
+          if (0 != cmp) cmp
+          else l.getName.getOgss.compareTo(r.getName.getOgss)
+        }
+        c.getViews.sort { (l, r) ⇒
+          val cmp = Integer.compare(l.getName.getOgss.length(), r.getName.getOgss.length())
+          if (0 != cmp) cmp
+          else l.getName.getOgss.compareTo(r.getName.getOgss)
+        }
+      }
+    }
+
     val tc = out.TypeContexts.make()
 
     // aliases require no further action
