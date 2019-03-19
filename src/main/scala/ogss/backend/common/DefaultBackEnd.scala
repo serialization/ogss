@@ -49,7 +49,7 @@ abstract class DefaultBackEnd extends BackEnd {
   /**
    * Create the header submitted to the PrintingService
    */
-  def makeHeader(headerInfo : HeaderInfo) : String = ???
+  def makeHeader(headerInfo : HeaderInfo) : String = ""
 
   /**
    * Set output package/namespace/...
@@ -72,12 +72,12 @@ abstract class DefaultBackEnd extends BackEnd {
   /**
    * Transform a comment of a user declaration into the language's comment system
    */
-  override def comment(d : UserDefinedType) : String = ???
+  override def comment(d : UserDefinedType) : String = ""
 
   /**
    * Transform a comment of a field into the language's comment system
    */
-  override def comment(d : FieldLike) : String = ???
+  override def comment(d : FieldLike) : String = ""
 
   /**
    * Tries to escape a string without decreasing the usability of the generated identifier.
