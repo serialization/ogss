@@ -81,7 +81,7 @@ ${
     out.write(s"""
     public static final class PB extends ogss.common.java.internal.PoolBuilder {
         PB() {
-            super(${types.getByName.size - 10});
+            super(${types.getByName.size});
         }
 
         @Override
@@ -90,8 +90,8 @@ ${
       // predefine known containers
       flatTC.getContainers.asScala.zipWithIndex.map {
         case (ct, i) ⇒
-          s"""
-            case $i: return ${ct.getKcc()}; // ${ogssname(ct)}"""
+          f"""
+            case $i: return 0x${ct.getKcc()}%08x; // ${ogssname(ct)}"""
       }.mkString
     }
             default: return -1;
@@ -104,7 +104,7 @@ ${
       if (IR.isEmpty) "return null;"
       else IR.filter(_.getSuperType == null).zipWithIndex.map {
         case (t, i) ⇒ s"""
-            case $i: return "${t}";"""
+            case $i: return "${ogssname(t)}";"""
       }.mkString("switch (id) {", "", """
             default: return null;
             }""")

@@ -119,9 +119,9 @@ ${
    */
   private final def prelude(t : Type, target : String = "this.type") : String = t match {
     case t : BuiltinType ⇒ ogssname(t) match {
-      case "anyRef" ⇒ s"""
+      case "AnyRef" ⇒ s"""
         final AnyRefType t = (AnyRefType) $target;"""
-      case "string" ⇒ """
+      case "String" ⇒ """
         final StringPool t = (StringPool) type;"""
 
       case _ ⇒ ""
@@ -180,9 +180,9 @@ ${
 
     val code = f.getType match {
       case t : BuiltinType ⇒ ogssname(t) match {
-        case "annotation" ⇒ "t.r(in)"
-        case "string"     ⇒ "t.get(in.v32())"
-        case s            ⇒ s"""in.$s()"""
+        case "AnyRef" ⇒ "t.r(in)"
+        case "String" ⇒ "t.get(in.v32())"
+        case s        ⇒ s"""in.${s.toLowerCase}()"""
       }
 
       case t : InterfaceDef if t.getSuperType != null ⇒ s"(${mapType(t)}) t.get(in.v32())"
@@ -236,10 +236,10 @@ ${
 
   private final def writeCode(t : Type, fieldAccess : String) : String = t match {
     case t : BuiltinType ⇒ ogssname(t) match {
-      case "annotation" ⇒ s"drop &= t.w($fieldAccess, out)"
-      case "string"     ⇒ s"drop &= t.w($fieldAccess, out)"
-      case "bool"       ⇒ s"""${mapType(t)} v=$fieldAccess;drop&=!v;out.bool(v)"""
-      case s            ⇒ s"""${mapType(t)} v=$fieldAccess;drop&=0==v;out.$s(v)"""
+      case "AnyRef" ⇒ s"drop &= t.w($fieldAccess, out)"
+      case "String" ⇒ s"drop &= t.w($fieldAccess, out)"
+      case "Bool"   ⇒ s"""${mapType(t)} v=$fieldAccess;drop&=!v;out.bool(v)"""
+      case s        ⇒ s"""${mapType(t)} v=$fieldAccess;drop&=0==v;out.${s.toLowerCase}(v)"""
     }
 
     case t : InterfaceDef if t.getSuperType != null ⇒ s"""Obj v = (Obj)$fieldAccess;

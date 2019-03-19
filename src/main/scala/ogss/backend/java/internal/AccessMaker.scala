@@ -21,11 +21,7 @@ trait AccessMaker extends AbstractBackEnd {
       val accessT = access(t)
 
       // find all fields that belong to the projected version, but use the unprojected variant
-      val flatIRFieldNames = flatIR.find(_.getName == t.getName).get.getFields.asScala.map(ogssname).toSet
-      val fields = allFields(t).filter(f ⇒ flatIRFieldNames.contains(ogssname(f)))
-      val projectedField = flatIR.find(_.getName == t.getName).get.getFields.asScala.map {
-        case f ⇒ fields.find(ogssname(_).equals(ogssname(f))).get -> f
-      }.toMap
+      val fields = t.getFields.asScala
 
       out.write(s"""
 ${

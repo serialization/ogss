@@ -46,20 +46,20 @@ class Main extends AbstractBackEnd
    */
   override def mapType(t : Type, boxed : Boolean) : String = t match {
     case t : BuiltinType ⇒ t.getName.getOgss match {
-      case "anyRef" ⇒ "Object"
+      case "AnyRef" ⇒ "Object"
 
-      case "bool"   ⇒ if (boxed) "java.lang.Boolean" else "boolean"
+      case "Bool"   ⇒ if (boxed) "java.lang.Boolean" else "boolean"
 
-      case "i8"     ⇒ if (boxed) "java.lang.Byte" else "byte"
-      case "i16"    ⇒ if (boxed) "java.lang.Short" else "short"
-      case "i32"    ⇒ if (boxed) "java.lang.Integer" else "int"
-      case "i64"    ⇒ if (boxed) "java.lang.Long" else "long"
-      case "v64"    ⇒ if (boxed) "java.lang.Long" else "long"
+      case "I8"     ⇒ if (boxed) "java.lang.Byte" else "byte"
+      case "I16"    ⇒ if (boxed) "java.lang.Short" else "short"
+      case "I32"    ⇒ if (boxed) "java.lang.Integer" else "int"
+      case "I64"    ⇒ if (boxed) "java.lang.Long" else "long"
+      case "V64"    ⇒ if (boxed) "java.lang.Long" else "long"
 
-      case "f32"    ⇒ if (boxed) "java.lang.Float" else "float"
-      case "f64"    ⇒ if (boxed) "java.lang.Double" else "double"
+      case "F32"    ⇒ if (boxed) "java.lang.Float" else "float"
+      case "F64"    ⇒ if (boxed) "java.lang.Double" else "double"
 
-      case "string" ⇒ "java.lang.String"
+      case "String" ⇒ "java.lang.String"
     }
 
     case t : ArrayType       ⇒ s"$ArrayTypeName<${mapType(t.getBaseType(), true)}>"
@@ -124,7 +124,7 @@ class Main extends AbstractBackEnd
    * Will add Z's if escaping is required.
    */
   private val escapeCache = new HashMap[String, String]();
-  final def escapedLonely(target : String) : String = escapeCache.getOrElse(target, {
+  final override def escapedLonely(target : String) : String = escapeCache.getOrElse(target, {
     val result = target match {
       case "OGFile" | "Visitor" | "internal"
         | "abstract" | "continue" | "for" | "new" | "switch" | "assert" | "default" | "if" | "package" | "synchronized"
