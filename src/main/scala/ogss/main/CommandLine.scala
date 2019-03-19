@@ -248,7 +248,36 @@ object CommandLine {
 
         opt[Seq[String]]('v', "visitors").optional().action(
           (v, c) ⇒ c.copy(visitors = v)
-        ).text("types to generate visitors for")
+        ).text("types to generate visitors for"),
+
+        note(""),
+
+        opt[String]("header1").abbr("h1").optional().action {
+          (s, c) ⇒ c.header.line1 = Some(s); c
+        }.text("overrides the content of the respective header line"),
+        opt[String]("header2").abbr("h2").optional().action {
+          (s, c) ⇒ c.header.line2 = Some(s); c
+        }.text("overrides the content of the respective header line"),
+        opt[String]("header3").abbr("h3").optional().action {
+          (s, c) ⇒ c.header.line3 = Some(s); c
+        }.text("overrides the content of the respective header line"),
+
+        opt[String]('u', "user-name").optional().action {
+          (s, c) ⇒ c.header.userName = Some(s); c
+        }.text("set a user name"),
+        opt[String]("date").optional().action {
+          (s, c) ⇒ c.header.date = Some(s); c
+        }.text("set a custom date"),
+        opt[String]("license").optional().action {
+          (s, c) ⇒ c.header.license = Some(s); c
+        }.text("set a license text"),
+
+        opt[Unit]("debug-header").action {
+          (s, c) ⇒
+            c.header.userName = Some("<<some developer>>")
+            c.header.line2 = Some("<<debug>>")
+            c
+        }.text("set debugging and diff friendly header content")
       )
 
     override def terminate(s : Either[String, Unit]) {
