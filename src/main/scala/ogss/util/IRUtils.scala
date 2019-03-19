@@ -37,17 +37,21 @@ trait IRUtils {
   }
 
   def capital(id : Identifier) : String = {
-    if (null == id.getCapitalCase) {
-      ???
+    var r = id.getCapitalCase
+    if (null == r) {
+      r = id.getParts.asScala.map(_.capitalize).mkString
+      id.setCapitalCase(r)
     }
-    id.getCapitalCase
+    r
   }
-  
+
   def lowercase(id : Identifier) : String = {
-    if (null == id.getLowercase) {
-      ???
+    var r = id.getLowercase
+    if (null == r) {
+      r = id.getParts.asScala.map(_.toLowerCase).mkString
+      id.setLowercase(r)
     }
-    id.getLowercase
+    r
   }
 }
 
