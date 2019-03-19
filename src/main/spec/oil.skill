@@ -22,10 +22,10 @@ TypeContext {
    */
   map<string, Type> byName;
 
+  TypeAlias[] aliases;
+  EnumDef[] enums;
   ClassDef[] classes;
   InterfaceDef[] interfaces;
-  EnumDef[] enums;
-  TypeAlias[] aliases;
   
   ContainerType[] containers;
 }
@@ -195,7 +195,7 @@ ContainerType extends Type {
  * @note In terms of OGSS, this includes set.
  * @author Timm Felden
  */
-SeqType extends Type {
+SeqType extends ContainerType {
   /**
    * Sequential types have a single base type.
    */
@@ -206,7 +206,7 @@ ArrayType extends SeqType {}
 ListType extends SeqType {}
 SetType extends SeqType {}
 
-MapType extends SeqType {
+MapType extends ContainerType {
   Type keyType;
   Type valueType;
 }
