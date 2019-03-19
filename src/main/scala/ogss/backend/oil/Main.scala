@@ -46,10 +46,12 @@ class Main extends DefaultBackEnd {
   var IR : OGFile = _;
 
   override def make() {
-    val p =
-      if (files.outPath.isDirectory() || !files.outPath.getName.endsWith(".oil")) new File(files.outPath, "out.oil").toPath
-      else files.outPath.toPath
-    IR.changePath(p)
+    val f =
+      if (files.outPath.isDirectory() || !files.outPath.getName.endsWith(".oil")) new File(files.outPath, "out.oil")
+      else files.outPath
+    f.getParentFile.mkdirs()
+    f.createNewFile()
+    IR.changePath(f.toPath)
     IR.close()
   }
 }

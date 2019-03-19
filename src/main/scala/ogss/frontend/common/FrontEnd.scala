@@ -36,6 +36,8 @@ import ogss.oil.CustomFieldOption
 import ogss.oil.View
 import ogss.oil.InterfaceDef
 import ogss.oil.ClassDef
+import ogss.util.IRUtils
+import scala.collection.mutable.HashSet
 
 /**
  * Provides common functionalities to be used by all front-ends.
@@ -312,6 +314,25 @@ abstract class FrontEnd {
    * @note normalize assumes that ContainerTypes is sorted in topological order
    */
   protected def normalize {
+    // ensure existence of builtin types
+    {
+      var builtins = asScalaIterator(out.BuiltinTypes.iterator()).map(_.getStid).toSet
+      for (i ← 0 until 10)
+        if (!builtins(i))
+          i match {
+            case 0 ⇒ makeNamedType(toIdentifier("bool"))
+            case 1 ⇒ makeNamedType(toIdentifier("i8"))
+            case 2 ⇒ makeNamedType(toIdentifier("i16"))
+            case 3 ⇒ makeNamedType(toIdentifier("i32"))
+            case 4 ⇒ makeNamedType(toIdentifier("i64"))
+            case 5 ⇒ makeNamedType(toIdentifier("v64"))
+            case 6 ⇒ makeNamedType(toIdentifier("f32"))
+            case 7 ⇒ makeNamedType(toIdentifier("f64"))
+            case 8 ⇒ makeNamedType(toIdentifier("anyRef"))
+            case 9 ⇒ makeNamedType(toIdentifier("string"))
+          }
+    }
+
     // normalize custom fields
     {
       val noArgs = new ArrayList[String]
@@ -328,6 +349,19 @@ abstract class FrontEnd {
 
     // normalize inheritance hierarchies
     {
+      // set super classes for interfaces
+      for (c ← asScalaIterator(out.InterfaceDefs.iterator())) {
+        val candidates : HashSet[ClassDef] =
+          c.getSuperInterfaces.asScala.collect { case c if null != c.getSuperType ⇒ c.getSuperType }.to
+
+        if (null != c.getSuperType)
+          candidates += c.getSuperType
+
+        if (candidates.size <= 1)
+          candidates.map(c.setSuperType(_))
+        else
+          reportError(s"Interface c has multiple super types: ${candidates.map(_.getName.getOgss).mkString(", ")}")
+      }
       for (c ← asScalaIterator(out.WithInheritances.iterator())) {
         if (null == c.getSuperType) {
           c match {
@@ -398,24 +432,12 @@ abstract class FrontEnd {
     ))
 
     // calculate variable STIDs
-    var nextSTID = 10
-    for (c ← asScalaBuffer(tc.getClasses)) {
-      c.setStid(nextSTID)
-      nextSTID += 1
-    }
-    for (c ← asScalaBuffer(tc.getContainers)) {
-      c.setStid(nextSTID)
-      nextSTID += 1
-    }
-    for (c ← asScalaBuffer(tc.getEnums)) {
-      c.setStid(nextSTID)
-      nextSTID += 1
-    }
+    IRUtils.recalculateSTIDs(tc)
 
     // create byName
     val tbn = new java.util.HashMap[String, Type]
     tc.setByName(tbn)
-    for (c ← asScalaIterator(out.ContainerTypes.iterator()))
+    for (c ← asScalaIterator(out.Types.iterator()))
       tbn.put(c.getName.getOgss, c)
   }
 }

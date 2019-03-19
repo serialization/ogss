@@ -27,6 +27,7 @@ import ogss.io.PrintingService
 import ogss.util.HeaderInfo
 import scala.collection.JavaConverters.asScalaIterator
 import ogss.util.IRUtils
+import ogss.util.Projections
 
 object CommandLine {
 
@@ -100,7 +101,7 @@ object CommandLine {
       frontEnd.run(target)
       val IR = frontEnd.out
 
-      // TODO calculate projections
+      // TODO check IR
 
       // ensure that we do not modify an existing file accidentally
       if (IR.currentPath() != tmpPath.toPath()) {

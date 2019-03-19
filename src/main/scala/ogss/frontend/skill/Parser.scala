@@ -20,6 +20,7 @@ import java.io.File
 
 import ogss.frontend.common.FrontEnd
 import ogss.oil.OGFile
+import ogss.util.Projections
 
 /**
  * Parse a .skill-specification and apply OGSS-semantics to its definitions.
@@ -42,6 +43,8 @@ class Parser extends FrontEnd {
     fields.process
     
     normalize
+    
+    new Projections(out)
     
     out.close()
   }

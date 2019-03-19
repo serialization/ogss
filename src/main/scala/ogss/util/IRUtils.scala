@@ -7,6 +7,9 @@ import ogss.oil.Field
 import scala.collection.mutable.HashSet
 import scala.collection.JavaConverters._
 import ogss.oil.Type
+import ogss.oil.TypeContext
+import ogss.oil.CustomField
+import ogss.oil.View
 
 /**
  * Utility functions that simplify working with some OIL classes.
@@ -14,7 +17,7 @@ import ogss.oil.Type
 trait IRUtils {
 
   def allSuperTypes(t : WithInheritance, seen : HashSet[WithInheritance] = new HashSet) : HashSet[WithInheritance] = {
-    if (!seen.contains(t)) {
+    if (null != t && !seen.contains(t)) {
       if (null != t.getSuperType)
         allSuperTypes(t.getSuperType, seen);
 
@@ -25,8 +28,16 @@ trait IRUtils {
     return seen
   }
 
+  def allCustoms(t : WithInheritance) : HashSet[CustomField] = {
+    allSuperTypes(t).flatMap(_.getCustoms.asScala) ++ t.getCustoms.asScala
+  }
+
   def allFields(t : WithInheritance) : HashSet[Field] = {
     allSuperTypes(t).flatMap(_.getFields.asScala) ++ t.getFields.asScala
+  }
+
+  def allViews(t : WithInheritance) : HashSet[View] = {
+    allSuperTypes(t).flatMap(_.getViews.asScala) ++ t.getViews.asScala
   }
 
   def ogssname(t : Type) : String = {
@@ -52,6 +63,25 @@ trait IRUtils {
       id.setLowercase(r)
     }
     r
+  }
+
+  /**
+   * Recalculate STIDs and KCCs in a type context.
+   */
+  def recalculateSTIDs(tc : TypeContext) {
+    var nextSTID = 10
+    for (c ← asScalaBuffer(tc.getClasses)) {
+      c.setStid(nextSTID)
+      nextSTID += 1
+    }
+    for (c ← asScalaBuffer(tc.getContainers)) {
+      c.setStid(nextSTID)
+      nextSTID += 1
+    }
+    for (c ← asScalaBuffer(tc.getEnums)) {
+      c.setStid(nextSTID)
+      nextSTID += 1
+    }
   }
 }
 
