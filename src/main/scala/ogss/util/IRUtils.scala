@@ -10,6 +10,10 @@ import ogss.oil.Type
 import ogss.oil.TypeContext
 import ogss.oil.CustomField
 import ogss.oil.View
+import ogss.oil.ArrayType
+import ogss.oil.SetType
+import ogss.oil.ListType
+import ogss.oil.MapType
 
 /**
  * Utility functions that simplify working with some OIL classes.
@@ -47,6 +51,44 @@ trait IRUtils {
     f.getName.getOgss
   }
 
+  def adaStyle(id : Identifier) : String = {
+    var r = id.getCamelCase
+    if (null == r) {
+      var first = true
+      r = id.getParts.asScala.map(_.capitalize).mkString("_")
+      id.setCamelCase(r)
+    }
+    r
+  }
+
+  def cStyle(id : Identifier) : String = {
+    var r = id.getCamelCase
+    if (null == r) {
+      var first = true
+      r = id.getParts.asScala.map(_.toLowerCase()).mkString("_")
+      id.setCamelCase(r)
+    }
+    r
+  }
+
+  def camel(id : Identifier) : String = {
+    var r = id.getCamelCase
+    if (null == r) {
+      var first = true
+      r = id.getParts.asScala.map {
+        p ⇒
+          if (first) {
+            first = false
+            if (p.length() > 1 && p.charAt(1).isUpper) p
+            else p.toLowerCase()
+          } else
+            p.capitalize
+      }.mkString
+      id.setCamelCase(r)
+    }
+    r
+  }
+
   def capital(id : Identifier) : String = {
     var r = id.getCapitalCase
     if (null == r) {
@@ -69,18 +111,29 @@ trait IRUtils {
    * Recalculate STIDs and KCCs in a type context.
    */
   def recalculateSTIDs(tc : TypeContext) {
+    // STIDs
     var nextSTID = 10
-    for (c ← asScalaBuffer(tc.getClasses)) {
+    for (c ← tc.getClasses.asScala) {
       c.setStid(nextSTID)
       nextSTID += 1
     }
-    for (c ← asScalaBuffer(tc.getContainers)) {
+    for (c ← tc.getContainers.asScala) {
       c.setStid(nextSTID)
       nextSTID += 1
     }
-    for (c ← asScalaBuffer(tc.getEnums)) {
+    for (c ← tc.getEnums.asScala) {
       c.setStid(nextSTID)
       nextSTID += 1
+    }
+
+    // new KCCs
+    for (c ← tc.getContainers.asScala) {
+      c match {
+        case c : ArrayType ⇒ c.setKcc(c.getBaseType.getStid & 0x7FFF)
+        case c : ListType  ⇒ c.setKcc((1 << 30) | (c.getBaseType.getStid & 0x7FFF))
+        case c : SetType   ⇒ c.setKcc((2 << 30) | (c.getBaseType.getStid & 0x7FFF))
+        case c : MapType   ⇒ c.setKcc((3 << 30) | (c.getKeyType.getStid & 0x7FFF) | ((c.getValueType.getStid & 0x7FFF) << 15))
+      }
     }
   }
 }
