@@ -4,8 +4,9 @@
  * @note An .oil-file must contain one type context whose projected fields are false
  * @note An .oil-file must not contain two type contexts whose projected fields are identical
  * @note All type contexts in a file must be semantically equivalent.
- * @note TypeDefinitions and FieldLikes are not shared between contexts.
- *       Other entities (Comments, Identifier, ...) can be shared.
+ * @note UserTypeDefinitions and FieldLikes are not shared between contexts.
+ *       Other entities (Comments, BuiltinTypes, ...) can be shared.
+ *       Identifiers are unique and, hence, shared.
  * 
  * @note all type arrays in a type context are sorted
  * 
