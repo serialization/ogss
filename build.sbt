@@ -8,9 +8,19 @@ javacOptions ++= Seq("-encoding", "UTF-8")
 
 compileOrder := CompileOrder.JavaThenScala
 
+
+libraryDependencies ++= Seq(
+	"junit" % "junit" % "4.12" % "test",
+    "org.scalatest" %% "scalatest" % "3.0.5" % "test"
+)
+
+(testOptions in Test) += Tests.Argument(TestFrameworks.ScalaTest, "-u", "target/tests")
+
+
 exportJars := true
 
 mainClass := Some("ogss.main.CommandLine")
+
 
 libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.6"
 
