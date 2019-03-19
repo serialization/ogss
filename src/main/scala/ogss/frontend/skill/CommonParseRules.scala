@@ -4,16 +4,18 @@ import ogss.oil.Comment
 import scala.util.parsing.combinator.RegexParsers
 import ogss.frontend.common.FrontEnd
 import ogss.oil.Identifier
+import ogss.util.IRUtils
 
 /**
  * Parse rules used by multiple parsers.
  */
-class CommonParseRules(self : FrontEnd) extends RegexParsers {
+class CommonParseRules(self : FrontEnd) extends RegexParsers with IRUtils {
 
   /**
    * Usual identifiers including arbitrary unicode characters.
    */
   protected def id : Parser[Identifier] = """[a-zA-Z_\u007f-\uffff][\w\u007f-\uffff]*""".r ^^ self.toIdentifier
+  protected def idText : Parser[String] = """[a-zA-Z_\u007f-\uffff][\w\u007f-\uffff]*""".r
 
   /**
    * Skill integer literals
@@ -48,5 +50,18 @@ class CommonParseRules(self : FrontEnd) extends RegexParsers {
   /**
    * Match a comment, but do not turn it into IR, yet.
    */
-  protected def commentText : Parser[String] = """/\*+""".r ~> ("""[\S\s]*?\*/""".r)
+  protected def commentText : Parser[String] = ("""/\*+""".r ~ ("""[\S\s]*?\*/""".r)) ^^ { case l ~ r ⇒ l + r }
+
+  /**
+   * Matches Hints and Restrictions
+   */
+  protected def attributes : Parser[String] = rep(
+    ("!" ~ "pragma" ~ idText ~ opt(("(" ~ """[^\)]*\)""".r) ^^ { case l ~ r ⇒ l + r })) ^^ {
+      case h ~ p ~ n ~ a ⇒ s"$h$p $n ${a.getOrElse("")}"
+    }
+      |
+      (("@" | "!") ~ idText ~ opt(("(" ~ """[^\)]*\)""".r) ^^ { case l ~ r ⇒ l + r })) ^^ {
+        case h ~ n ~ a ⇒ s"$h$n ${a.getOrElse("")}"
+      }
+  ) ^^ { ts ⇒ ts.mkString("\n") }
 }

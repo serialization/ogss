@@ -34,8 +34,15 @@ class Parser extends FrontEnd {
     // parse all definitions
     val files = new FileParser(this)
     files.process(path)
-    val definitions = files.definitions
-    for (n ← definitions.keySet)
-      println(n.getOgss)
+
+    val definitions = new DefinitionParser(this, files.definitions)
+    definitions.process
+
+    val fields = new FieldParser(this, files.definitions)
+    fields.process
+    
+    normalize
+    
+    out.close()
   }
 }

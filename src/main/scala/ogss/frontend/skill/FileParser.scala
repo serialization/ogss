@@ -35,15 +35,21 @@ class FileParser(self : FrontEnd) extends CommonParseRules(self) {
   );
 
   // content = (<type begin>) ([^{]{) (comment? [^;}];)* ([^;}]})
-  protected def content : Parser[Definition] = opt(comment) ~ opt("interface" | "typedef") ~ positioned(
+  protected def content : Parser[Definition] = opt(comment) ~ attributes ~ opt("enum" | "interface" | "typedef") ~ positioned(
     id ^^ { name ⇒ new Definition(name, currentFile) }
-  ) ~ """[^\{]*\{""".r ~ (
-      rep(opt(commentText) ~ """[^;/}]*;""".r ^^ { case c ~ i ⇒ c + i }) ^^ { _.mkString(" ") }
-    ) ~ """[^;/}]*\}""".r ^^ {
-        case c ~ mod ~ decl ~ sup ~ fs ~ rem ⇒
-          if (definitions.contains(decl.name)) {
-            val first = definitions(decl.name)
-            self.reportError(s"""duplicate definition: ${decl.name.getOgss}
+  ) ~! """[^;\{]*""".r ~ (
+      (";" |
+        ("{" ~>
+          (
+            rep(opt(commentText) ~ """[^;/}]*;""".r ^^ { case c ~ i ⇒ c.getOrElse("") + i }) ^^ { _.mkString(" ") }
+          ) ~ """[^;/}]*\}""".r) ^^ {
+              case fs ~ rem ⇒ s"$fs $rem"
+            })
+    ) ^^ {
+              case c ~ attr ~ mod ~ decl ~ sup ~ body ⇒
+                if (definitions.contains(decl.name)) {
+                  val first = definitions(decl.name)
+                  self.reportError(s"""duplicate definition: ${decl.name.getOgss}
 first:
 ${first.file} ${first.pos}
 ${first.pos.longString}
@@ -51,13 +57,14 @@ ${first.pos.longString}
 second:
 ${decl.file} ${decl.pos}
 ${decl.pos.longString}""")
-          }
-          definitions(decl.name) = decl
+                }
+                definitions(decl.name) = decl
 
-          decl.comment = c.getOrElse(null)
-          decl.image = s"${mod.getOrElse("")} $sup $fs $rem"
-          decl
-      }
+                decl.comment = c.getOrElse(null)
+                decl.superImage = s"${mod.getOrElse("")} $sup"
+                decl.bodyImage = body
+                decl
+            }
 
   protected def file = opt(headComment) ~! rep(includes) ~! rep(content)
 
@@ -67,23 +74,17 @@ ${decl.pos.longString}""")
       return
     seen += in
 
-    currentFile = in;
-    val lines = scala.io.Source.fromFile(in, "utf-8").getLines.mkString("\n")
+    if (!in.exists() || !in.isFile()) {
+      self.reportError(s"cannot import file $in")
+    } else {
 
-    parseAll(file, lines) match {
-      case Success(_, _) ⇒
-      case f             ⇒ self.reportError(s"parsing failed in ${in.getName}: $f");
+      currentFile = in;
+      val lines = scala.io.Source.fromFile(in, "utf-8").getLines.mkString("\n")
+
+      parseAll(file, lines) match {
+        case Success(_, _) ⇒
+        case f             ⇒ self.reportError(s"parsing failed in ${in.getName}: $f");
+      }
     }
   }
-}
-
-class Definition(
-  /**
-   * the ogss name of this definition
-   */
-  val name : Identifier,
-  val file : File
-) extends Positional {
-  var comment : Comment = _
-  var image : String = _
 }

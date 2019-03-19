@@ -27,6 +27,15 @@ import scala.collection.mutable.HashMap
 import java.util.ArrayList
 import scala.collection.mutable.ListBuffer
 import scala.annotation.tailrec
+import ogss.oil.Type
+import ogss.oil.ArrayType
+import ogss.oil.ListType
+import ogss.oil.SetType
+import ogss.oil.MapType
+import ogss.oil.CustomFieldOption
+import ogss.oil.View
+import ogss.oil.InterfaceDef
+import ogss.oil.ClassDef
 
 /**
  * Provides common functionalities to be used by all front-ends.
@@ -60,7 +69,7 @@ abstract class FrontEnd {
   def extension : String;
 
   def reportError(msg : String) : Nothing = {
-    throw new Error(msg)
+    throw new ParseException(msg)
   }
 
   /**
@@ -147,6 +156,8 @@ abstract class FrontEnd {
    * @note results are deduplicated
    */
   final def toIdentifier(text : String) : Identifier = {
+    if (null == text)
+      return null
 
     var parts = ArrayBuffer(text)
 
@@ -179,5 +190,232 @@ abstract class FrontEnd {
         r
       }
     )
+  }
+
+  private val arrayTypes = new HashMap[Type, ArrayType]
+  final def makeArray(t : Type) : ArrayType = arrayTypes.getOrElseUpdate(
+    t,
+    {
+      val r = out.ArrayTypes.make()
+      r.setBaseType(t)
+      r
+    }
+  )
+  private val listTypes = new HashMap[Type, ListType]
+  final def makeList(t : Type) : ListType = listTypes.getOrElseUpdate(
+    t,
+    {
+      val r = out.ListTypes.make()
+      r.setBaseType(t)
+      r
+    }
+  )
+  private val setTypes = new HashMap[Type, SetType]
+  final def makeSet(t : Type) : SetType = setTypes.getOrElseUpdate(
+    t,
+    {
+      val r = out.SetTypes.make()
+      r.setBaseType(t)
+      r
+    }
+  )
+  private val mapTypes = new HashMap[(Type, Type), MapType]
+  final def makeMap(k : Type, v : Type) : MapType = mapTypes.getOrElseUpdate(
+    (k, v),
+    {
+      val r = out.MapTypes.make()
+      r.setKeyType(k)
+      r.setValueType(v)
+      r
+    }
+  )
+
+  private val namedTypes = new HashMap[Identifier, Type]
+  final def makeNamedType(name : Identifier) : Type = namedTypes.getOrElseUpdate(
+    name,
+    name.getOgss match {
+      case "Bool" ⇒
+        val r = out.BuiltinTypes.make()
+        r.setStid(0)
+        r.setName(name)
+        r
+      case "I8" ⇒
+        val r = out.BuiltinTypes.make()
+        r.setStid(1)
+        r.setName(name)
+        r
+      case "I16" ⇒
+        val r = out.BuiltinTypes.make()
+        r.setStid(2)
+        r.setName(name)
+        r
+      case "I32" ⇒
+        val r = out.BuiltinTypes.make()
+        r.setStid(3)
+        r.setName(name)
+        r
+      case "I64" ⇒
+        val r = out.BuiltinTypes.make()
+        r.setStid(4)
+        r.setName(name)
+        r
+      case "V64" ⇒
+        val r = out.BuiltinTypes.make()
+        r.setStid(5)
+        r.setName(name)
+        r
+      case "F32" ⇒
+        val r = out.BuiltinTypes.make()
+        r.setStid(6)
+        r.setName(name)
+        r
+      case "F64" ⇒
+        val r = out.BuiltinTypes.make()
+        r.setStid(7)
+        r.setName(name)
+        r
+      case "AnyRef" ⇒
+        val r = out.BuiltinTypes.make()
+        r.setStid(8)
+        r.setName(name)
+        r
+      case "String" ⇒
+        val r = out.BuiltinTypes.make()
+        r.setStid(9)
+        r.setName(name)
+        r
+
+      case _ ⇒
+        val ts = out.UserDefinedTypes.iterator()
+        while (ts.hasNext()) {
+          val r = ts.next
+          if (name == r.getName)
+            return r
+        }
+
+        throw new ParseException(s"Undeclared type ${name.getOgss}")
+    }
+  )
+
+  /**
+   * Normalize out, i.e.
+   * - initialize non-null container fields
+   * - create baseType
+   * - calculate subTypes
+   * - create unprojected TC
+   * - sort enums
+   * - create type names of compound types
+   * - set STIDs
+   * - set KCCs
+   *
+   * @note normalize assumes that WithInheritance is sorted in topological order
+   * @note normalize assumes that ContainerTypes is sorted in topological order
+   */
+  protected def normalize {
+    // normalize custom fields
+    {
+      val noArgs = new ArrayList[String]
+      for (c ← asScalaIterator(out.CustomFieldOptions.iterator()))
+        if (null == c.getArguments)
+          c.setArguments(noArgs)
+    }
+    {
+      val noOpts = new ArrayList[CustomFieldOption]
+      for (c ← asScalaIterator(out.CustomFields.iterator()))
+        if (null == c.getOptions)
+          c.setOptions(noOpts)
+    }
+
+    // normalize inheritance hierarchies
+    {
+      for (c ← asScalaIterator(out.WithInheritances.iterator())) {
+        if (null == c.getSuperType) {
+          c match {
+            case c : ClassDef ⇒ c.setBaseType(c)
+            case c : InterfaceDef ⇒
+              val bases = c.getSuperInterfaces.asScala.collect { case c if null != c.getBaseType ⇒ c.getBaseType }
+              if (bases.size >= 1)
+                reportError(s"Interface c has multiple base types: ${bases.map(_.getName.getOgss).mkString(", ")}")
+
+              bases.map(c.setBaseType(_))
+          }
+        } else {
+          c.setBaseType(c.getSuperType.getBaseType)
+          c.getSuperType.getSubTypes.add(c)
+        }
+        c.getSuperInterfaces.asScala.foreach(_.getSubTypes.add(c))
+
+        if (null == c.getCustoms)
+          c.setCustoms(new ArrayList)
+
+        if (null == c.getFields)
+          c.setFields(new ArrayList)
+
+        if (null == c.getViews)
+          c.setViews(new ArrayList)
+      }
+    }
+    val tc = out.TypeContexts.make()
+
+    // aliases require no further action
+    tc.setAliases(new ArrayList(asScalaIterator(out.TypeAliass.iterator()).toSeq.asJavaCollection))
+
+    // normalize enums
+    tc.setEnums(new ArrayList(
+      (for (c ← asScalaIterator(out.EnumDefs.iterator())) yield {
+        c.setValues(new ArrayList(c.getValues.asScala.sortBy(_.getName.getOgss).asJavaCollection))
+        c
+      }).toSeq.sortBy(_.getName.getOgss).asJavaCollection
+    ))
+
+    // interfaces are in topological order already
+    tc.setInterfaces(new ArrayList(asScalaIterator(out.InterfaceDefs.iterator()).toSeq.asJavaCollection))
+
+    // classes require complex sorting
+    val pathNameCache = new HashMap[ClassDef, String]
+    def pathName(cls : ClassDef) : String = {
+      if (null == cls.getSuperType)
+        cls.getName.getOgss
+      else {
+        pathNameCache.getOrElseUpdate(cls, pathName(cls.getSuperType) + "\0" + cls.getName.getOgss)
+      }
+    }
+
+    val classes = asScalaIterator(out.ClassDefs.iterator()).toSeq.map(c ⇒ (pathName(c), c)).sortBy(p ⇒ p._1).map(_._2)
+    tc.setClasses(new ArrayList(classes.asJavaCollection))
+
+    // sort containers by name and create names
+    tc.setContainers(new ArrayList(
+      (for (c ← asScalaIterator(out.ContainerTypes.iterator())) yield {
+        c.setName(c match {
+          case c : ArrayType ⇒ toIdentifier(s"${c.getBaseType.getName.getOgss}[]")
+          case c : ListType  ⇒ toIdentifier(s"list<${c.getBaseType.getName.getOgss}>")
+          case c : SetType   ⇒ toIdentifier(s"set<${c.getBaseType.getName.getOgss}>")
+          case c : MapType   ⇒ toIdentifier(s"map<${c.getKeyType.getName.getOgss},${c.getValueType.getName.getOgss}>")
+        })
+        c
+      }).toSeq.sortBy(c ⇒ (c.getName.getOgss.length(), c.getName.getOgss)).asJavaCollection
+    ))
+
+    // calculate variable STIDs
+    var nextSTID = 10
+    for (c ← asScalaBuffer(tc.getClasses)) {
+      c.setStid(nextSTID)
+      nextSTID += 1
+    }
+    for (c ← asScalaBuffer(tc.getContainers)) {
+      c.setStid(nextSTID)
+      nextSTID += 1
+    }
+    for (c ← asScalaBuffer(tc.getEnums)) {
+      c.setStid(nextSTID)
+      nextSTID += 1
+    }
+
+    // create byName
+    val tbn = new java.util.HashMap[String, Type]
+    tc.setByName(tbn)
+    for (c ← asScalaIterator(out.ContainerTypes.iterator()))
+      tbn.put(c.getName.getOgss, c)
   }
 }
