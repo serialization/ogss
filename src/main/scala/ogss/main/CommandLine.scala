@@ -89,6 +89,9 @@ object CommandLine {
         target.getName.endsWith(f.extension)
       }.getOrElse(error("no available front-end matches the file extension. Provide one explicitly via -F"))
 
+      if (null == depsdir)
+        depsdir = outdir
+
       // write IR to temporary file, so we do not have to care about misbehaving back-ends
       val tmpPath = File.createTempFile("ogss", ".oil")
       tmpPath.deleteOnExit()
