@@ -21,6 +21,8 @@ exportJars := true
 
 mainClass := Some("ogss.main.CommandLine")
 
+unmanagedResourceDirectories in Compile += { baseDirectory.value / "jar-extras" }
+
 
 libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.6"
 

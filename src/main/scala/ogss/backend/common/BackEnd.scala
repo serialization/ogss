@@ -28,6 +28,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.collection.JavaConverters._
 import ogss.util.IRUtils
 import scala.collection.mutable.HashSet
+import java.io.File
 
 /**
  * Base class of all back-ends.
@@ -74,7 +75,7 @@ abstract class BackEnd extends IRUtils {
   /**
    * Base path of dependencies copied by this generator.
    */
-  var depsPath : String = _;
+  var depsPath : File = _;
   /**
    * request the code generator to skip copying of dependencies
    * @note this is useful, for instance, as part of code regeneration in a build
@@ -109,6 +110,21 @@ abstract class BackEnd extends IRUtils {
    * Names of all types that shall accept the generated visitor
    */
   val visited = new HashSet[Identifier]
+
+  /**
+   * A list of file names relative to jar-extras/deps.
+   * Directories are copied recursively.
+   */
+  var dependencies : Seq[String] = Seq()
+
+  /**
+   * Ensure existence of dependencies
+   */
+  final def makeDeps {
+    if (!skipDependencies) {
+      DependenciesMaker.copyDeps(dependencies, depsPath)
+    }
+  }
 
   /**
    * Makes the output. Use trait stacking, i.e. traits must invoke super.make!!!

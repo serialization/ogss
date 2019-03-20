@@ -29,7 +29,6 @@ import ogss.oil.WithInheritance
 import ogss.util.HeaderInfo
 
 class Main extends AbstractBackEnd
-  with DependenciesMaker
   with EnumMaker
   with InterfacesMaker
   with InternalMaker
@@ -40,6 +39,8 @@ class Main extends AbstractBackEnd
 
   def name : String = "Java"
   def description = "Java source code"
+  
+  dependencies = Seq("ogss.common.jvm.jar", "ogss.common.java.jar")
 
   /**
    * Translates types into Java type names.

@@ -132,7 +132,7 @@ object CommandLine {
           backEnd.makeHeader(header.copy())
         )
         backEnd.files = printService
-        backEnd.depsPath = depsdir.getAbsolutePath + pathPostfix
+        backEnd.depsPath = new File(depsdir, pathPostfix)
         backEnd.skipDependencies = skipDeps
 
         for (id ← asScalaIterator(outIR.Identifiers.iterator()))
@@ -152,6 +152,7 @@ object CommandLine {
 
         try {
           backEnd.make
+          backEnd.makeDeps
           println("-done-")
         } catch {
           case e : IllegalStateException ⇒ println(s"-[FAILED: ${e.getMessage}]-");
