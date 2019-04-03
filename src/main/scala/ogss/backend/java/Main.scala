@@ -1,19 +1,18 @@
-/*
+/*******************************************************************************
  * Copyright 2019 University of Stuttgart, Germany
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *         http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License.  You may obtain a copy
+ * of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ ******************************************************************************/
 package ogss.backend.java
 
 import scala.collection.mutable.HashMap
@@ -27,7 +26,11 @@ import ogss.oil.SetType
 import ogss.oil.Type
 import ogss.oil.WithInheritance
 import ogss.util.HeaderInfo
+import ogss.oil.Field
 
+/**
+ * @author Timm Felden
+ */
 class Main extends AbstractBackEnd
   with EnumMaker
   with InterfacesMaker
@@ -37,9 +40,9 @@ class Main extends AbstractBackEnd
   with SubTypesMaker
   with VisitorMaker {
 
-  def name : String = "Java"
-  def description = "Java source code"
-  
+  override def name : String = "Java"
+  override def description = "Java source code"
+
   dependencies = Seq("ogss.common.jvm.jar", "ogss.common.java.jar")
 
   /**
@@ -99,26 +102,25 @@ class Main extends AbstractBackEnd
     case unknown            ⇒ sys.error(s"unkown Argument: $unknown")
   }
 
-  //  override def helpText : String = """
-  //revealID          true/false  if set to true, the generated binding will reveal object IDs in the API
-  //suppressWarnings  true/false  add a @SuppressWarnings("all") annotation to generated classes
-  //"""
-  //
-  //  override def customFieldManual : String = """
-  //!import string+    A list of imports that will be added where required.
-  //!modifier string   A modifier, that will be put in front of the variable declaration."""
-  //
-  //  override protected def defaultValue(f : Field) = {
-  //    val stid = f.getType.getStid
-  //    if (stid < 0 || 8 >= stid)
-  //      "null"
-  //    else if (0 == stid)
-  //      "false"
-  //    else if (stid < 6)
-  //      "0"
-  //    else
-  //      "0.0f"
-  //  }
+  override def describeOptions = Seq(
+    OptionDescription("suppressWarnings", "true/false", """add a @SuppressWarnings("all") annotation to generated classes""")
+  )
+
+  override def customFieldManual : String = """
+  !import string+    A list of imports that will be added where required.
+  !modifier string   A modifier, that will be put in front of the variable declaration."""
+
+  override protected def defaultValue(f : Field) = {
+    val stid = f.getType.getStid
+    if (stid < 0 || 8 >= stid)
+      "null"
+    else if (0 == stid)
+      "false"
+    else if (stid < 6)
+      "0"
+    else
+      "0.0f"
+  }
 
   /**
    * Tries to escape a string without decreasing the usability of the generated identifier.

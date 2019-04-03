@@ -1,19 +1,18 @@
-/*
+/*******************************************************************************
  * Copyright 2019 University of Stuttgart, Germany
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *         http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License.  You may obtain a copy
+ * of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ ******************************************************************************/
 package ogss.backend.common
 
 import ogss.oil.OGFile
@@ -29,6 +28,7 @@ import scala.collection.JavaConverters._
 import ogss.util.IRUtils
 import scala.collection.mutable.HashSet
 import java.io.File
+import ogss.oil.Field
 
 /**
  * Base class of all back-ends.
@@ -97,9 +97,24 @@ abstract class BackEnd extends IRUtils {
   def setPackage(names : List[String]) : Unit;
 
   /**
-   * Sets an option to a new value.
+   * Sets an option to a new value. The option is passed in lowercase. The value is as provided.
    */
   def setOption(option : String, value : String) : Unit;
+
+  /**
+   * Provide a descriptions for options supported by this back-end. Names are
+   * matched case-insensitive.
+   */
+  def describeOptions : Seq[OptionDescription] = Seq()
+  case class OptionDescription(val name : String, val values : String, val description : String);
+
+  /**
+   * Set a custom field manual. Override iff custom is supported by this language.
+   *
+   * @note the text returned may be multi line but shall be indented by two
+   * spaces in each line
+   */
+  def customFieldManual : String = null
 
   /**
    * The clean mode preferred by this back-end.
@@ -216,7 +231,7 @@ abstract class BackEnd extends IRUtils {
   /**
    * Translation of a type to its representation in the source code
    */
-  protected def name(t : Type) : String = escapedLonely(typeNameConvention match {
+  protected[backend] def name(t : Type) : String = escapedLonely(typeNameConvention match {
     case "ada"       ⇒ adaStyle(t.getName)
     case "c"         ⇒ cStyle(t.getName)
     case "camel"     ⇒ camel(t.getName)
@@ -236,4 +251,9 @@ abstract class BackEnd extends IRUtils {
     case "capital"   ⇒ capital(f.getName)
     case "lowercase" ⇒ lowercase(f.getName)
   })
+
+  /**
+   * The default value used for initialization of a given field
+   */
+  protected def defaultValue(f : Field) : String = ???
 }

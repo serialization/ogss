@@ -1,8 +1,18 @@
-/*  ___ _  ___ _ _                                                            *\
-** / __| |/ (_) | |       The SKilL Generator                                 **
-** \__ \ ' <| | | |__     (c) 2013-18 University of Stuttgart                 **
-** |___/_|\_\_|_|____|    see LICENSE                                         **
-\*                                                                            */
+/*******************************************************************************
+ * Copyright 2019 University of Stuttgart, Germany
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License.  You may obtain a copy
+ * of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ ******************************************************************************/
 package ogss.backend.java
 
 import scala.collection.JavaConverters._
@@ -29,7 +39,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import ogss.common.java.api.Mode;
-import ogss.common.java.api.SkillException;
+import ogss.common.java.api.OGSSException;
 import ogss.common.java.internal.KCC;
 import ogss.common.java.internal.Pool;
 import ogss.common.java.internal.StateInitializer;
@@ -47,38 +57,38 @@ ${
     }public final class OGFile extends ogss.common.java.internal.State {
 
     /**
-     * Create a new skill file based on argument path and mode.
+     * Create a new OGSS file based on argument path and mode.
      *
      * @throws IOException
      *             on IO and mode related errors
-     * @throws SkillException
+     * @throws OGSSException
      *             on file or specification consistency errors
      */
-    public static OGFile open(String path, Mode... mode) throws IOException, SkillException {
+    public static OGFile open(String path, Mode... mode) throws IOException, OGSSException {
         return new OGFile(StateInitializer.make(Paths.get(path), new internal.PB(), mode));
     }
 
     /**
-     * Create a new skill file based on argument path and mode.
+     * Create a new OGSS file based on argument path and mode.
      *
      * @throws IOException
      *             on IO and mode related errors
-     * @throws SkillException
+     * @throws OGSSException
      *             on file or specification consistency errors
      */
-    public static OGFile open(File path, Mode... mode) throws IOException, SkillException {
+    public static OGFile open(File path, Mode... mode) throws IOException, OGSSException {
         return new OGFile(StateInitializer.make(path.toPath(), new internal.PB(), mode));
     }
 
     /**
-     * Create a new skill file based on argument path and mode.
+     * Create a new OGSS file based on argument path and mode.
      *
      * @throws IOException
      *             on IO and mode related errors
-     * @throws SkillException
+     * @throws OGSSException
      *             on file or specification consistency errors
      */
-    public static OGFile open(Path path, Mode... mode) throws IOException, SkillException {
+    public static OGFile open(Path path, Mode... mode) throws IOException, OGSSException {
         return new OGFile(StateInitializer.make(path, new internal.PB(), mode));
     }${
       (for (t ← IR) yield s"""
@@ -138,7 +148,7 @@ ${
    */
   protected final def interfacePool(t : InterfaceDef) : String =
     if (null == t.getSuperType)
-      s"de.ust.skill.common.java.internal.UnrootedInterfacePool<${mapType(t)}>"
+      s"ogss.common.java.internal.UnrootedInterfacePool<${mapType(t)}>"
     else
-      s"de.ust.skill.common.java.internal.InterfacePool<${mapType(t)}, ${mapType(t.getBaseType)}>"
+      s"ogss.common.java.internal.InterfacePool<${mapType(t)}, ${mapType(t.getBaseType)}>"
 }

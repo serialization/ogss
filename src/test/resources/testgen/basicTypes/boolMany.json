@@ -1,0 +1,365 @@
+{
+	"obj" : {
+	    "v1" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v2" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v3" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    },
+	    "v4" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v5" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v6" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    },
+	    "v7" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    },
+	    "v8" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v9" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    },
+	    "v11" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v12" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v13" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    },
+	    "v14" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v15" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v16" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    },
+	    "v17" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    },
+	    "v18" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v19" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    },
+	    "v21" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v22" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v23" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    },
+	    "v24" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v25" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v26" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    },
+	    "v27" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    },
+	    "v28" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v29" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    },
+	    "v31" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v32" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v33" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    },
+	    "v34" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v35" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v36" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    },
+	    "v37" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    },
+	    "v38" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v39" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    },
+	    "v41" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v42" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v43" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    },
+	    "v44" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v45" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v46" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    },
+	    "v47" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    },
+	    "v48" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v49" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    },
+	    "v51" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v52" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v53" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    },
+	    "v54" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v55" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v56" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    },
+	    "v57" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    },
+	    "v58" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v59" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    },
+	    "v61" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v62" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v63" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    },
+	    "v64" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v65" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v66" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    },
+	    "v67" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    },
+	    "v68" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v69" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    },
+	    "v71" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v72" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v73" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    },
+	    "v74" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v75" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v76" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    },
+	    "v77" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    },
+	    "v78" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "v79" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    }
+	}
+}
+

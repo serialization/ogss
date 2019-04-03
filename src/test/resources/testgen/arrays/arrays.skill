@@ -1,0 +1,6 @@
+#! arrays
+
+Arr { 
+  v64[] a;
+  Arr[] r;
+}

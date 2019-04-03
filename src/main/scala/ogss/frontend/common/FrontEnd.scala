@@ -1,19 +1,18 @@
-/*
+/*******************************************************************************
  * Copyright 2019 University of Stuttgart, Germany
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *         http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License.  You may obtain a copy
+ * of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ ******************************************************************************/
 package ogss.frontend.common
 
 import java.io.File
@@ -45,6 +44,7 @@ import scala.collection.mutable.HashSet
  * @note All Front-Ends must provide a default constructor.
  */
 abstract class FrontEnd {
+
   /**
    * The result of this front-end.
    *
@@ -316,20 +316,20 @@ abstract class FrontEnd {
   protected def normalize {
     // ensure existence of builtin types
     {
-      var builtins = asScalaIterator(out.BuiltinTypes.iterator()).map(_.getStid).toSet
+      var builtins = out.BuiltinTypes.asScala.map(_.getStid).toSet
       for (i ← 0 until 10)
         if (!builtins(i))
           i match {
-            case 0 ⇒ makeNamedType(toIdentifier("bool"))
-            case 1 ⇒ makeNamedType(toIdentifier("i8"))
-            case 2 ⇒ makeNamedType(toIdentifier("i16"))
-            case 3 ⇒ makeNamedType(toIdentifier("i32"))
-            case 4 ⇒ makeNamedType(toIdentifier("i64"))
-            case 5 ⇒ makeNamedType(toIdentifier("v64"))
-            case 6 ⇒ makeNamedType(toIdentifier("f32"))
-            case 7 ⇒ makeNamedType(toIdentifier("f64"))
-            case 8 ⇒ makeNamedType(toIdentifier("anyRef"))
-            case 9 ⇒ makeNamedType(toIdentifier("string"))
+            case 0 ⇒ makeNamedType(toIdentifier("Bool"))
+            case 1 ⇒ makeNamedType(toIdentifier("I8"))
+            case 2 ⇒ makeNamedType(toIdentifier("I16"))
+            case 3 ⇒ makeNamedType(toIdentifier("I32"))
+            case 4 ⇒ makeNamedType(toIdentifier("I64"))
+            case 5 ⇒ makeNamedType(toIdentifier("V64"))
+            case 6 ⇒ makeNamedType(toIdentifier("F32"))
+            case 7 ⇒ makeNamedType(toIdentifier("F64"))
+            case 8 ⇒ makeNamedType(toIdentifier("AnyRef"))
+            case 9 ⇒ makeNamedType(toIdentifier("String"))
           }
     }
 
@@ -441,16 +441,19 @@ abstract class FrontEnd {
     tc.setClasses(new ArrayList(classes.asJavaCollection))
 
     // sort containers by name and create names
-    tc.setContainers(new ArrayList(
-      (for (c ← asScalaIterator(out.ContainerTypes.iterator())) yield {
+    def ensureName(c : Type) : String = {
+      if (null == c.getName)
         c.setName(c match {
-          case c : ArrayType ⇒ toIdentifier(s"${c.getBaseType.getName.getOgss}[]")
-          case c : ListType  ⇒ toIdentifier(s"list<${c.getBaseType.getName.getOgss}>")
-          case c : SetType   ⇒ toIdentifier(s"set<${c.getBaseType.getName.getOgss}>")
-          case c : MapType   ⇒ toIdentifier(s"map<${c.getKeyType.getName.getOgss},${c.getValueType.getName.getOgss}>")
+          case c : ArrayType ⇒ toIdentifier(s"${ensureName(c.getBaseType)}[]")
+          case c : ListType  ⇒ toIdentifier(s"list<${ensureName(c.getBaseType)}>")
+          case c : SetType   ⇒ toIdentifier(s"set<${ensureName(c.getBaseType)}>")
+          case c : MapType   ⇒ toIdentifier(s"map<${ensureName(c.getKeyType)},${ensureName(c.getValueType)}>")
         })
-        c
-      }).toSeq.sortBy(c ⇒ (c.getName.getOgss.length(), c.getName.getOgss)).asJavaCollection
+      c.getName.getOgss
+    }
+    out.ContainerTypes.asScala.foreach(ensureName)
+    tc.setContainers(new ArrayList(
+      out.ContainerTypes.asScala.toSeq.sortBy(c ⇒ (c.getName.getOgss.length(), c.getName.getOgss)).asJavaCollection
     ))
 
     // calculate variable STIDs
@@ -459,7 +462,7 @@ abstract class FrontEnd {
     // create byName
     val tbn = new java.util.HashMap[String, Type]
     tc.setByName(tbn)
-    for (c ← asScalaIterator(out.Types.iterator()))
+    for (c ← out.Types.asScala)
       tbn.put(c.getName.getOgss, c)
   }
 }

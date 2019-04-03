@@ -1,0 +1,9 @@
+#! enumrestrictionUsertype
+
+/**
+ * @author stiesssh
+*/
+
+Farbe {
+	i8 rot;
+}

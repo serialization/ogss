@@ -1,3 +1,18 @@
+/*******************************************************************************
+ * Copyright 2019 University of Stuttgart, Germany
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License.  You may obtain a copy
+ * of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ ******************************************************************************/
 package ogss.util
 
 import java.util.ArrayList
@@ -23,6 +38,7 @@ import ogss.oil.CustomField
 import ogss.oil.View
 import ogss.oil.TypeAlias
 import ogss.oil.ContainerType
+import ogss.main.CommandLine
 
 /**
  * Takes an unprojected .oil-file and creates interface and typedef
@@ -260,7 +276,7 @@ class Projections(sg : OGFile) {
   private def copy(f : Field, typeMap : HashMap[Type, Type]) : Field = {
     val r = sg.Fields.make()
     r.setIsTransient(f.getIsTransient)
-    r.setType(typeMap(f.getType))
+    r.setType(typeMap.getOrElseUpdate(f.getType, CommandLine.error("internal error")))
     r.setComment(f.getComment)
     r.setName(f.getName)
     r
@@ -344,7 +360,7 @@ class Projections(sg : OGFile) {
   private def makeTBN(to : TypeContext) {
     val tbn = new java.util.HashMap[String, Type]
     to.setByName(tbn)
-    for (c ← asScalaIterator(sg.BuiltinTypes.iterator()))
+    for (c ← sg.BuiltinTypes.asScala)
       tbn.put(c.getName.getOgss, c)
     for (c ← to.getAliases.asScala)
       tbn.put(c.getName.getOgss, c)

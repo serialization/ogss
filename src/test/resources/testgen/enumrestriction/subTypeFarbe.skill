@@ -1,0 +1,13 @@
+#! enumrestrictionSubtype
+
+/**
+ * @author stiesssh
+*/
+
+GeneralFarbe {
+	i8 rot;
+}
+
+Farbe extends GeneralFarbe {
+	i8 gelb;
+}

@@ -1,0 +1,9 @@
+#! enumrestrictionEnumtype
+
+/**
+ * @author stiesssh
+*/
+
+enum Farbe {
+	rot;
+}

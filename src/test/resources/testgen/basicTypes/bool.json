@@ -1,0 +1,15 @@
+{
+	"obj" : {
+	    "b1" : {
+	        "BasicBool" : {
+	            "basicBool" : false
+	        }
+	    },
+	    "b2" : {
+	        "BasicBool" : {
+	            "basicBool" : true
+	        }
+	    }
+	}
+}
+

@@ -1,0 +1,23 @@
+#! completeEnum
+
+# Specification for TR15§8.6
+
+/**
+ * @author stiesssh
+ */
+enum Farbe {
+	rot, weiss, blau, gelb;
+}
+
+enum Brot {
+	roggen, weiss;
+}
+
+Typ {
+	Farbe farb;
+	Brot brot;
+}
+
+Ding {
+	Brot brot;
+}
