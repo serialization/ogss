@@ -28,6 +28,7 @@ import scala.collection.JavaConverters.asScalaIterator
 import ogss.util.IRUtils
 import ogss.util.Projections
 import scopt.OptionDef
+import ogss.util.IRChecks
 
 object CommandLine {
 
@@ -109,7 +110,7 @@ object CommandLine {
       frontEnd.run(target)
       val IR = frontEnd.out
 
-      // TODO check IR
+      IRChecks.check(IR)
 
       // ensure that we do not modify an existing file accidentally
       if (IR.currentPath() != tmpPath.toPath()) {
