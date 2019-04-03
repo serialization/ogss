@@ -77,6 +77,8 @@ $endGuard""")
     val out = files.open("File.cpp")
 
     out.write(s"""
+#include <cstddef>
+
 #include <ogss/internal/PoolBuilder.h>
 #include <ogss/internal/StateInitializer.h>
 
@@ -160,6 +162,18 @@ ${packageParts.map(_ ⇒ "}").mkString}
 $packageName::api::File *$packageName::api::File::open(const std::string &path, int mode) {
     $packageName::internal::PB pb;
     return new $packageName::api::File(::ogss::internal::StateInitializer::make(path, pb, mode));
+}
+
+$packageName::api::File::File(::ogss::internal::StateInitializer *init)
+        : ::ogss::api::File(init)${
+      (for (t ← IR)
+        yield s""",
+        ${name(t)}((internal::${access(t)} *) init->SIFA[${t.getStid}])""").mkString
+    } {${
+      (for (t ← IR)
+        yield s"""
+    static_assert(offsetof($packageName::api::File, ${name(t)}) == offsetof(::ogss::api::File, SIFA[${t.getStid}-10]), "your compiler chose an ill-formed object layout");""").mkString
+    }
 }
 """)
 
