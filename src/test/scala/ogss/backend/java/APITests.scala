@@ -127,7 +127,7 @@ public class Generic${name}Test extends common.CommonTest {
     out.write(s"""
     @Test${if (accept) "" else "(expected = OGSSException.class)"}
     public void APITest_${escaped(kind)}_${name}_${if (accept) "acc" else "fail"}_${escaped(testName)}() throws Exception {
-        OGFile sf = OGFile.open(tmpFile("$testName.sf"), Mode.Create, Mode.Write);
+        OGFile sf = OGFile.open(tmpFile("$testName.sg"), Mode.Create, Mode.Write);
 
         // create objects${createObjects(obj, tc, name)}
         // set fields${setFields(obj, tc)}

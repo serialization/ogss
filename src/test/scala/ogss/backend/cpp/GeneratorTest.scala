@@ -39,6 +39,6 @@ class GeneratorTest extends FunSuite {
   // use this test to check that build without reveal skillID can be performed
   test("aircraft")(check("aircraft.skill", "aircraft"))
 
-  // test for nested namespaces
+  // test nested namespaces
   test("aircraft -- nested")(check("aircraft.skill", "air.craft"))
 }

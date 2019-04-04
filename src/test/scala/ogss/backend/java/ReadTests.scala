@@ -90,39 +90,6 @@ public class Generic${name}Test extends common.CommonTest {
     public OGFile read(String s) throws Exception {
         return OGFile.open("../../" + s, Mode.Read, Mode.ReadOnly);
     }
-
-/*    @Test
-    public void writeRandomGraph() throws Exception {
-        Path path = tmpFile("write.generic");
-        try (SkillFile sf = SkillFile.open(path)) {
-            reflectiveInit(sf);
-        }
-    }
-
-    @Test
-    public void writeRandomGraphChecked() throws Exception {
-        Path path = tmpFile("write.generic.checked");
-
-        // create a name -> type map
-        Map<String, Access<? extends SkillObject>> types = new HashMap<>();
-        try (SkillFile sf = SkillFile.open(path)) {
-            reflectiveInit(sf);
-
-            for (Access<?> t : sf.allTypes())
-                types.put(t.name(), t);
-        }
-
-        // read file and check skill IDs
-        SkillFile sf2 = SkillFile.open(path, Mode.Read);
-        for (Access<?> t : sf2.allTypes()) {
-            Iterator<? extends SkillObject> os = types.get(t.name()).iterator();
-            for (SkillObject o : t) {
-                Assert.assertTrue("to few instances in read stat", os.hasNext());
-                Assert.assertEquals(o.getSkillID(), os.next().getSkillID());
-            }
-            Assert.assertFalse("to many instances in read stat", os.hasNext());
-        }
-    }*/
 """)
     rval
   }

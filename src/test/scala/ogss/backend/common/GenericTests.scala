@@ -73,7 +73,7 @@ abstract class GenericTests extends FunSuite with BeforeAndAfterAll {
     val targets = (
       collect(new File(base, "[[all]]"))
       ++ collect(if (new File(base, name).exists) new File(base, name) else new File(base, "[[empty]]"))
-    ).filter(_.getName.endsWith(".sf")).sortBy(_.getName)
+    ).filter(_.getName.endsWith(".sg")).sortBy(_.getName)
 
     targets.partition(_.getPath.contains("accept"))
   }
