@@ -30,6 +30,8 @@ trait TypesMaker extends AbstractBackEnd {
 
       // package
       out.write(s"""package ${this.packageName};
+
+import ogss.common.java.internal.EnumProxy;
 ${
         customizations.flatMap(
           _.getOptions.asScala.find(_.getName.equals("import")).toSeq.flatMap(_.getArguments.asScala)
@@ -118,7 +120,7 @@ ${
     }
     ${comment(f)}final public $enumF ${getter(f)}AsEnum() {
         if (null == $nameF)
-            return ($enumF) ($nameF = $enumF.${capital(f.getType.asInstanceOf[EnumDef].getValues.get(0).getName)}});
+            return ($enumF) ($nameF = $enumF.${capital(f.getType.asInstanceOf[EnumDef].getValues.get(0).getName)});
         if ($nameF instanceof EnumProxy<?>)
             return (($typeF) $nameF).target;
         return ($enumF) $nameF;
