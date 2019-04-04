@@ -58,7 +58,7 @@ final class Main extends AbstractBackEnd
    */
   override def mapType(t : Type) : String = t match {
     case t : BuiltinType ⇒ t.getName.getOgss match {
-      case "AnyRef" ⇒ "::skill::api::Object*"
+      case "AnyRef" ⇒ "::ogss::api::Object*"
 
       case "Bool"   ⇒ "bool"
 
@@ -71,13 +71,13 @@ final class Main extends AbstractBackEnd
       case "F32"    ⇒ "float"
       case "F64"    ⇒ "double"
 
-      case "String" ⇒ "::skill::api::String"
+      case "String" ⇒ "::ogss::api::String"
     }
 
-    case t : ArrayType ⇒ s"::skill::api::Array<${mapType(t.getBaseType())}>*"
-    case t : ListType  ⇒ s"::skill::api::Array<${mapType(t.getBaseType())}>*"
-    case t : SetType   ⇒ s"::skill::api::Set<${mapType(t.getBaseType())}>*"
-    case t : MapType   ⇒ s"::skill::api::Map<${mapType(t.getKeyType)}, ${mapType(t.getValueType)}>*"
+    case t : ArrayType ⇒ s"::ogss::api::Array<${mapType(t.getBaseType())}>*"
+    case t : ListType  ⇒ s"::ogss::api::Array<${mapType(t.getBaseType())}>*"
+    case t : SetType   ⇒ s"::ogss::api::Set<${mapType(t.getBaseType())}>*"
+    case t : MapType   ⇒ s"::ogss::api::Map<${mapType(t.getKeyType)}, ${mapType(t.getValueType)}>*"
 
     case t : ClassDef  ⇒ s"$packageName::${name(t)}*"
 
@@ -87,9 +87,10 @@ final class Main extends AbstractBackEnd
   override protected def unbox(t : Type) : String = t match {
 
     case t : BuiltinType ⇒ t.getName.getOgss match {
-      case "Bool" ⇒ "boolean"
-      case "V64"  ⇒ "i64"
-      case t      ⇒ t;
+      case "AnyRef" ⇒ "anyRef"
+      case "Bool"   ⇒ "boolean"
+      case "V64"    ⇒ "i64"
+      case t        ⇒ t.toLowerCase();
     }
 
     case t : ArrayType ⇒ "array"
@@ -116,7 +117,7 @@ final class Main extends AbstractBackEnd
 
   override def setOption(option : String, value : String) {
     option match {
-      case "revealid"   ⇒ revealObjectID = ("true".equals(value))
+      case "revealid"        ⇒ revealObjectID = ("true".equals(value))
       case "interfacechecks" ⇒ interfaceChecks = ("true".equals(value))
       case unknown           ⇒ sys.error(s"unkown Argument: $unknown")
     }
@@ -131,8 +132,6 @@ final class Main extends AbstractBackEnd
   !include string+    Argument strings are added to the head of the generated file and included using
                       <> around the strings content.
   !default string     Text to be inserted as replacement for default initialization."""
-
-  
 
   /**
    * Tries to escape a string without decreasing the usability of the generated identifier.
@@ -186,7 +185,7 @@ object EscapeFunction {
       | "using" | "const_cast" | "inline" | "public" | "throw" | "virtual" | "delete" | "mutable" | "protected"
       | "true" | "wchar_t" | "and" | "bitand" | "compl" | "not_eq" | "or_eq" | "xor_eq" | "and_eq" | "bitor" | "not"
       | "or" | "xor" | "cin" | "endl" | "INT_MIN" | "iomanip" | "main" | "npos" | "std" | "cout" | "include"
-      | "INT_MAX" | "iostream" | "MAX_RAND" | "NULL" | "string" ⇒ s"_$target"
+      | "INT_MAX" | "iostream" | "MAX_RAND" | "NULL" | "string" | "stid" ⇒ s"_$target"
 
     case t if t.forall(c ⇒ '_' == c || Character.isLetterOrDigit(c)) ⇒ t
 

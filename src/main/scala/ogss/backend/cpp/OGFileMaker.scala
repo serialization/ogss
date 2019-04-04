@@ -108,12 +108,14 @@ ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}
     }
             }
 
-            ogss::fieldTypes::HullType *makeKCC(uint32_t kcc) const final {
+            ogss::fieldTypes::HullType *makeContainer(uint32_t kcc, ::ogss::TypeID tid,
+                                                      ogss::fieldTypes::FieldType *kb1,
+                                                      ogss::fieldTypes::FieldType *kb2) const final {
                 ${
       if (types.getContainers.isEmpty) "return nullptr;"
       else types.getContainers.asScala.map {
         case ct ⇒ s"""
-                    case ${ct.getKcc()}: return SK_TODO;"""
+                    case ${ct.getKcc()}: SK_TODO;"""
       }.mkString.mkString("""switch (kcc) {""", "", """
                     default: return nullptr;
                 }""")

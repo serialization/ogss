@@ -170,7 +170,10 @@ trait AbstractBackEnd extends BackEnd {
   /**
    * all string literals used in type and field names
    */
-  protected lazy val allStrings = IR.map(_.getName).toSet ++ IR.flatMap(_.getFields.asScala).map(_.getName).toSet
+  protected lazy val allStrings = (IR.map(_.getName).toSet ++
+    IR.flatMap(_.getFields.asScala).map(_.getName).toSet ++
+    types.getEnums.asScala.map(_.getName).toSet ++
+    types.getEnums.asScala.flatMap(_.getValues.asScala).map(_.getName).toSet)
 
   /**
    * start a guard word for a file

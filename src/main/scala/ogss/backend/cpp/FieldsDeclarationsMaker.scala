@@ -64,8 +64,6 @@ ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}
       }
                     ::ogss::internal::AbstractPool *const owner);
 
-            virtual bool check() const;
-
             virtual ::ogss::api::Box getR(const ::ogss::api::Object *i) {
                 return ::ogss::api::box(((${mapType(t)})i)->${name(f)});
             }
@@ -73,11 +71,17 @@ ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}
             virtual void setR(::ogss::api::Object *i, ::ogss::api::Box v) {
                 ((${mapType(t)})i)->${name(f)} = (${mapType(f.getType)})v.${unbox(f.getType)};
             }
+${
+        if (f.getIsTransient) ""
+        else """
+            virtual bool check() const;
 
     protected:
             void read(int i, int last, ::ogss::streams::MappedInStream &in) const final;
 
             bool write(int i, int last, ::ogss::streams::BufferedOutStream &out) const final;
+"""
+      }
         };""").mkString)
 
       out.write(s"""
@@ -96,15 +100,22 @@ $endGuard""")
       val out = files.open(s"${name(base)}FieldDeclarations.cpp")
 
       out.write(s"""
+#include <ogss/fieldTypes/ArrayType.h>
+#include <ogss/fieldTypes/ListType.h>
+#include <ogss/fieldTypes/SetType.h>
+#include <ogss/fieldTypes/MapType.h>
+
 #include "${name(base)}FieldDeclarations.h"
 #include "Pools.h"
 ${
         (for (t ← IR if base == t.getBaseType; f ← t.getFields.asScala) yield {
+          val autoFieldIndex : Map[Field, Int] = t.getFields.asScala.filter(_.getIsTransient).zipWithIndex.toMap
+
           val tIsBaseType = t.getSuperType == null
 
           val fieldName = s"$packageName::internal::${knownField(f)}"
           val accessI = s"d[i]->${name(f)}"
-          val readI = s"$accessI = ${readType(f.getType, accessI)};"
+          val readI = s"$accessI = ${readType(f.getType)};"
           s"""
 $fieldName::${knownField(f)}(
         const ::ogss::fieldTypes::FieldType *const type,${
@@ -114,7 +125,7 @@ $fieldName::${knownField(f)}(
           }
         ::ogss::internal::AbstractPool *const owner)
         : ${
-            if (f.getIsTransient) "AutoField(type, name, SK_TODO, owner)"
+            if (f.getIsTransient) s"AutoField(type, name, ${-1 - autoFieldIndex(f)}, owner)"
             else "DataField(type, name, index, owner)"
           } {
 }
@@ -137,24 +148,23 @@ bool $fieldName::write(int i, const int last, ::ogss::streams::BufferedOutStream
     return drop;
 }
 
-"""
-          }
 bool $fieldName::check() const {
 ${
-            val checks = "" /*(for (r ← f.getRestrictions)
+              val checks = "" /*(for (r ← f.getRestrictions)
               yield checkRestriction(f.getType, r)).mkString;*/
 
-            s"""
+              s"""
     ${access(t)} *p = (${access(t)} *) owner;
     for (const auto& i : *p) {
         const auto v = i.${name(f)};
 $checks
     }
 """
-          }
+            }
     return true;
 }
 """
+          }"""
         }).mkString
       }""")
 
@@ -167,21 +177,20 @@ $checks
    *
    * @note accessI is only used to create inner maps correctly
    */
-  private final def readType(t : Type, typ : String = "type") : String = t match {
+  private final def readType(t : Type) : String = t match {
     case t : BuiltinType ⇒ lowercase(t.getName) match {
-      case "anyref" ⇒ s"$typ->read(in).anyRef"
-      case "string" ⇒ s"$typ->read(in).string"
+      case "anyref" ⇒ s"type->r(in).anyRef"
+      case "string" ⇒ s"type->r(in).string"
       case "bool"   ⇒ "in.boolean()"
       case t        ⇒ s"in.$t()"
     }
 
-    case t : ArrayType ⇒ s"((ogss::fieldTypes::ArrayType*)$typ)->read<${mapType(t.getBaseType)}>(*in)"
-    case t : ListType  ⇒ s"((ogss::fieldTypes::ListType*)$typ)->read<${mapType(t.getBaseType)}>(*in)"
-    case t : SetType   ⇒ s"((ogss::fieldTypes::SetType*)$typ)->read<${mapType(t.getBaseType)}>(*in)"
-    case t : MapType   ⇒ s"((ogss::fieldTypes::MapType*)$typ)->read<${mapType(t.getKeyType)}, ${mapType(t.getValueType)}>(*in)"
+    case t : ArrayType ⇒ s"((ogss::fieldTypes::ArrayType<${mapType(t.getBaseType())}>*)type)->read(in)"
+    case t : ListType  ⇒ s"((ogss::fieldTypes::ListType<${mapType(t.getBaseType())}>*)type)->read(in)"
+    case t : SetType   ⇒ s"((ogss::fieldTypes::SetType<${mapType(t.getBaseType())}>*)type)->read(in)"
+    case t : MapType   ⇒ s"((ogss::fieldTypes::MapType<${mapType(t.getKeyType())}, ${mapType(t.getValueType())}>*)type)->read(in)"
 
-    //case t : UserType ⇒ s"    val t = this.t.asInstanceOf[${storagePool(t)}]"
-    case _             ⇒ s"(${mapType(t)})$typ->read(in).${unbox(t)}"
+    case _             ⇒ s"(${mapType(t)})type->r(in).${unbox(t)}"
   }
 
   private final def hex(t : Type, x : Long) : String = {
@@ -201,7 +210,7 @@ $checks
     case t : BuiltinType ⇒ lowercase(t.getName) match {
       case "anyref" | "string" ⇒ s"""const auto v = $accessI;
             if (v) {
-                type->write(out, ::ogss::box(v));
+                type->w(::ogss::box(v), out);
                 drop = false;
             } else
                 out.i8(0);"""
@@ -210,15 +219,14 @@ $checks
     }
 
     case t : ClassDef ⇒ s"""${mapType(t)} v = $accessI;
-            if (v) {
-                out->v64(ogssID(v));
-                drop = false;
-            } else
-                out->i8(0);"""
+        if (v) {
+            out.v64(objectID(v));
+            drop = false;
+        } else
+            out.i8(0);"""
 
-    case t : ListType ⇒ s"drop &= ((ogss::fieldTypes::ListType*)type)->write<${mapType(t.getBaseType)}>(out, $accessI);"
+    case t : ListType ⇒ s"drop &= ((ogss::fieldTypes::ListType<${mapType(t.getBaseType())}>*)type)->w(::ogss::box($accessI), out);"
 
-    case _ ⇒ s"""auto b = ::ogss::box($accessI);
-            drop &= type->write(out, b);"""
+    case _            ⇒ s"""drop &= type->w(::ogss::box($accessI), out);"""
   }
 }

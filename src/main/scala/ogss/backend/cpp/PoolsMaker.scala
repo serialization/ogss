@@ -69,7 +69,7 @@ namespace internal {
             yield s"""
 
         B* ${name(f)}(${mapType(f.getType)} ${name(f)}) {
-            ((T)self)->${name(f)} = ${name(f)};
+            ((T)this->self)->${name(f)} = ${name(f)};
             return (B*)this;
         }""").mkString
         }
@@ -81,9 +81,7 @@ namespace internal {
     };
     template<class T>
     struct ${builder(t)}_IMPL final : public ${builder(t)}<T, ${builder(t)}_IMPL<T> > {
-    protected:
         ${builder(t)}_IMPL(::ogss::api::Object* self) : ${builder(t)}<T, ${builder(t)}_IMPL<T> > (self) {}
-        friend struct ${access(t)};
     };
 """)
 
@@ -92,73 +90,33 @@ namespace internal {
     struct ${access(t)} final : public ::ogss::internal::Pool<$typeName> {
         ${access(t)}(::ogss::TypeID typeID${
         if (t.getSuperType == null) ""
-        else s", AbstractStoragePool *superPool"
+        else s", AbstractPool *superPool"
       }, ::std::unordered_set<::ogss::restrictions::TypeRestriction *> *restrictions)
                 : ::ogss::internal::Pool<$typeName>(typeID, ${
         if (t.getSuperType == null) "nullptr"
         else s"superPool"
       }, ${skName(t.getName)}, restrictions, ${fields.count(_.getIsTransient)}) { }
 
-    ${builder(t)}_IMPL<$typeT>* build() {
-        return new ${builder(t)}_IMPL<$typeT>(make());
-    }
+        ${builder(t)}_IMPL<$typeT>* build() {
+            return new ${builder(t)}_IMPL<$typeT>(make());
+        }
 
     protected:
 ${
         if (fields.isEmpty) ""
         else s"""
-        ::ogss::api::String KFN(int id) override {
-            switch (id) {${
-          fields.zipWithIndex.map {
-            case (f, i) ⇒ s"""
-                case $i: return ${skName(f.getName)};"""
-          }.mkString
-        }
-                default: return nullptr;
-            }
-        }
-
-        ::ogss::internal::FieldDeclaration *KFC(int id, FieldType **SIFA, ::ogss::TypeID nextFID) override {
-            switch (id) {${
-          fields.zipWithIndex.map {
-            case (f, i) ⇒ s"""
-                case $i: return new ${knownField(f)}(SIFA[${f.getType.getStid}], ${
-              if (f.getIsTransient) ""
-              else "nextFID, "
-            }this);"""
-          }.mkString
-        }
-                default: return nullptr;
-            }
-        }"""
+        ::ogss::api::String KFN(uint32_t id) const override;
+        ::ogss::internal::FieldDeclaration *KFC(uint32_t id, FieldType **SIFA, ::ogss::TypeID nextFID) override;"""
       }${
         if (t.getSubTypes.isEmpty) ""
         else s"""
-
-        String* nameSub() override {
-            switch (id) {${
-          t.getSubTypes.asScala.zipWithIndex.map {
-            case (s, i) ⇒ s"""
-            case $i: return "${ogssname(s)}";"""
-          }.mkString
-        }
-            default: return null;
-            }
-        }
-        ::ogss::internal::AbstractPool* makeSub(int id, ::ogss::TypeID idx) override {
-            switch (id) {${
-          t.getSubTypes.asScala.collect { case t : ClassDef ⇒ t }.zipWithIndex.map {
-            case (s, i) ⇒ s"""
-            case $i: return new ${access(s)}(idx, this);"""
-          }.mkString
-        }
-            default: return null;
-            }
-        }
+        ::ogss::api::String nameSub(uint32_t id) const override;
+        ::ogss::internal::AbstractPool* makeSub(uint32_t id, ::ogss::TypeID index,
+                                                std::unordered_set<::ogss::restrictions::TypeRestriction *> *restrictions) override;
 """
       }
         ::ogss::internal::AbstractPool *makeSub(::ogss::TypeID typeID, ::ogss::api::String name,
-                                     ::std::unordered_set<::ogss::restrictions::TypeRestriction *> *restrictions) {
+                                                ::std::unordered_set<::ogss::restrictions::TypeRestriction *> *restrictions) override {
             return new ::ogss::internal::SubPool<${typeName}_UnknownSubType>(
                     typeID, this, name, restrictions);
         }
@@ -168,6 +126,92 @@ ${
     out.write(s"""
 }${packageParts.map(_ ⇒ "}").mkString}
 $endGuard""")
+    out.close()
+
+    makeSource
+  }
+
+  private def makeSource {
+    // we only need a source file, if there is a field or a subtype
+    if (IR.forall(_.getFields.isEmpty()) && IR.forall(_.getSuperType == null))
+      return ;
+
+    val out = files.open(s"Pools.cpp")
+
+    out.write(s"""
+#include "Pools.h"
+#include "StringKeeper.h"
+${
+      (for (t ← IR) yield {
+        val poolName = packageName + "::internal::" + access(t)
+        val typeT = mapType(t)
+        val fields = t.getFields.asScala
+
+        s"""${
+          if (fields.isEmpty) ""
+          else s"""
+::ogss::api::String ($poolName::KFN)(uint32_t id) const {
+    ::ogss::api::String r;
+    switch (id) {${
+            fields.zipWithIndex.map {
+              case (f, i) ⇒ s"""
+        case $i: r = $packageName::${skName(f.getName)}; break;"""
+            }.mkString
+          }
+        default: r = nullptr;
+    }
+    return r;
+}
+
+::ogss::internal::FieldDeclaration *$poolName::KFC(uint32_t id, ::ogss::fieldTypes::FieldType **SIFA, ::ogss::TypeID nextFID) {
+    ::ogss::internal::FieldDeclaration *r;
+    switch (id) {${
+            fields.zipWithIndex.map {
+              case (f, i) ⇒ s"""
+        case $i: r = new $packageName::internal::${knownField(f)}(SIFA[${f.getType.getStid}], ${
+                if (f.getIsTransient) ""
+                else "nextFID, "
+              }this); break;"""
+            }.mkString
+          }
+        default: r = nullptr;
+    }
+    return r;
+}"""
+        }${
+          if (t.getSubTypes.isEmpty) ""
+          else s"""
+
+::ogss::api::String ($poolName::nameSub)(uint32_t id) const {
+    ::ogss::api::String r;
+    switch (id) {${
+            t.getSubTypes.asScala.zipWithIndex.map {
+              case (s, i) ⇒ s"""
+        case $i: r = $packageName::${skName(s.getName)}; break;"""
+            }.mkString
+          }
+        default: r = nullptr;
+    }
+    return r;
+}
+::ogss::internal::AbstractPool* $poolName::makeSub(uint32_t id, ::ogss::TypeID index,
+                                          std::unordered_set<::ogss::restrictions::TypeRestriction *> *restrictions) {
+    ::ogss::internal::AbstractPool *r;
+    switch (id) {${
+            t.getSubTypes.asScala.collect { case t : ClassDef ⇒ t }.zipWithIndex.map {
+              case (s, i) ⇒ s"""
+        case $i: r = new $packageName::internal::${access(s)}(index, this, restrictions); break;"""
+            }.mkString
+          }
+        default: r = nullptr;
+    }
+    return r;
+}
+"""
+        }"""
+      }).mkString
+    }""")
+
     out.close()
   }
 
