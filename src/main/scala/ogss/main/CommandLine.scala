@@ -98,7 +98,7 @@ object CommandLine {
     def build {
       // find and execute correct frond-end
       val frontEnd = KnownFrontEnds.forFile(target)
-      
+
       if (null == depsdir)
         depsdir = outdir
 
@@ -121,7 +121,7 @@ object CommandLine {
       val failures = HashMap[String, Exception]()
       for (lang ← languages.par) {
         val outIR = OGFile.open(IR.currentPath(), Mode.Read, Mode.ReadOnly)
-        val backEnd = KnownBackEnds.all.find(_.name.toLowerCase.equals(lang)).get
+        val backEnd = KnownBackEnds.forLanguage(lang)
 
         val pathPostfix =
           // if we process a single language only, the outdir is the target for the language. Otherwise, languages get

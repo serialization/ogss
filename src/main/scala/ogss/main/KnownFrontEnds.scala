@@ -30,7 +30,7 @@ object KnownFrontEnds {
     classOf[skill.Parser]
   )
 
-  val all = allClasses.map(_.newInstance)
+  private[main] val all = allClasses.map(_.newInstance)
 
   def forFile(target : File) : common.FrontEnd = {
     all.find { f ⇒

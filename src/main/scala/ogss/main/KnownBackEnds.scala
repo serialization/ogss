@@ -23,12 +23,19 @@ import ogss.backend._;
  * @author Timm Felden
  */
 object KnownBackEnds {
-  
+
   val allClasses : Array[Class[_ <: common.BackEnd]] = Array(
     classOf[cpp.Main],
     classOf[oil.Main],
     classOf[java.Main]
   )
 
-  val all = allClasses.map(_.newInstance)
+  private[main] val all = allClasses.map(_.newInstance)
+
+  def forLanguage(language : String) : common.BackEnd = {
+    val lang = language.toLowerCase()
+    all.find { f ⇒
+      f.name.toLowerCase.equals(lang)
+    }.getOrElse(CommandLine.error(s"no available back-end matches language $language")).getClass.newInstance()
+  }
 }
