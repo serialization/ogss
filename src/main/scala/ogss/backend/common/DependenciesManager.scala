@@ -54,8 +54,13 @@ object DependenciesMaker {
   }
 
   private val shaCache = new HashMap[String, String]
-  private final def cachedSha(name : String) : String = shaCache.getOrElseUpdate(name, sha256(new File(name).toPath))
+  private final def cachedSha(name : String) : String = shaCache.getOrElseUpdate(name, sha256ForRessource(name))
 
+  @inline final def sha256ForRessource(name : String) : String = {
+    val in = getClass().getResourceAsStream("/deps/" + name)
+    val bytes = Stream.continually(in.read).takeWhile(_ != -1).map(_.toByte).toArray
+    MessageDigest.getInstance("SHA-256").digest(bytes).map("%02X".format(_)).mkString
+  }
   @inline final def sha256(path : Path) : String = {
     val bytes = Files.readAllBytes(path)
     MessageDigest.getInstance("SHA-256").digest(bytes).map("%02X".format(_)).mkString
