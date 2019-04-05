@@ -30,14 +30,17 @@ trait StringKeeperMaker extends AbstractBackEnd {
     //includes package
     out.write(s"""${beginGuard("String_Keeper")}
 #include <ogss/api/String.h>
+#include <ogss/internal/AbstractStringKeeper.h>
 
 ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}
     namespace internal {
-        namespace SK {${
+        struct StringKeeper : public ::ogss::internal::AbstractStringKeeper {
+            StringKeeper() : AbstractStringKeeper(${allStrings.size}) {}${
       allStrings.map(n ⇒ s"""
             const ::ogss::api::String ${escaped(adaStyle(n))} = new std::string("${n.getOgss}");""").toArray.sorted.mkString
     }
         };
+        const StringKeeper SK;
     }
 ${packageParts.map(_ ⇒ "}").mkString}
 $endGuard""")

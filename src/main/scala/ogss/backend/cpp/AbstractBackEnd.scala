@@ -114,7 +114,7 @@ trait AbstractBackEnd extends BackEnd {
   /**
    * The name of the String Keeper global variable holding the name
    */
-  protected def skName(id : Identifier) : String = s"internal::SK::${escaped(adaStyle(id))}"
+  protected def skName(id : Identifier) : String = s"internal::SK.${escaped(adaStyle(id))}"
 
   /**
    * id's given to fields
@@ -170,10 +170,10 @@ trait AbstractBackEnd extends BackEnd {
   /**
    * all string literals used in type and field names
    */
-  protected lazy val allStrings = (IR.map(_.getName).toSet ++
+  protected lazy val allStrings : Array[Identifier] = (IR.map(_.getName).toSet ++
     IR.flatMap(_.getFields.asScala).map(_.getName).toSet ++
     types.getEnums.asScala.map(_.getName).toSet ++
-    types.getEnums.asScala.flatMap(_.getValues.asScala).map(_.getName).toSet)
+    types.getEnums.asScala.flatMap(_.getValues.asScala).map(_.getName).toSet).toArray.sortBy(_.getOgss)
 
   /**
    * start a guard word for a file

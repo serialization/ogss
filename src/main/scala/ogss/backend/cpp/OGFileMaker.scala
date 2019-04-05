@@ -90,10 +90,11 @@ ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}
         struct PB final : public ::ogss::internal::PoolBuilder {
             PB() : ::ogss::internal::PoolBuilder(${types.getByName.size}) {}
 
-            void initialize(::ogss::internal::StringPool *pool) const final {${
-      (for (s ← allStrings; name = skName(s)) yield s"""
-                pool->addLiteral($name);""").mkString
+            const ::ogss::internal::AbstractStringKeeper *getSK() const final {${
+      (for ((n, i) ← allStrings.zipWithIndex) yield s"""
+                static_assert(offsetof($packageName::internal::StringKeeper, ${escaped(adaStyle(n))}) == offsetof(::ogss::internal::AbstractStringKeeper, strings[$i]), "your compiler chose an ill-formed object layout");""").mkString
     }
+                return &SK;
             }
 
             uint32_t kcc(int id) const final {
