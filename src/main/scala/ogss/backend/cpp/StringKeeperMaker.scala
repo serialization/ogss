@@ -37,7 +37,7 @@ ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}
         struct StringKeeper : public ::ogss::internal::AbstractStringKeeper {
             StringKeeper() : AbstractStringKeeper(${allStrings.size}) {}${
       allStrings.map(n ⇒ s"""
-            const ::ogss::api::String ${escaped(adaStyle(n))} = new std::string("${n.getOgss}");""").toArray.sorted.mkString
+            const ::ogss::api::String ${escaped(adaStyle(n))} = new std::string(u8"${n.getOgss}");""").toArray.sorted.mkString
     }
         };
         extern StringKeeper SK;

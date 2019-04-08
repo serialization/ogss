@@ -162,7 +162,7 @@ TEST(${name.capitalize}_APITest, ${if (accept) "Acc" else "Fail"}_${gen.escaped(
 
   private def value(v : Any, t : Type) : String = t match {
     case t : BuiltinType ⇒ t.getName.getOgss match {
-      case "String" if null != v ⇒ s"""sf->strings->add("${v.toString()}")"""
+      case "String" if null != v ⇒ s"""sf->strings->add(u8"${v.toString()}")"""
       case "I8"                  ⇒ "(int8_t)" + v.toString()
       case "I16"                 ⇒ "(short)" + v.toString()
       case "F32"                 ⇒ "(float)" + v.toString()
