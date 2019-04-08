@@ -127,8 +127,8 @@ $fieldName::${knownField(f)}(
           }
         ::ogss::internal::AbstractPool *const owner)
         : ${
-            if (f.getIsTransient) s"AutoField(type, name, ${-1 - autoFieldIndex(f)}, owner)"
-            else "DataField(type, name, index, owner)"
+            if (f.getIsTransient) s"AutoField(type, ${skName(f.getName)}, ${-1 - autoFieldIndex(f)}, owner)"
+            else s"DataField(type, ${skName(f.getName)}, index, owner)"
           } {
 }
 ${
