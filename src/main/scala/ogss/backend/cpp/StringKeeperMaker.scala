@@ -40,7 +40,7 @@ ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}
             const ::ogss::api::String ${escaped(adaStyle(n))} = new std::string("${n.getOgss}");""").toArray.sorted.mkString
     }
         };
-        const StringKeeper SK;
+        extern StringKeeper SK;
     }
 ${packageParts.map(_ ⇒ "}").mkString}
 $endGuard""")

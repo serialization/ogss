@@ -87,6 +87,8 @@ $endGuard""")
 
 ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}
     namespace internal {
+        StringKeeper SK;
+
         struct PB final : public ::ogss::internal::PoolBuilder {
             PB() : ::ogss::internal::PoolBuilder(${types.getByName.size}) {}
 
