@@ -39,8 +39,10 @@ trait FieldDeclarationsMaker extends AbstractBackEnd {
       val out = files.open(s"${name(base)}FieldDeclarations.h")
 
       out.write(s"""${beginGuard(s"${name(base)}_field_declarations")}
-#include <ogss/fieldTypes/AnyRefType.h>
 #include <ogss/api/File.h>
+#include <ogss/fieldTypes/AnyRefType.h>
+#include <ogss/internal/AutoField.h>
+#include <ogss/internal/DataField.h>
 
 #include "TypesOf${name(base)}.h"
 
@@ -79,7 +81,7 @@ ${
     protected:
             void read(int i, int last, ::ogss::streams::MappedInStream &in) const final;
 
-            bool write(int i, int last, ::ogss::streams::BufferedOutStream &out) const final;
+            bool write(int i, int last, ::ogss::streams::BufferedOutStream *out) const final;
 """
       }
         };""").mkString)
@@ -114,7 +116,7 @@ ${
           val tIsBaseType = t.getSuperType == null
 
           val fieldName = s"$packageName::internal::${knownField(f)}"
-          val accessI = s"d[i]->${name(f)}"
+          val accessI = s"d[++i]->${name(f)}"
           val readI = s"$accessI = ${readType(f.getType)};"
           s"""
 $fieldName::${knownField(f)}(
@@ -134,15 +136,15 @@ ${
             else s"""
 void $fieldName::read(int i, const int last, ::ogss::streams::MappedInStream &in) const {
     auto d = ((${access(t)} *) owner)->data;
-    for (; i != last; i++) {
+    while (i != last) {
         $readI
     }
 }
 
-bool $fieldName::write(int i, const int last, ::ogss::streams::BufferedOutStream &out) const {
+bool $fieldName::write(int i, const int last, ::ogss::streams::BufferedOutStream *out) const {
     ${mapType(t)}* d = ((${access(t)}*) owner)->data;
     bool drop = true;
-    for (; i != last; i++) {
+    while (i != last) {
         ${writeCode(accessI, f)}
     }
     return drop;
@@ -213,17 +215,17 @@ $checks
                 type->w(::ogss::box(v), out);
                 drop = false;
             } else
-                out.i8(0);"""
-      case "bool" ⇒ s"const bool v = $accessI;drop &= !v;out.boolean(v);"
-      case n      ⇒ s"const auto v = $accessI;drop &= !v;out.$n(v);"
+                out->i8(0);"""
+      case "bool" ⇒ s"const bool v = $accessI;drop &= !v;out->boolean(v);"
+      case n      ⇒ s"const auto v = $accessI;drop &= !v;out->$n(v);"
     }
 
     case t : ClassDef ⇒ s"""${mapType(t)} v = $accessI;
         if (v) {
-            out.v64(objectID(v));
+            out->v64(objectID(v));
             drop = false;
         } else
-            out.i8(0);"""
+            out->i8(0);"""
 
     case t : ListType ⇒ s"drop &= ((ogss::fieldTypes::ListType<${mapType(t.getBaseType())}>*)type)->w(::ogss::box($accessI), out);"
 
