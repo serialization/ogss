@@ -16,6 +16,10 @@
 package ogss.backend.cpp
 
 import scala.collection.JavaConverters._
+import ogss.oil.ArrayType
+import ogss.oil.ListType
+import ogss.oil.SetType
+import ogss.oil.MapType
 
 trait OGFileMaker extends AbstractBackEnd {
   abstract override def make {
@@ -79,6 +83,11 @@ $endGuard""")
     out.write(s"""
 #include <cstddef>
 
+#include <ogss/fieldTypes/ArrayType.h>
+#include <ogss/fieldTypes/ListType.h>
+#include <ogss/fieldTypes/SetType.h>
+#include <ogss/fieldTypes/MapType.h>
+
 #include <ogss/internal/PoolBuilder.h>
 #include <ogss/internal/StateInitializer.h>
 
@@ -114,15 +123,24 @@ ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}
             ogss::fieldTypes::HullType *makeContainer(uint32_t kcc, ::ogss::TypeID tid,
                                                       ogss::fieldTypes::FieldType *kb1,
                                                       ogss::fieldTypes::FieldType *kb2) const final {
+                ogss::fieldTypes::HullType * r;
                 ${
       if (types.getContainers.isEmpty) "return nullptr;"
       else types.getContainers.asScala.map {
-        case ct ⇒ s"""
-                    case ${ct.getKcc()}: SK_TODO;"""
+        case ct ⇒ f"""
+                    case 0x${ct.getKcc()}%08x: r = ${
+          ct match {
+            case ct : ArrayType ⇒ s"new ogss::fieldTypes::ArrayType<${mapType(ct.getBaseType)}>(tid, kcc, kb1)"
+            case ct : ListType  ⇒ s"new ogss::fieldTypes::ListType<${mapType(ct.getBaseType)}>(tid, kcc, kb1)"
+            case ct : SetType   ⇒ s"new ogss::fieldTypes::SetType<${mapType(ct.getBaseType)}>(tid, kcc, kb1)"
+            case ct : MapType   ⇒ s"new ogss::fieldTypes::MapType<${mapType(ct.getKeyType)}, ${mapType(ct.getValueType)}>(tid, kcc, kb1, kb2)"
+          }
+        }; break;"""
       }.mkString.mkString("""switch (kcc) {""", "", """
-                    default: return nullptr;
+                    default: r = nullptr;
                 }""")
     }
+                return r;
             }
 
             ogss::api::String name(int id) const final {
