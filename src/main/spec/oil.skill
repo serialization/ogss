@@ -93,7 +93,7 @@ Identifier {
   /**
    * No separation, capitalize first character of each part.
    *
-   * @note same as ogss
+   * @note same as OGSS
    */
   auto string CapitalCase;
 
@@ -106,7 +106,7 @@ Identifier {
 }
 
 /**
- * The root of the type hierachy.
+ * The root of the type hierarchy.
  */
 Type {
   /**
@@ -132,6 +132,11 @@ UserDefinedType extends Type {
    * Any type definition obtained from a specification may have a comment.
    */
   Comment comment;
+  
+  /**
+   * The position of this definition in the original source file.
+   */
+  SourcePosition pos;
 }
 
 /**
@@ -281,6 +286,11 @@ FieldLike {
    * Any field-like definition may have a comment.
    */
   Comment comment;
+  
+  /**
+   * The position of this definition in the original source file.
+   */
+  SourcePosition pos;
 }
 
 /**
@@ -347,4 +357,18 @@ View extends FieldLike {
    * It must be a subtype of target.t.
    */
   Type type;
+}
+
+/**
+ * A position inside a source file. Positions are created by front-ends and
+ * shall not be modified afterwards. Positions are maintained by projections.
+ */
+SourcePosition {
+	/**
+	 * The name of the file excluding directory names.
+	 * In sane projects, the filename is unique.
+     */
+	string file;
+	v64 line;
+	v64 column;
 }
