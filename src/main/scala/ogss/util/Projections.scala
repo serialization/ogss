@@ -255,8 +255,10 @@ class Projections(sg : OGFile) {
     target.setViews(tvs)
     for (f ← from.getViews.asScala) {
       val r = copy(f, typeMap)
-      r.setOwner(target)
-      tvs.add(r)
+      if (null != r) {
+        r.setOwner(target)
+        tvs.add(r)
+      }
     }
   }
 
@@ -286,7 +288,21 @@ class Projections(sg : OGFile) {
     r.setName(f.getName)
     r.setComment(f.getComment)
     r.setType(typeMap(f.getType))
-    ??? // TODO target
+
+    // find target; if it is no longer there, we discard the view
+    val target = typeMap(f.getTarget.getOwner) match {
+      case null                ⇒ null
+      case t : WithInheritance ⇒ t.getFields.asScala.find(_.getName == f.getTarget.getName).getOrElse(null)
+      case _                   ⇒ null
+    }
+
+    if (null != target) {
+      r.setTarget(target)
+    } else {
+      sg.delete(r);
+      return null;
+    }
+
     r
   }
 
