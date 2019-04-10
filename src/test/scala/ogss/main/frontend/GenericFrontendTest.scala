@@ -16,12 +16,14 @@
 package ogss.main.frontend
 
 import java.io.File
+
 import org.junit.runner.RunWith
-import org.scalatest.exceptions.TestFailedException
-import ogss.main.CommandLine
-import org.scalatest.junit.JUnitRunner
 import org.scalatest.FunSuite
+import org.scalatest.exceptions.TestFailedException
+import org.scalatest.junit.JUnitRunner
+
 import ogss.frontend.common.ParseException
+import ogss.main.CommandLine
 
 /**
  * Contains generic parser tests based on src/test/resources/frontend directory.

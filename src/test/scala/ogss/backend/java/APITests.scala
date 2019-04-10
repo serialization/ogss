@@ -73,11 +73,11 @@ class APITests extends GenericAPITests with IRUtils {
       "-d", "testsuites/java/lib",
       "-o", "testsuites/java/src/main/java/"
     ) ++ options)
-
-    gen = new Main
   }
 
   def newTestFile(packagePath : String, name : String) : PrintWriter = {
+    gen = new Main
+
     val f = new File(s"testsuites/java/src/test/java/$packagePath/Generic${name}Test.java")
     f.getParentFile.mkdirs
     if (f.exists)
@@ -157,11 +157,10 @@ public class Generic${name}Test extends common.CommonTest {
     val t = tc.getClasses.asScala.find(d ⇒ lowercase(d.getName).equals(tn)).get
     val fn = field.toLowerCase()
 
-    try {
-      allFields(t).find(d ⇒ lowercase(d.getName).equals(fn)).get
-    } catch {
-      case e : NoSuchElementException ⇒ fail(s"Field '$fn' does not exist, fix your test description!")
-    }
+    val fs = allFields(t)
+    fs.find(d ⇒ lowercase(d.getName).equals(fn)).getOrElse(
+      fail(s"Field '$fn' does not exist, fix your test description!")
+    )
   }
 
   private def equalValue(left : String, v : Any, f : Field) : String = equalValue(left, v, f.getType)
