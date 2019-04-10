@@ -37,6 +37,8 @@ import ogss.oil.InterfaceDef
 import ogss.oil.ClassDef
 import ogss.util.IRUtils
 import scala.collection.mutable.HashSet
+import ogss.oil.SourcePosition
+import scala.util.parsing.input.Positional
 
 /**
  * Provides common functionalities to be used by all front-ends.
@@ -70,8 +72,17 @@ abstract class FrontEnd {
    */
   def extension : String;
 
+  def reportWarning(msg : String) {
+    println("[warning]" + msg)
+  }
   def reportError(msg : String) : Nothing = {
     throw new ParseException(msg)
+  }
+  def reportError(pos : Positioned, msg : String) : Nothing = {
+    throw new ParseException(s"${printPosition(makeSPos(pos))} $msg")
+  }
+  def reportError(pos : SourcePosition, msg : String) : Nothing = {
+    throw new ParseException(s"${printPosition(pos)} $msg")
   }
 
   /**
@@ -194,6 +205,19 @@ abstract class FrontEnd {
     )
   }
 
+  private val SPosCache = new HashMap[(String, Int, Int), SourcePosition]
+  final def makeSPos(from : Positioned) : SourcePosition = SPosCache.getOrElseUpdate(
+    (from.declaredInFile, from.pos.line, from.pos.column), {
+      val r = out.SourcePositions.make()
+      r.setFile(from.declaredInFile)
+      r.setColumn(from.pos.column)
+      r.setLine(from.pos.line)
+      r
+    }
+  )
+
+  final def printPosition(pos : SourcePosition) = s"${pos.getFile} ${pos.getLine}:${pos.getColumn}"
+
   private val arrayTypes = new HashMap[Type, ArrayType]
   final def makeArray(t : Type) : ArrayType = arrayTypes.getOrElseUpdate(
     t,
@@ -295,7 +319,7 @@ abstract class FrontEnd {
             return r
         }
 
-        throw new ParseException(s"Undeclared type ${name.getOgss}")
+        reportError(s"Undeclared type ${name.getOgss}")
     }
   )
 
@@ -424,9 +448,6 @@ abstract class FrontEnd {
       }).toSeq.sortBy(_.getName.getOgss).asJavaCollection
     ))
 
-    // interfaces are in topological order already
-    tc.setInterfaces(new ArrayList(asScalaIterator(out.InterfaceDefs.iterator()).toSeq.asJavaCollection))
-
     // classes require complex sorting
     val pathNameCache = new HashMap[ClassDef, String]
     def pathName(cls : ClassDef) : String = {
@@ -439,6 +460,10 @@ abstract class FrontEnd {
 
     val classes = asScalaIterator(out.ClassDefs.iterator()).toSeq.map(c ⇒ (pathName(c), c)).sortBy(p ⇒ p._1).map(_._2)
     tc.setClasses(new ArrayList(classes.asJavaCollection))
+
+    // interfaces are in topological order already
+    tc.setInterfaces(new ArrayList(asScalaIterator(out.InterfaceDefs.iterator()).toSeq.asJavaCollection))
+    println("TODO sort interfaces in normalize")
 
     // sort containers by name and create names
     def ensureName(c : Type) : String = {

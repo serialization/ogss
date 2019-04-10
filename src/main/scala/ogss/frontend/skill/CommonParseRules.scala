@@ -24,7 +24,7 @@ import ogss.util.IRUtils
 /**
  * Parse rules used by multiple parsers.
  */
-class CommonParseRules(self : FrontEnd) extends RegexParsers with IRUtils {
+abstract class CommonParseRules(self : FrontEnd) extends RegexParsers with IRUtils {
 
   /**
    * Usual identifiers including arbitrary unicode characters.

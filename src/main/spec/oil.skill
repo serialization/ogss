@@ -180,6 +180,8 @@ EnumConstant {
   Identifier name;
 
   Comment comment;
+  
+  SourcePosition pos;
 }
 
 
@@ -223,11 +225,20 @@ MapType extends ContainerType {
  * @note types with inheritance are the only types with fields.
  */
 WithInheritance extends UserDefinedType {
+
   /**
-   * This can be null iff the type is an unrooted interface or its own base type
+   * This is null iff the type is an unrooted interface, i.e. it has no transitive super class
    */
   ClassDef baseType;
+
+  /**
+   * The super class of this type.
+   */
   ClassDef superType;
+
+  /**
+   * The super interfaces of this class.
+   */
   InterfaceDef[] superInterfaces;
 
   /**

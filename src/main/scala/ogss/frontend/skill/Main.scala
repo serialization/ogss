@@ -17,26 +17,29 @@ package ogss.frontend.skill
 
 import java.io.File
 
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.HashSet
-import scala.util.parsing.input.Positional
-
 import ogss.frontend.common.FrontEnd
-import ogss.oil.Comment
-import ogss.oil.Identifier
-import ogss.oil.UserDefinedType
+import ogss.oil.OGFile
+import ogss.util.Projections
 
-class Definition(
-  /**
-   * the ogss name of this definition
-   */
-  val name : Identifier,
-  val file : File
-) extends Positional {
-  var comment : Comment = _
+/**
+ * Parse a .skill-specification and apply OGSS-semantics to its definitions.
+ */
+class Main extends FrontEnd {
 
-  var superImage : String = null
-  var bodyImage : String = null
+  def name = "skill"
+  def extension = ".skill"
+  def description = "SKilL Specification"
 
-  var IR : UserDefinedType = null
+  override def run(path : File) {
+    // parse all definitions
+    val files = new FileParser(this)
+    files.process(path)
+    files.postProcess
+
+    normalize
+
+    new Projections(out)
+
+    out.close()
+  }
 }

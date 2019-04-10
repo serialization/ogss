@@ -27,7 +27,7 @@ object KnownFrontEnds {
 
   val allClasses : Array[Class[_ <: common.FrontEnd]] = Array(
     classOf[oil.Main],
-    classOf[skill.Parser]
+    classOf[skill.Main]
   )
 
   private[main] val all = allClasses.map(_.newInstance)
