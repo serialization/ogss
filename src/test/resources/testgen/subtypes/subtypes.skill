@@ -1,4 +1,4 @@
-#! subtypes -Oscala:revealSkillID=true --visitors=*
+#! subtypes --visitors=*
 
 A { A a; }
 B : A { B b; }
