@@ -178,12 +178,14 @@ TEST(${name.capitalize}_APITest, ${if (accept) "Acc" else "Fail"}_${gen.escaped(
     case t : SeqType ⇒
       locally {
         var rval = t match {
-          case t : SetType ⇒ s"set<${gen.mapType(t.getBaseType)}>()"
-          case _           ⇒ s"array<${gen.mapType(t.getBaseType)}>()"
+          case JSONObject.NULL ⇒ "nullptr"
+          case t : SetType     ⇒ s"set<${gen.mapType(t.getBaseType)}>()"
+          case _               ⇒ s"array<${gen.mapType(t.getBaseType)}>()"
         }
-        for (x ← v.asInstanceOf[JSONArray].iterator().asScala) {
-          rval = s"put<${gen.mapType(t.getBaseType)}>($rval, ${value(x, t.getBaseType)})"
-        }
+        if (v.isInstanceOf[JSONArray])
+          for (x ← v.asInstanceOf[JSONArray].iterator().asScala) {
+            rval = s"put<${gen.mapType(t.getBaseType)}>($rval, ${value(x, t.getBaseType)})"
+          }
         rval
       }
 
