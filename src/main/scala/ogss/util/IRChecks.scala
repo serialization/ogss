@@ -26,6 +26,12 @@ object IRChecks {
    */
   def check(tc : TypeContext) {
 
+    // check that enums have at least one instance
+    for(t <- tc.getEnums.asScala) {
+      if(t.getValues.isEmpty())
+          throw new IllegalStateException(s"Enum ${t.getName.getOgss} has no instances")
+    }
+
     // check that containers are UCC-ordered
     tc.getContainers.asScala.scanLeft(-1L) {
       case (last, c) ⇒
