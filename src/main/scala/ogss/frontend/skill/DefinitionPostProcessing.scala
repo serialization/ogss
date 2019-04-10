@@ -67,7 +67,12 @@ abstract class DefinitionPostProcessing(self : FrontEnd) extends CommonParseRule
         self.makeMap(l, r)
       }
     }
-    | id ^^ { name ⇒ definitions.getOrElse(name, self.makeNamedType(name)) }
+    | id ^^ { name ⇒
+      definitions.getOrElse(name, self.makeNamedType(name)) match {
+        case t : TypeAlias ⇒ ensureTypeAlias(t) // unpack type aliases
+        case t             ⇒ t
+      }
+    }
   ) ~ rep("[" ~> "]") ^^ {
       case t ~ as ⇒
         var r = t
@@ -82,16 +87,26 @@ abstract class DefinitionPostProcessing(self : FrontEnd) extends CommonParseRule
     case f             ⇒ self.reportError(s"parsing field type failed: $f");
   }
 
+  private def ensureTypeAlias(t : TypeAlias) : Type = {
+    if (null != t.getTarget) t.getTarget
+    else {
+      val r = parseType(typedefImages(t))
+      t.setTarget(r)
+      r
+    }
+  }
+
   private[skill] def postProcess {
+
+    // follow type aliases
+    typedefImages.keySet.foreach(ensureTypeAlias)
+
     // set types
     for ((f, i) ← fieldTypeImages) {
       f match {
         case f : Field ⇒ f.setType(parseType(i))
         case f : View  ⇒ f.setType(parseType(i))
       }
-    }
-    for ((t, i) ← typedefImages) {
-      t.setTarget(parseType(i))
     }
 
     // create type hierarchy

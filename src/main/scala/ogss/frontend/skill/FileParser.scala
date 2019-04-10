@@ -84,6 +84,10 @@ class FileParser(self : FrontEnd) extends DefinitionPostProcessing(self) {
       curr.setPos(self.makeSPos(name))
       curr.setBaseType(curr)
 
+      curr.setFields(new ArrayList)
+      curr.setViews(new ArrayList)
+      curr.setCustoms(new ArrayList)
+
       currentType = curr
       definitions(name.image) = currentType
   }) ~> withInheritance
@@ -99,6 +103,10 @@ class FileParser(self : FrontEnd) extends DefinitionPostProcessing(self) {
       curr.setComment(c)
       curr.setName(name.image)
       curr.setPos(self.makeSPos(name))
+
+      curr.setFields(new ArrayList)
+      curr.setViews(new ArrayList)
+      curr.setCustoms(new ArrayList)
 
       currentType = curr
       definitions(name.image) = currentType
@@ -158,6 +166,7 @@ Enum ${name.image.getOgss} has fields. Enum fields are not supported in OGSS."""
       val target = currentType.asInstanceOf[WithInheritance]
       target.setSuperInterfaces(new ArrayList)
       target.setSubTypes(new ArrayList)
+
       val ss = superTypes.getOrElseUpdate(target, new HashSet)
       for (s ← sup) {
         ss += s
@@ -184,11 +193,6 @@ Enum ${name.image.getOgss} has fields. Enum fields are not supported in OGSS."""
       val target = currentType.asInstanceOf[WithInheritance]
       // ensure field parsing works even in fallback mode
       if (null != target) {
-        var fs = target.getCustoms
-        if (null == fs) {
-          fs = new ArrayList
-          target.setCustoms(fs)
-        }
         val f = self.out.CustomFields.make()
         f.setComment(c)
         f.setLanguage(lowercase(lang))
@@ -196,7 +200,7 @@ Enum ${name.image.getOgss} has fields. Enum fields are not supported in OGSS."""
         f.setPos(self.makeSPos(n))
         f.setTypename(t)
         f.setOptions(opts)
-        fs.add(f)
+        target.getCustoms.add(f)
         f.setOwner(target)
       }
   }
@@ -225,19 +229,13 @@ Enum ${name.image.getOgss} has fields. Enum fields are not supported in OGSS."""
 
       // ensure field parsing works even in fallback mode
       if (null != target) {
-        var fs = target.getViews
-        if (null == fs) {
-          fs = new ArrayList
-          target.setViews(fs)
-        }
-
         val f = self.out.Views.make()
         f.setComment(c)
         fieldTypeImages(f) = newType
         superViews(f) = (targetType.getOrElse(null), targetField)
         f.setName(newName.image)
         f.setPos(self.makeSPos(newName))
-        fs.add(f)
+        target.getViews.add(f)
         f.setOwner(target)
       }
   }
@@ -258,18 +256,13 @@ Enum ${name.image.getOgss} has fields. Enum fields are not supported in OGSS."""
 
       // ensure field parsing works even in fallback mode
       if (null != target) {
-        var fs = target.getFields
-        if (null == fs) {
-          fs = new ArrayList
-          target.setFields(fs)
-        }
         val f = self.out.Fields.make()
         f.setComment(c)
         f.setIsTransient(!a.isEmpty)
         fieldTypeImages(f) = t
         f.setName(n.image)
         f.setPos(self.makeSPos(n))
-        fs.add(f)
+        target.getFields.add(f)
         f.setOwner(target)
       }
   }
