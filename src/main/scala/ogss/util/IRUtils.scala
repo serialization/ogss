@@ -40,6 +40,8 @@ trait IRUtils {
 
   def allSuperTypes(t : WithInheritance, seen : HashSet[WithInheritance] = new HashSet) : HashSet[WithInheritance] = {
     if (null != t && !seen.contains(t)) {
+      seen += t
+
       if (null != t.getSuperType)
         allSuperTypes(t.getSuperType, seen);
 
