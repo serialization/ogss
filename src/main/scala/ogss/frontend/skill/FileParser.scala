@@ -149,6 +149,7 @@ Enum ${name.image.getOgss} has fields. Enum fields are not supported in OGSS."""
           v.setName(n.image)
           v.setPos(self.makeSPos(n))
           v.setComment(c.getOrElse(null))
+          vs.add(v)
         }
     }
 
