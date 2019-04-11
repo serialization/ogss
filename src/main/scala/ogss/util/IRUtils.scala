@@ -38,7 +38,14 @@ import scala.collection.mutable.HashMap
  */
 trait IRUtils {
 
-  def allSuperTypes(t : WithInheritance, seen : HashSet[WithInheritance] = new HashSet) : HashSet[WithInheritance] = {
+  def allSuperTypes(t : WithInheritance) : HashSet[WithInheritance] = {
+    val r = new HashSet[WithInheritance]
+    allSuperTypes(t, r)
+    r -= t
+    r
+  }
+
+  private def allSuperTypes(t : WithInheritance, seen : HashSet[WithInheritance]) {
     if (null != t && !seen.contains(t)) {
       seen += t
 
