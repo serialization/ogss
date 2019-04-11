@@ -27,9 +27,9 @@ object IRChecks {
   def check(tc : TypeContext) {
 
     // check that enums have at least one instance
-    for(t <- tc.getEnums.asScala) {
-      if(t.getValues.isEmpty())
-          throw new IllegalStateException(s"Enum ${t.getName.getOgss} has no instances")
+    for (t ← tc.getEnums.asScala) {
+      if (t.getValues.isEmpty())
+        throw new IllegalStateException(s"Enum ${t.getName.getOgss} has no instances")
     }
 
     // check that containers are UCC-ordered
@@ -55,6 +55,22 @@ object IRChecks {
     for (t ← tc.getEnums.asScala) {
       expect(nextSTID == t.getStid, s"type ${t.getName.getOgss} has an invalid STID: ${t.getStid}, should be $nextSTID")
       nextSTID += 1
+    }
+
+    // check that all super types have lower STIDS
+    for (t ← tc.getClasses.asScala; sup = t.getSuperType if null != sup) {
+      expect(sup.getStid < t.getStid, s"class ${t.getName.getOgss} has an STID lower than that of its super class: ${t.getStid}, super: ${sup.getStid}")
+    }
+    for (t ← tc.getInterfaces.asScala; sup = t.getSuperType if null != sup) {
+      for (superInterface ← t.getSuperInterfaces.asScala; ssi = superInterface.getSuperType if null != ssi)
+        expect(ssi.getStid <= sup.getStid, s"interface ${t.getName.getOgss} has a super type with an STID lower than that of its super interfaces (${superInterface.getName.getOgss}) super class(${ssi.getName.getOgss}): ${sup.getStid}, super: ${ssi.getStid}")
+    }
+    // check that all super types without supertypes have only super interfaces without supertypes
+    for (
+      t ← tc.getClasses.asScala ++ tc.getInterfaces.asScala if null == t.getSuperType;
+      superInterface ← t.getSuperInterfaces.asScala; ssi = superInterface.getSuperType if null != ssi
+    ) {
+      expect(false, s"type ${t.getName.getOgss} has no super class but its super interface ${superInterface.getName.getOgss} has a super class: ${ssi.getName.getOgss}")
     }
   }
 
