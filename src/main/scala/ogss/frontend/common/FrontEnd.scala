@@ -75,6 +75,10 @@ abstract class FrontEnd {
   def reportWarning(msg : String) {
     println("[warning]" + msg)
   }
+  def reportWarning(pos : SourcePosition, msg : String) {
+    println(s"[warning] ${printPosition(pos)} $msg")
+  }
+
   def reportError(msg : String) : Nothing = {
     throw new ParseException(msg)
   }
@@ -371,38 +375,53 @@ abstract class FrontEnd {
           c.setOptions(noOpts)
     }
 
+    val tc = out.TypeContexts.make()
+
     // normalize inheritance hierarchies
     {
-      // set super classes for interfaces
-      for (c ← asScalaIterator(out.InterfaceDefs.iterator())) {
-        val candidates : HashSet[ClassDef] =
-          c.getSuperInterfaces.asScala.collect { case c if null != c.getSuperType ⇒ c.getSuperType }.to
+      // calculate all super types to perform type hierarchy normalization as set opertions
+      val allSuperOf = out.WithInheritances.asScala.map(t ⇒ (t, IRUtils.allSuperTypes(t))).toMap
 
-        if (null != c.getSuperType)
-          candidates += c.getSuperType
-
-        if (candidates.size <= 1)
-          candidates.map(c.setSuperType(_))
-        else
-          reportError(s"Interface c has multiple super types: ${candidates.map(_.getName.getOgss).mkString(", ")}")
-      }
-      for (c ← asScalaIterator(out.WithInheritances.iterator())) {
-        if (null == c.getSuperType) {
-          c match {
-            case c : ClassDef ⇒ c.setBaseType(c)
-            case c : InterfaceDef ⇒
-              val bases = c.getSuperInterfaces.asScala.collect { case c if null != c.getBaseType ⇒ c.getBaseType }
-              if (bases.size >= 1)
-                reportError(s"Interface c has multiple base types: ${bases.map(_.getName.getOgss).mkString(", ")}")
-
-              bases.map(c.setBaseType(_))
+      for (c ← out.WithInheritances.asScala) {
+        // calculate super frontier
+        val superCS : HashSet[ClassDef] = allSuperOf(c).collect { case c : ClassDef ⇒ c }
+        for (x ← superCS.flatMap(allSuperOf)) {
+          x match {
+            case x : ClassDef ⇒ superCS -= x
+            case _            ⇒
           }
-        } else {
-          c.setBaseType(c.getSuperType.getBaseType)
-          c.getSuperType.getSubTypes.add(c)
         }
-        c.getSuperInterfaces.asScala.foreach(_.getSubTypes.add(c))
 
+        val superIS : HashSet[InterfaceDef] = allSuperOf(c).collect { case i : InterfaceDef ⇒ i }
+        for (x ← allSuperOf(c).flatMap(allSuperOf)) {
+          x match {
+            case x : InterfaceDef ⇒ superIS -= x
+            case _                ⇒
+          }
+        }
+
+        if (superCS.size > 1) {
+          reportError(c.getPos, s"Type ${c.getName.getOgss} has multiple distinct super classes: ${superCS.map(_.getName.getOgss).mkString(", ")}")
+        }
+        superCS.foreach { sup ⇒
+          if (sup == c)
+            reportError(c.getPos, s"Type ${c.getName.getOgss} is its own super class")
+
+          if (sup != c.getSuperType) {
+            if (null != c.getSuperType) {
+              reportWarning(c.getPos, s"Type ${c.getName.getOgss} has super classes ${c.getSuperType.getName.getOgss}, but should have ${sup.getName.getOgss} instead")
+            }
+            c.setSuperType(sup)
+          }
+        }
+
+        for (sup ← c.getSuperInterfaces.asScala -- superIS) {
+          reportWarning(c.getPos, s"Type ${c.getName.getOgss} has an unneeded super interface ${sup.getSuperType.getName.getOgss}.")
+        }
+        // reorder super interfaces
+        c.setSuperInterfaces(new ArrayList(superIS.toSeq.sortBy(_.getName.getOgss).asJava))
+
+        // Also, ensure FieldLikes
         if (null == c.getCustoms)
           c.setCustoms(new ArrayList)
 
@@ -412,6 +431,11 @@ abstract class FrontEnd {
         if (null == c.getViews)
           c.setViews(new ArrayList)
       }
+
+      // reorder TC interfaces
+      tc.setInterfaces(new ArrayList(asScalaIterator(out.InterfaceDefs.iterator()).toSeq.sortBy(
+        t ⇒ (allSuperOf(t).size, t.getName.getOgss)
+      ).asJava))
     }
 
     // normalize fieldLike orders
@@ -434,8 +458,6 @@ abstract class FrontEnd {
         }
       }
     }
-
-    val tc = out.TypeContexts.make()
 
     // aliases require no further action
     tc.setAliases(new ArrayList(asScalaIterator(out.TypeAliass.iterator()).toSeq.asJavaCollection))
@@ -460,10 +482,6 @@ abstract class FrontEnd {
 
     val classes = asScalaIterator(out.ClassDefs.iterator()).toSeq.map(c ⇒ (pathName(c), c)).sortBy(p ⇒ p._1).map(_._2)
     tc.setClasses(new ArrayList(classes.asJavaCollection))
-
-    // interfaces are in topological order already
-    tc.setInterfaces(new ArrayList(asScalaIterator(out.InterfaceDefs.iterator()).toSeq.asJavaCollection))
-    println("TODO sort interfaces in normalize")
 
     // sort containers by name and create names
     def ensureName(c : Type) : String = {
