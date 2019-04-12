@@ -26,8 +26,9 @@ object KnownBackEnds {
 
   val allClasses : Array[Class[_ <: common.BackEnd]] = Array(
     classOf[cpp.Main],
+    classOf[java.Main],
     classOf[oil.Main],
-    classOf[java.Main]
+    classOf[ogss.backend.skill.Main],
   )
 
   private[main] val all = allClasses.map(_.newInstance)
