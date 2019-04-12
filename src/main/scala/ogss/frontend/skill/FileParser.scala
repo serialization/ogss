@@ -82,7 +82,6 @@ class FileParser(self : FrontEnd) extends DefinitionPostProcessing(self) {
       curr.setComment(c)
       curr.setName(name.image)
       curr.setPos(self.makeSPos(name))
-      curr.setBaseType(curr)
 
       curr.setFields(new ArrayList)
       curr.setViews(new ArrayList)

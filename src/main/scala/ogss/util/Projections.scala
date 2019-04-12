@@ -135,7 +135,10 @@ class Projections(sg : OGFile) {
         c.getSuperType.getSubTypes.add(c)
       }
       if (null != c.getBaseType)
-        c.setBaseType(typeMap(c.getBaseType).asInstanceOf[ClassDef])
+        c.setBaseType(typeMap(c.getBaseType) match {
+          case null         ⇒ throw new Error("internal error")
+          case c : ClassDef ⇒ c
+        })
 
       // calculate new fields
       copyFields(typeMap, tc.getByName.get(c.getName.getOgss).asInstanceOf[WithInheritance], c)
@@ -178,7 +181,8 @@ class Projections(sg : OGFile) {
         c.setSuperType(typeMap(c.getSuperType).asInstanceOf[ClassDef])
         c.getSuperType.getSubTypes.add(c)
       }
-      c.setBaseType(typeMap(c.getBaseType).asInstanceOf[ClassDef])
+      if (null != c.getBaseType)
+        c.setBaseType(typeMap(c.getBaseType).asInstanceOf[ClassDef])
 
       // calculate new fields
       collectFields(typeMap, tc.getByName.get(c.getName.getOgss).asInstanceOf[ClassDef], c)

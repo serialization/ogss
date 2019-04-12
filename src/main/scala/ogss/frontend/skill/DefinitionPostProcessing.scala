@@ -118,7 +118,6 @@ abstract class DefinitionPostProcessing(self : FrontEnd) extends CommonParseRule
         case sup : ClassDef if (null != t.getSuperType) ⇒ self.reportError(t.getPos, s"$t cannot have two super classes")
         case sup : ClassDef ⇒ {
           t.setSuperType(sup)
-          t.setBaseType(sup.getBaseType)
         }
         case sup : InterfaceDef ⇒ var r = t.getSuperInterfaces.add(sup)
       }

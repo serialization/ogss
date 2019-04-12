@@ -338,8 +338,7 @@ abstract class FrontEnd {
    * - set STIDs
    * - set KCCs
    *
-   * @note normalize assumes that WithInheritance is sorted in topological order
-   * @note normalize assumes that ContainerTypes is sorted in topological order
+   * @note normalize assumes no order and is therefore slower than SKilL TC-construction
    */
   protected def normalize {
     // ensure existence of builtin types
@@ -412,6 +411,15 @@ abstract class FrontEnd {
               reportWarning(c.getPos, s"Type ${c.getName.getOgss} has super classes ${c.getSuperType.getName.getOgss}, but should have ${sup.getName.getOgss} instead")
             }
             c.setSuperType(sup)
+          }
+        }
+        // set correct base type
+        if (null != c.getSuperType) {
+          c.setSuperType(allSuperOf(c).collect { case c : ClassDef if c.getSuperType == null ⇒ c }.head)
+        } else {
+          c match {
+            case c : ClassDef ⇒ c.setBaseType(c)
+            case _            ⇒
           }
         }
 
