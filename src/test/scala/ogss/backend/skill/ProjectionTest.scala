@@ -26,11 +26,11 @@ import ogss.frontend.common.ParseException
 import ogss.main.CommandLine
 
 /**
- * Contains generic parser tests based on src/test/resources/frontend directory.
+ * Create all projections for specifications inside the src/test/resources/frontend directory.
  * @author Timm Felden
  */
 @RunWith(classOf[JUnitRunner])
-class GenericFrontendTest extends FunSuite {
+class ProjectionTest extends FunSuite {
 
   CommandLine.exit = { s ⇒ fail(s) }
   private def check(file : File) = CommandLine.main(Array[String](
