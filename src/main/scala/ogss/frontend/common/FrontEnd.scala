@@ -415,7 +415,7 @@ abstract class FrontEnd {
         }
         // set correct base type
         if (null != c.getSuperType) {
-          c.setSuperType(allSuperOf(c).collect { case c : ClassDef if c.getSuperType == null ⇒ c }.head)
+          c.setBaseType(allSuperOf(c).collect { case c : ClassDef if c.getSuperType == null ⇒ c }.head)
         } else {
           c match {
             case c : ClassDef ⇒ c.setBaseType(c)
