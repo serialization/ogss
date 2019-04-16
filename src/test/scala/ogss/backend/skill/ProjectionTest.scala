@@ -42,7 +42,7 @@ class ProjectionTest extends FunSuite {
   ))
 
   for (
-    f ← new File("src/test/resources/frontend").listFiles() if f.isFile()
+    f ← new File("src/test/resources/frontend").listFiles().toArray.sorted if f.isFile()
   ) {
     test("write " + f.getName()) { check(f) }
   }
