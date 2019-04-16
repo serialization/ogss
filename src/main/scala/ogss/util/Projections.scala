@@ -68,7 +68,7 @@ class Projections(sg : OGFile) {
     r.setProjectedInterfaces(tc.getProjectedInterfaces)
     r.setProjectedTypeDefinitions(true)
     r.setAliases(new ArrayList)
-    r.setEnums(copyEnums(tc.getEnums))
+    r.setEnums(tc.getEnums)
     r.setClasses(copyClasses(tc.getClasses))
     r.setInterfaces(copyInterfaces(tc.getInterfaces))
     r.setContainers(new ArrayList)
@@ -110,7 +110,9 @@ class Projections(sg : OGFile) {
           r.setName(toIdentifier(s"map<${k.getName.getOgss},${v.getName.getOgss}>"))
           r
         }
-        case _ ⇒ tbn.get(t.getName.getOgss)
+        case t : TypeAlias ⇒ ensure(t.getTarget)
+
+        case _             ⇒ tbn.get(t.getName.getOgss)
       })
     }
 
@@ -158,7 +160,7 @@ class Projections(sg : OGFile) {
     r.setProjectedInterfaces(true)
     r.setProjectedTypeDefinitions(tc.getProjectedTypeDefinitions)
     r.setAliases(copyAliases(tc.getAliases))
-    r.setEnums(copyEnums(tc.getEnums))
+    r.setEnums(tc.getEnums)
     r.setClasses(copyClasses(tc.getClasses))
     r.setInterfaces(new ArrayList)
     r.setContainers(new ArrayList)
@@ -190,7 +192,7 @@ class Projections(sg : OGFile) {
 
     // update type alias targets
     for (c ← tc.getAliases.asScala) {
-      c.setTarget(typeMap(tc.getByName.get(c.getName.getOgss)))
+      c.setTarget(typeMap(c.getTarget))
     }
 
     // we may have changed types, so we need to recalculate STIDs and KCCs
@@ -234,8 +236,11 @@ class Projections(sg : OGFile) {
     target.setViews(tvs)
     for (f ← vs.toArray.sortBy(f ⇒ (f.getName.getOgss.length(), f.getName.getOgss))) {
       val r = copy(f, typeMap)
-      r.setOwner(target)
-      tvs.add(r)
+      if (null != r) {
+        // add views which have not been projected away
+        r.setOwner(target)
+        tvs.add(r)
+      }
     }
   }
 
@@ -313,22 +318,12 @@ class Projections(sg : OGFile) {
 
   private def copyAliases(aliases : ArrayList[TypeAlias]) : ArrayList[TypeAlias] = {
     val r = new ArrayList[TypeAlias]
-    for (c ← asScalaBuffer(aliases)) {
+    for (c ← aliases.asScala) {
       val n = sg.TypeAliass.make()
+      n.setPos(c.getPos)
       n.setComment(c.getComment)
       n.setName(c.getName)
-      r.add(n)
-    }
-    r
-  }
-
-  private def copyEnums(enums : ArrayList[EnumDef]) : ArrayList[EnumDef] = {
-    val r = new ArrayList[EnumDef]
-    for (c ← asScalaBuffer(enums)) {
-      val n = sg.EnumDefs.make()
-      n.setValues(c.getValues)
-      n.setComment(c.getComment)
-      n.setName(c.getName)
+      n.setTarget(c.getTarget)
       r.add(n)
     }
     r
@@ -342,6 +337,7 @@ class Projections(sg : OGFile) {
     val r = new ArrayList[ClassDef]
     for (c ← asScalaBuffer(classes)) {
       val n = sg.ClassDefs.make()
+      n.setPos(c.getPos)
       n.setName(c.getName)
       n.setComment(c.getComment)
       n.setBaseType(c.getBaseType)
@@ -364,6 +360,7 @@ class Projections(sg : OGFile) {
     val r = new ArrayList[InterfaceDef]
     for (c ← asScalaBuffer(interfaces)) {
       val n = sg.InterfaceDefs.make()
+      n.setPos(c.getPos)
       n.setName(c.getName)
       n.setComment(c.getComment)
       n.setBaseType(c.getBaseType)
