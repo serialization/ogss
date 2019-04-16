@@ -153,20 +153,11 @@ ${
       }
 
     case t : InterfaceDef if t.getSuperType != null ⇒ s"""
-        final ${access(t.getSuperType)} t;
-        if($target instanceof Pool<?>)
-            t = (${access(t.getSuperType)})
-                FieldDeclaration.<${mapType(t.getSuperType)},${mapType(t)}>cast($target);
-        else
-            t = (${access(t.getSuperType)})((InterfacePool<?,?>)$target).superPool;"""
+        final ${access(t.getSuperType)} t = (${access(t.getSuperType)})
+                FieldDeclaration.<${mapType(t.getSuperType)},${mapType(t)}>cast($target);"""
 
     case t : InterfaceDef ⇒ s"""
-        final AnyRefType t;
-        // TODO we have to replace Annotation by the respective unrooted pool upon field creation to get rid of this distinction
-        if ($target instanceof Pool<?>)
-            t = (AnyRefType) (FieldType<?>) $target;
-        else
-            t = ((UnrootedInterfacePool<?>) $target).getType();"""
+        final AnyRefType t = (AnyRefType) type;"""
 
     case t : EnumDef ⇒ s"""
         final EnumPool<?> type = (EnumPool<?>) this.type;"""
