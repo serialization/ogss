@@ -468,7 +468,7 @@ abstract class FrontEnd {
     }
 
     // aliases require no further action
-    tc.setAliases(new ArrayList(asScalaIterator(out.TypeAliass.iterator()).toSeq.asJavaCollection))
+    tc.setAliases(new ArrayList(out.TypeAliass.asScala.toSeq.sortBy(_.getName.getOgss).asJavaCollection))
 
     // normalize enums
     tc.setEnums(new ArrayList(
