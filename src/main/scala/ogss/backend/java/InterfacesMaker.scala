@@ -62,8 +62,14 @@ ${
     @Override"""
         else ""
       }
-    public default ${mapType(t.getSuperType)} self() {
-        return (${mapType(t.getSuperType)}) this;
+    public default ${
+        if (null == t.getSuperType) "Object"
+        else mapType(t.getSuperType)
+      } self() {
+        return ${
+        if (null == t.getSuperType) ""
+        else s"(${mapType(t.getSuperType)})"
+      } this;
     }
 ${
         ///////////////////////
