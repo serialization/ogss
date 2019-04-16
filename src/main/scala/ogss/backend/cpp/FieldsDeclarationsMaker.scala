@@ -107,8 +107,8 @@ $endGuard""")
 #include <ogss/fieldTypes/SetType.h>
 #include <ogss/fieldTypes/MapType.h>
 
-#include "${name(base)}FieldDeclarations.h"
 #include "Pools.h"
+#include "${name(base)}FieldDeclarations.h"
 ${
         (for (t ← IR if base == t.getBaseType; f ← t.getFields.asScala) yield {
           val autoFieldIndex : Map[Field, Int] = t.getFields.asScala.filter(_.getIsTransient).zipWithIndex.toMap

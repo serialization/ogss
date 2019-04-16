@@ -41,6 +41,7 @@ import ogss.oil.Identifier
  * @author Timm Felden
  */
 final class Main extends AbstractBackEnd
+  with EnumMaker
   with FieldDeclarationsMaker
   with OGFileMaker
   with StringKeeperMaker
@@ -79,6 +80,8 @@ final class Main extends AbstractBackEnd
     case t : SetType   ⇒ s"::ogss::api::Set<${mapType(t.getBaseType())}>*"
     case t : MapType   ⇒ s"::ogss::api::Map<${mapType(t.getKeyType)}, ${mapType(t.getValueType)}>*"
 
+    case t : EnumDef   ⇒ s"::ogss::api::EnumProxy<$packageName::${name(t)}>*"
+
     case t : ClassDef  ⇒ s"$packageName::${name(t)}*"
 
     case _             ⇒ throw new IllegalStateException(s"Unknown type $t")
@@ -97,6 +100,8 @@ final class Main extends AbstractBackEnd
     case t : ListType  ⇒ "list"
     case t : SetType   ⇒ "set"
     case t : MapType   ⇒ "map"
+
+    case t : EnumDef   ⇒ "enumProxy"
 
     case t : ClassDef  ⇒ "anyRef"
 
