@@ -110,7 +110,11 @@ object CommandLine {
       frontEnd.run(target)
       val IR = frontEnd.out
 
-      IRChecks.check(IR)
+      try {
+        IRChecks.check(IR)
+      } catch {
+        case e : IllegalStateException ⇒ error("IR check failed: " + e.getMessage)
+      }
 
       // ensure that we do not modify an existing file accidentally
       if (IR.currentPath() != tmpPath.toPath()) {
@@ -164,7 +168,7 @@ object CommandLine {
           backEnd.makeDeps
           println("-done-")
         } catch {
-          case e : Exception             ⇒ println(s"-FAILED- ($lang)"); this.synchronized(failures(lang)= e)
+          case e : Exception ⇒ println(s"-FAILED- ($lang)"); this.synchronized(failures(lang)= e)
         }
       }
 
