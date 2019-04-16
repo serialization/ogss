@@ -27,7 +27,7 @@ class GeneratorTest extends FunSuite {
     CommandLine.exit = { s ⇒ fail(s) }
     CommandLine.main(Array[String](
       "build",
-      "src/test/resources/cpp/" + src,
+      "src/test/resources/frontend/" + src,
       "--debug-header",
       "-c",
       "-L", "cpp",

@@ -164,8 +164,7 @@ object CommandLine {
           backEnd.makeDeps
           println("-done-")
         } catch {
-          case e : IllegalStateException ⇒ println(s"-[FAILED: ${e.getMessage}]-");
-          case e : Exception             ⇒ println("-FAILED-"); this.synchronized(failures(lang)= e)
+          case e : Exception             ⇒ println(s"-FAILED- ($lang)"); this.synchronized(failures(lang)= e)
         }
       }
 
