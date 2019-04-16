@@ -26,6 +26,12 @@ object IRChecks {
    */
   def check(tc : TypeContext) {
 
+    // check that alias targets exist
+    for (t ← tc.getAliases.asScala) {
+      if (null == t.getTarget)
+        throw new IllegalStateException(s"Type alias ${t.getName.getOgss} has no target")
+    }
+
     // check that enums have at least one instance
     for (t ← tc.getEnums.asScala) {
       if (t.getValues.isEmpty())
