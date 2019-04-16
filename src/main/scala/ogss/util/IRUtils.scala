@@ -187,6 +187,14 @@ trait IRUtils {
       tc.getContainers.clear()
       tc.getContainers.addAll(done.asJava)
     }
+
+    // types without STIDS
+    for (c ← tc.getAliases.asScala) {
+      c.setStid(-1)
+    }
+    for (c ← tc.getInterfaces.asScala) {
+      c.setStid(-1)
+    }
   }
 
   /**
