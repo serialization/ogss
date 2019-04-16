@@ -150,5 +150,5 @@ ${
     if (null == t.getSuperType)
       s"ogss.common.java.internal.UnrootedInterfacePool<${mapType(t)}>"
     else
-      s"ogss.common.java.internal.InterfacePool<${mapType(t)}, ${mapType(t.getBaseType)}>"
+      s"ogss.common.java.internal.InterfacePool<${mapType(t)}, ${mapType(t.getSuperType)}>"
 }
