@@ -1,0 +1,11 @@
+B {}
+
+S : B {}
+
+interface I : S {
+  I f;
+}
+
+A : S {}
+
+C : A with I {}

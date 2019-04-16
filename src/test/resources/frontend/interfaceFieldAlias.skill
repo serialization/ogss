@@ -1,0 +1,19 @@
+B {}
+
+S : B {}
+
+typedef projectedI
+  I;
+  
+
+interface I : S {
+  projectedI f;
+  projectedJ g;
+}
+
+typedef projectedJ
+  I;
+
+A : S {}
+
+C : A with I {}
