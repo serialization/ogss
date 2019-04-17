@@ -197,6 +197,7 @@ $packageName::api::File::File(::ogss::internal::StateInitializer *init)
         yield s"""
     static_assert(offsetof($packageName::api::File, ${name(t)}) == offsetof(::ogss::api::File, SIFA[${t.getStid}-10]), "your compiler chose an ill-formed object layout");""").mkString
     }
+    delete init;
 }
 """)
 

@@ -72,6 +72,17 @@ namespace internal {
             ((T)this->self)->${name(f)} = ${name(f)};
             return (B*)this;
         }""").mkString
+        }${
+          if (null == t.getSuperType) """
+            /**
+             * destroy the builder
+             */
+            virtual T make() {
+                T rval = (T)self;
+                delete this;
+                return rval;
+            }"""
+          else ""
         }
     protected:
         ${builder(t)}(::ogss::api::Object* self) : ${
