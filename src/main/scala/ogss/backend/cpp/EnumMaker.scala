@@ -35,9 +35,7 @@ ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}""")
         UNKNOWN = (ogss::EnumBase)-1,
         ${
         // TODO comments!
-        t.getValues.map(id ⇒ escaped(capital(id.getName))).sortWith(
-          (l, r) ⇒ l.length() < r.length() || (l.length() == r.length() && l.compareTo(r) < 0)
-        ).zipWithIndex.map{case (s, i) ⇒ s"$s = $i"}.mkString("", ",\n        ", "")
+        t.getValues.map(id ⇒ escaped(camel(id.getName))).zipWithIndex.map{case (s, i) ⇒ s"$s = $i"}.mkString("", ",\n        ", "")
       }
     };
 """);

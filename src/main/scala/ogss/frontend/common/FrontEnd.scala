@@ -473,7 +473,7 @@ abstract class FrontEnd {
     // normalize enums
     tc.setEnums(new ArrayList(
       (for (c ← asScalaIterator(out.EnumDefs.iterator())) yield {
-        c.setValues(new ArrayList(c.getValues.asScala.sortBy(_.getName.getOgss).asJavaCollection))
+        c.setValues(new ArrayList(c.getValues.asScala.sortBy(v ⇒ (v.getName.getOgss.size, v.getName.getOgss)).asJavaCollection))
         c
       }).toSeq.sortBy(_.getName.getOgss).asJavaCollection
     ))

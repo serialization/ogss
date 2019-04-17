@@ -88,9 +88,11 @@ $endGuard""")
 #include <ogss/fieldTypes/SetType.h>
 #include <ogss/fieldTypes/MapType.h>
 
+#include <ogss/internal/EnumPool.h>
 #include <ogss/internal/PoolBuilder.h>
 #include <ogss/internal/StateInitializer.h>
 
+#include "enums.h"
 #include "File.h"
 #include "StringKeeper.h"
 
@@ -173,6 +175,22 @@ ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}
       else enums.zipWithIndex.map {
         case (t, i) ⇒ s"""
                     case $i: return ${skName(t.getName)};"""
+      }.mkString.mkString("""switch (id) {""", "", """
+                    default: return nullptr;
+                }""")
+    }
+            }
+
+            ogss::internal::AbstractEnumPool *enumMake(
+                    int id, ogss::TypeID index, const std::vector<ogss::api::String> &foundValues) const final {
+                ${
+      if (enums.isEmpty) "return nullptr;"
+      else enums.zipWithIndex.map {
+        case (t, i) ⇒ s"""
+                    case $i: {
+                        ogss::api::String names[] = {${t.getValues.asScala.map(v ⇒ skName(v.getName)).mkString(", ")}};
+                        return new ::ogss::internal::EnumPool<$packageName::${name(t)}>(index, ${skName(t.getName)}, foundValues, names, ${t.getValues.size()});
+                    }"""
       }.mkString.mkString("""switch (id) {""", "", """
                     default: return nullptr;
                 }""")
