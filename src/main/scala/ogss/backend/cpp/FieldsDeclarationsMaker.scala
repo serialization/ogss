@@ -116,7 +116,7 @@ ${
           val tIsBaseType = t.getSuperType == null
 
           val fieldName = s"$packageName::internal::${knownField(f)}"
-          val accessI = s"d[++i]->${name(f)}"
+          val accessI = s"d[i++]->${name(f)}"
           val readI = s"$accessI = ${readType(f.getType)};"
           s"""
 $fieldName::${knownField(f)}(
