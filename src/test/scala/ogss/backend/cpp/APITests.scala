@@ -121,7 +121,7 @@ TEST(${name.capitalize}_APITest, ${if (accept) "Acc" else "Fail"}_${gen.escaped(
 
         sf->close();
 
-        auto sf2 = File::open(sf->currentPath());
+        std::unique_ptr<File> sf2(File::open(sf->currentPath()));
         sf2->check();
     } catch (ogss::Exception& e) {${
       if (accept) """
