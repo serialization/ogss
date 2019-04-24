@@ -134,8 +134,18 @@ object CommandLine {
           else "/generated/" + lang
 
         // set options
-        for ((k, v) ← languageOptions.getOrElse(lang, new ArrayBuffer())) {
+        for ((k, v) ← languageOptions.getOrElse(lang, new ArrayBuffer())) try {
           backEnd.setOption(k.toLowerCase, v)
+        } catch {
+          case e : RuntimeException ⇒
+            println(s"""Warning ($lang): ignored option
+$k = $v
+Valid options are:
+${
+              backEnd.describeOptions.map(opt ⇒ f"""
+    ${opt.name}%-18s ${opt.values}%-16s ${opt.description}""").mkString
+            }
+""")
         }
 
         backEnd.setIR(outIR)
