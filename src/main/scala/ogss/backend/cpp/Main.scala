@@ -15,24 +15,23 @@
  ******************************************************************************/
 package ogss.backend.cpp
 
-import scala.collection.JavaConverters._
+import scala.collection.JavaConverters.asScalaBufferConverter
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.HashSet
 
 import ogss.oil.ArrayType
 import ogss.oil.BuiltinType
+import ogss.oil.ClassDef
 import ogss.oil.EnumDef
+import ogss.oil.Field
+import ogss.oil.Identifier
+import ogss.oil.InterfaceDef
 import ogss.oil.ListType
 import ogss.oil.MapType
 import ogss.oil.SetType
 import ogss.oil.Type
-import ogss.oil.WithInheritance
-import ogss.util.HeaderInfo
-import ogss.oil.ClassDef
-import ogss.oil.Field
 import ogss.oil.TypeContext
-import ogss.oil.InterfaceDef
-import ogss.oil.Identifier
+import ogss.util.HeaderInfo
 
 /**
  * A generator turns a set of skill declarations into a scala interface providing means of manipulating skill files
