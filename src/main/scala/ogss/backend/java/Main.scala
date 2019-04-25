@@ -50,7 +50,7 @@ class Main extends AbstractBackEnd
    */
   override def mapType(t : Type, boxed : Boolean) : String = t match {
     case t : BuiltinType ⇒ t.getName.getOgss match {
-      case "AnyRef" ⇒ "Object"
+      case "AnyRef" ⇒ "ogss.common.java.internal.Obj"
 
       case "Bool"   ⇒ if (boxed) "java.lang.Boolean" else "boolean"
 

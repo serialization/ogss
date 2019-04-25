@@ -95,6 +95,13 @@ ${
         }
 
         @Override
+        protected String[] literals() {
+            return new String[]${
+      allStrings.map(_.getOgss).mkString("{\"", "\", \"", "\"}")
+    };
+        }
+
+        @Override
         protected int kcc(int id) {
             switch (id) {${
       // predefine known containers

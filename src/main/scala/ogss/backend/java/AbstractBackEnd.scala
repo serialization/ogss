@@ -28,6 +28,7 @@ import ogss.oil.Type
 import ogss.oil.ClassDef
 import scala.collection.mutable.HashMap
 import ogss.oil.UserDefinedType
+import ogss.oil.Identifier
 
 /**
  * Abstract java back-end
@@ -118,6 +119,14 @@ abstract class AbstractBackEnd extends BackEnd {
    */
   protected def packagePrefix() : String
   protected def packageName = packagePrefix.substring(0, packagePrefix.length - 1)
+
+  /**
+   * all string literals used in type and field names
+   */
+  protected lazy val allStrings : Array[Identifier] = (IR.map(_.getName).toSet ++
+    IR.flatMap(_.getFields.asScala).map(_.getName).toSet ++
+    types.getEnums.asScala.map(_.getName).toSet ++
+    types.getEnums.asScala.flatMap(_.getValues.asScala).map(_.getName).toSet).toArray.sortBy(_.getOgss)
 
   /**
    * getter name

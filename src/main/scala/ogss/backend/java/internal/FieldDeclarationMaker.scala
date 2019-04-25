@@ -157,7 +157,7 @@ ${
                 FieldDeclaration.<${mapType(t.getSuperType)},${mapType(t)}>cast(type);"""
 
     case t : InterfaceDef ⇒ s"""
-        final AnyRefType t = (AnyRefType) cast(type);"""
+        final AnyRefType t = (AnyRefType) FieldDeclaration.<Obj,${mapType(t)}>cast(type);"""
 
     case t : EnumDef ⇒ s"""
         final EnumPool<?> type = (EnumPool<?>) this.type;"""
