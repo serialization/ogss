@@ -123,10 +123,10 @@ abstract class AbstractBackEnd extends BackEnd {
   /**
    * all string literals used in type and field names
    */
-  protected lazy val allStrings : Array[Identifier] = (IR.map(_.getName).toSet ++
-    IR.flatMap(_.getFields.asScala).map(_.getName).toSet ++
-    types.getEnums.asScala.map(_.getName).toSet ++
-    types.getEnums.asScala.flatMap(_.getValues.asScala).map(_.getName).toSet).toArray.sortBy(_.getOgss)
+  protected lazy val allStrings : Array[Identifier] = (flatIR.map(_.getName).toSet ++
+    flatIR.flatMap(_.getFields.asScala).map(_.getName).toSet ++
+    flatTC.getEnums.asScala.map(_.getName).toSet ++
+    flatTC.getEnums.asScala.flatMap(_.getValues.asScala).map(_.getName).toSet).toArray.sortBy(_.getOgss)
 
   /**
    * getter name
