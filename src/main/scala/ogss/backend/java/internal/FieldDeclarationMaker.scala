@@ -127,10 +127,10 @@ ${
    * create local variables holding type representants with correct type to help
    * the compiler
    */
-  private final def prelude(t : Type, target : String = "this.type") : String = t match {
+  private final def prelude(t : Type) : String = t match {
     case t : BuiltinType ⇒ ogssname(t) match {
       case "AnyRef" ⇒ s"""
-        final AnyRefType t = (AnyRefType) $target;"""
+        final AnyRefType t = (AnyRefType) type;"""
       case "String" ⇒ """
         final StringPool t = (StringPool) type;"""
 
@@ -154,16 +154,16 @@ ${
 
     case t : InterfaceDef if t.getSuperType != null ⇒ s"""
         final ${access(t.getSuperType)} t = (${access(t.getSuperType)})
-                FieldDeclaration.<${mapType(t.getSuperType)},${mapType(t)}>cast($target);"""
+                FieldDeclaration.<${mapType(t.getSuperType)},${mapType(t)}>cast(type);"""
 
     case t : InterfaceDef ⇒ s"""
-        final AnyRefType t = (AnyRefType) type;"""
+        final AnyRefType t = (AnyRefType) cast(type);"""
 
     case t : EnumDef ⇒ s"""
         final EnumPool<?> type = (EnumPool<?>) this.type;"""
 
     case t : ClassDef ⇒ s"""
-        final ${access(t)} t = ((${access(t)}) $target);"""
+        final ${access(t)} t = ((${access(t)}) type);"""
     case _ ⇒ ""
   }
 
