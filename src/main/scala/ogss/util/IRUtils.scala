@@ -55,8 +55,6 @@ trait IRUtils {
       for (s ← t.getSuperInterfaces.asScala)
         allSuperTypes(s, seen)
     }
-
-    return seen
   }
 
   def allCustoms(t : WithInheritance) : HashSet[CustomField] = {
