@@ -375,11 +375,11 @@ View extends FieldLike {
  * shall not be modified afterwards. Positions are maintained by projections.
  */
 SourcePosition {
-	/**
-	 * The name of the file excluding directory names.
-	 * In sane projects, the filename is unique.
-     */
-	string file;
-	v64 line;
-	v64 column;
+  /**
+   * The name of the file excluding directory names.
+   * In sane projects, the filename is unique.
+   */
+  string file;
+  v64 line;
+  v64 column;
 }
