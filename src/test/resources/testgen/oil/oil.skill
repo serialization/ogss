@@ -6,8 +6,9 @@
  * @note An .oil-file must contain one type context whose projected fields are false
  * @note An .oil-file must not contain two type contexts whose projected fields are identical
  * @note All type contexts in a file must be semantically equivalent.
- * @note TypeDefinitions and FieldLikes are not shared between contexts.
- *       Other entities (Comments, Identifier, ...) can be shared.
+ * @note UserTypeDefinitions and FieldLikes are not shared between contexts.
+ *       Other entities (Comments, BuiltinTypes, ...) can be shared.
+ *       Identifiers are unique and, hence, shared.
  * 
  * @note all type arrays in a type context are sorted
  * 
@@ -94,7 +95,7 @@ Identifier {
   /**
    * No separation, capitalize first character of each part.
    *
-   * @note same as ogss
+   * @note same as OGSS
    */
   auto string CapitalCase;
 
@@ -107,7 +108,7 @@ Identifier {
 }
 
 /**
- * The root of the type hierachy.
+ * The root of the type hierarchy.
  */
 Type {
   /**
@@ -133,6 +134,11 @@ UserDefinedType extends Type {
    * Any type definition obtained from a specification may have a comment.
    */
   Comment comment;
+  
+  /**
+   * The position of this definition in the original source file.
+   */
+  SourcePosition pos;
 }
 
 /**
@@ -176,6 +182,8 @@ EnumConstant {
   Identifier name;
 
   Comment comment;
+  
+  SourcePosition pos;
 }
 
 
@@ -219,11 +227,20 @@ MapType extends ContainerType {
  * @note types with inheritance are the only types with fields.
  */
 WithInheritance extends UserDefinedType {
+
   /**
-   * This can be null iff the type is an unrooted interface or its own base type
+   * This is null iff the type is an unrooted interface, i.e. it has no transitive super class
    */
   ClassDef baseType;
+
+  /**
+   * The super class of this type.
+   */
   ClassDef superType;
+
+  /**
+   * The super interfaces of this class.
+   */
   InterfaceDef[] superInterfaces;
 
   /**
@@ -282,6 +299,11 @@ FieldLike {
    * Any field-like definition may have a comment.
    */
   Comment comment;
+  
+  /**
+   * The position of this definition in the original source file.
+   */
+  SourcePosition pos;
 }
 
 /**
@@ -348,4 +370,18 @@ View extends FieldLike {
    * It must be a subtype of target.t.
    */
   Type type;
+}
+
+/**
+ * A position inside a source file. Positions are created by front-ends and
+ * shall not be modified afterwards. Positions are maintained by projections.
+ */
+SourcePosition {
+  /**
+   * The name of the file excluding directory names.
+   * In sane projects, the filename is unique.
+   */
+  string file;
+  v64 line;
+  v64 column;
 }
