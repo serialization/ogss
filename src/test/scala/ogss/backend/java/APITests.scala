@@ -168,6 +168,7 @@ public class Generic${name}Test extends common.CommonTest {
   private def equalValue(left : String, v : Any, t : Type) : String = t match {
     case t : BuiltinType ⇒
       t.getName.getOgss match {
+        case _ if JSONObject.NULL == v ⇒ s"$left == null"
         case "String" if null != v ⇒ s"""$left != null && $left.equals("${v.toString()}")"""
         case "I8" ⇒ s"$left == (byte)" + v.toString()
         case "I16" ⇒ s"$left == (short)" + v.toString()
