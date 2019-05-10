@@ -147,7 +147,7 @@ ${
       if (enums.isEmpty) "return null;"
       else enums.zipWithIndex.map {
         case (t, i) ⇒ s"""
-            case $i: return "${t}";"""
+            case $i: return "${t.getName.getOgss}";"""
       }.mkString("switch (id) {", "", """
             default: return null;
             }""")
