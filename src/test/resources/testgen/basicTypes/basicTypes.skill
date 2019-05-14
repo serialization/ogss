@@ -109,3 +109,11 @@ BasicTypes{
   map<i16,i8> aMap;  
 
 }
+/** Includes all basic container types */
+
+BasicContainerTypes{
+  i32[] a;
+  set<i32> s;
+  list<i32> l;
+  map<i32,i32> m;  
+}
