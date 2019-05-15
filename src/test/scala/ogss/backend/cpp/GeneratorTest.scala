@@ -32,6 +32,7 @@ class GeneratorTest extends FunSuite {
       "-c",
       "-L", "cpp",
       "-p", out,
+      "-d", "testsuites/cpp/lib",
       "-o", "testsuites/cpp/src/" + out
     ))
   }

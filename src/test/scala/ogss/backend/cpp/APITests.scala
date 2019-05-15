@@ -66,6 +66,7 @@ class APITests extends GenericAPITests {
       "-L", "cpp",
       "-p", name,
       "-Ocpp:revealID=true",
+      "-d", "testsuites/cpp/lib",
       "-o", "testsuites/cpp/src/" + name
     ) ++ options)
   }
@@ -100,7 +101,7 @@ using namespace common;
 
   def makeSkipTest(out : PrintWriter, kind : String, name : String, testName : String, accept : Boolean) {
     out.write(s"""
-TEST(${name.capitalize}_APITest, ${gen.escaped(kind)}_skipped_${gen.escaped(testName)}) {${
+TEST(${name.capitalize}_API_Test, ${gen.escaped(kind)}_skipped_${gen.escaped(testName)}) {${
       if (accept) ""
       else """
     GTEST_FAIL() << "The test was skipped by the test generator.";"""
@@ -111,7 +112,7 @@ TEST(${name.capitalize}_APITest, ${gen.escaped(kind)}_skipped_${gen.escaped(test
 
   override def makeRegularTest(out : PrintWriter, kind : String, name : String, testName : String, accept : Boolean, TC : TypeContext, obj : JSONObject) {
     out.write(s"""
-TEST(${name.capitalize}_APITest, ${if (accept) "Acc" else "Fail"}_${gen.escaped(testName)}) {
+TEST(${name.capitalize}_API_Test, ${if (accept) "Acc" else "Fail"}_${gen.escaped(testName)}) {
     try {
         auto sf = common::tempFile<File>();
 

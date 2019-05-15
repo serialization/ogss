@@ -54,6 +54,7 @@ class GenericTests extends common.GenericTests {
       "-L", "cpp",
       "-p", name,
       "-Ocpp:revealID=true",
+      "-d", "testsuites/cpp/lib",
       "-o", "testsuites/cpp/src/" + name
     ) ++ options)
   }
@@ -90,7 +91,7 @@ using ::$packageName::api::File;
       val out = newTestFile(name, "Read")
 
       for (f ← accept) out.write(s"""
-TEST(${name.capitalize}Parser, Accept_${f.getName.replaceAll("\\W", "_")}) {
+TEST(${name.capitalize}_Read_Test, Accept_${f.getName.replaceAll("\\W", "_")}) {
     try {
         auto s = std::unique_ptr<File>(File::open("../../${f.getPath.replaceAll("\\\\", "\\\\\\\\")}"));
         s->check();
@@ -101,7 +102,7 @@ TEST(${name.capitalize}Parser, Accept_${f.getName.replaceAll("\\W", "_")}) {
 }
 """)
       for (f ← reject) out.write(s"""
-TEST(${name.capitalize}Parser, Reject_${f.getName.replaceAll("\\W", "_")}) {
+TEST(${name.capitalize}_Read_Test, Reject_${f.getName.replaceAll("\\W", "_")}) {
     try {
         auto s = std::unique_ptr<File>(File::open("../../${f.getPath.replaceAll("\\\\", "\\\\\\\\")}"));
         s->check();

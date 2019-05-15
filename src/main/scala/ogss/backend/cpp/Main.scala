@@ -50,6 +50,8 @@ final class Main extends AbstractBackEnd
   override def name : String = "Cpp";
   override def description = "C++ source code"
 
+  dependencies = Seq("ogss.common.cpp")
+
   override def packageDependentPathPostfix = ""
   override def defaultCleanMode = "file";
 
