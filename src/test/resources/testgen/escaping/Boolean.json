@@ -1,5 +1,5 @@
 {
-	"Comment" : "Should fail because boolean in esc_3 shoudl not be a Boolean-class",
+	"Comment" : "Should fail because boolean in esc_3 should not be a Boolean-class",
 	"should" : "skip",
     "kind" : "escaped",
     "skip" : ["java","scala","ogss"],
