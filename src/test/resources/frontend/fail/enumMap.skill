@@ -1,0 +1,7 @@
+fail {
+	map<E,E> f;
+}
+
+enum E {
+	a,b;
+}
