@@ -1,0 +1,7 @@
+fail {
+	set<E> f;
+}
+
+enum E {
+	a,b;
+}

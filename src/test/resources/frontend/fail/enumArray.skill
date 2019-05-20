@@ -1,0 +1,7 @@
+fail {
+	E[] f;
+}
+
+enum E {
+	a,b;
+}

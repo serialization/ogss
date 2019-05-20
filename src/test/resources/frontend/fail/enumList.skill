@@ -1,0 +1,7 @@
+fail {
+	list<E> f;
+}
+
+enum E {
+	a,b;
+}
