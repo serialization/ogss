@@ -10,6 +10,8 @@
 
 namespace ogss {
     namespace internal {
+        class ParReadTask;
+
         class SeqReadTask;
 
         class Writer;
@@ -41,6 +43,8 @@ namespace ogss {
               * @return true iff the written data contains default values only
               */
             virtual bool write(int i, int last, streams::BufferedOutStream *out) const = 0;
+
+            friend class ParReadTask;
 
             friend class SeqReadTask;
 

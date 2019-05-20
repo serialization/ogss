@@ -4,6 +4,7 @@
 
 #include "Creator.h"
 #include "EnumPool.h"
+#include "ParParser.h"
 #include "SeqParser.h"
 #include "StateInitializer.h"
 
@@ -27,9 +28,7 @@ StateInitializer *StateInitializer::make(
         if (fs->size() < SEQ_PARSER_LIMIT)
             init.reset(new SeqParser(path, fs, pb));
         else
-            SK_TODO + "par parser";
-        //        else
-        //            init = new ParParser(path, fs, pb);
+            init.reset(new ParParser(path, fs, pb));
 
         ((Parser *) init.get())->parseFile(fs);
     }
@@ -46,6 +45,7 @@ StateInitializer::StateInitializer(const std::string &path, FileInputStream *in,
           anyRef(new AnyRefType(strings, &classes)),
           SIFA(new FieldType *[pb.sifaSize]),
           sifaSize(pb.sifaSize),
+          threadPool(nullptr),
           nsID(10),
           nextFieldID(1) {
 
@@ -98,6 +98,8 @@ StateInitializer::~StateInitializer() {
         for (auto c : enums) {
             delete c;
         }
+
+        delete threadPool;
     }
 
     delete[] SIFA;

@@ -25,7 +25,11 @@ namespace ogss {
 
         class Parser;
 
+        class ParParser;
+
         class SeqParser;
+
+        class PHRT;
 
         class SHRT;
 
@@ -179,6 +183,10 @@ namespace ogss {
             friend class internal::Creator;
 
             friend class internal::Parser;
+
+            friend class internal::ParParser;
+
+            friend class internal::PHRT;
 
             friend class internal::SeqParser;
 

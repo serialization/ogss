@@ -32,4 +32,5 @@ struct OGSS_TODO_MESSAGE final {
 
 #define SK_TODO OGSS_TODO_MESSAGE(std::string("TODO -- not yet implemented: ") + __FILE__ + ":" + std::to_string(__LINE__) + "\n")
 
+
 #endif //OGSS_CPP_COMMON_UTILS_H

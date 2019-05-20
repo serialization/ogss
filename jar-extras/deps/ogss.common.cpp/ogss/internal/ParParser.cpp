@@ -1,34 +1,40 @@
 //
-// Created by Timm Felden on 03.04.19.
+// Created by Timm Felden on 16.05.19.
 //
 
-#include "SeqParser.h"
+#include <future>
+#include "ParParser.h"
 #include "LazyField.h"
-#include "../concurrent/Pool.h"
 
 using namespace ogss::internal;
+
 using ogss::concurrent::Job;
+using ogss::concurrent::Semaphore;
 
 namespace ogss {
     namespace internal {
 
-        class SeqReadTask final : public Job {
+        // TODO error reporting in tasks will currently not work as intended!
+
+        class ParReadTask final : public Job {
+
             const BlockID block;
-
             DataField *const f;
-
             streams::MappedInStream *const in;
+            Semaphore *const barrier;
 
         public:
-            SeqReadTask(DataField *f, BlockID block, streams::MappedInStream *in)
-                    : block(block), f(f), in(in) {
+            ParReadTask(DataField *f, BlockID block, streams::MappedInStream *in, Semaphore *barrier)
+                    : block(block), f(f), in(in), barrier(barrier) {
             }
 
-            ~SeqReadTask() final {
+            ~ParReadTask() final {
                 delete in;
             }
 
             void run() final {
+                Semaphore::ScopedPermit release(barrier);
+
                 AbstractPool *const owner = f->owner;
                 const int bpo = owner->bpo;
                 const int first = block * ogss::FD_Threshold;
@@ -41,20 +47,24 @@ namespace ogss {
             }
         };
 
-        class SHRT final : public Job {
+        class PHRT final : public Job {
+
             const BlockID block;
             HullType *const t;
             streams::MappedInStream *const in;
+            Semaphore *const barrier;
+
         public:
 
-            SHRT(HullType *t, int block, streams::MappedInStream *in)
-                    : block(block), t(t), in(in) {}
+            PHRT(HullType *t, int block, streams::MappedInStream *in, Semaphore *barrier)
+                    : block(block), t(t), in(in), barrier(barrier) {}
 
-            ~SHRT() final {
+            ~PHRT() final {
                 delete in;
             }
 
             void run() override {
+                Semaphore::ScopedPermit release(barrier);
                 t->read(block, in);
             }
         };
@@ -62,11 +72,23 @@ namespace ogss {
 }
 
 
-SeqParser::SeqParser(const std::string &path, streams::FileInputStream *in, const PoolBuilder &pb)
-        : Parser(path, in, pb) {
+ParParser::ParParser(const std::string &path, streams::FileInputStream *in, const PoolBuilder &pb)
+        : Parser(path, in, pb), barrier(), jobs() {
+    // we use a thread pool, so we have to create it
+    threadPool = new concurrent::Pool();
 }
 
-void SeqParser::typeBlock() {
+ParParser::~ParParser() {
+    barrier.takeMany(jobs.size());
+
+    // TODO propagate readErrors
+}
+
+/**
+ * parse T and F
+ */
+void ParParser::typeBlock() {
+
     /**
      * *************** * T Class * ****************
      */
@@ -74,7 +96,7 @@ void SeqParser::typeBlock() {
 
     // calculate cached size and next for all pools
     {
-        int cs = classes.size();
+        const auto cs = classes.size();
         if (0 != cs) {
             int i = cs - 2;
             if (i >= 0) {
@@ -94,13 +116,15 @@ void SeqParser::typeBlock() {
             }
 
             // allocate data and start instance allocation jobs
-            // note: this is different from Java, because we used templates in C++
             while (++i < cs) {
                 AbstractPool *p = classes[i];
                 p->allocateData();
                 p->lastID = p->bpo + p->cachedSize;
                 if (0 != p->staticDataInstances) {
-                    p->allocateInstances();
+                    threadPool->run(new AllocateInstances(p, &barrier));
+                } else {
+                    // we would not allocate an instance anyway
+                    barrier.release();
                 }
             }
         }
@@ -124,13 +148,18 @@ void SeqParser::typeBlock() {
     }
 }
 
-void SeqParser::processData() {
-    // we expect one HD-entry per field, but an arbitrary amount of entries can be encountered
-    std::vector<Job *> jobs;
+/**
+ * Jump through HD-entries to create read tasks
+ */
+void ParParser::processData() {
+
+    // we expect one HD-entry per field
     jobs.reserve(fields.size());
 
+    int awaitHulls = 0;
+
     while (!in->eof()) {
-        // create the in directly and use it for subsequent read-operations to avoid costly position and size
+        // create the map directly and use it for subsequent read-operations to avoid costly position and size
         // readjustments
         streams::MappedInStream *const map = in->jumpAndMap(in->v32() + 2);
 
@@ -143,40 +172,32 @@ void SeqParser::processData() {
             const int count = map->v32();
 
             // start hull allocation job
-            BlockID block = p->allocateInstances(count, map);
-
-            // create hull read data task except for StringPool which is still lazy per element and eager per offset
-            if (8 != p->typeID) {
-                jobs.push_back(new SHRT(p, block, map));
-            }
+            awaitHulls++;
+            threadPool->run(new AllocateHull(p, count, map, this));
 
         } else if (auto fd = dynamic_cast<DataField *>(f)) {
             BlockID block = fd->owner->cachedSize >= ogss::FD_Threshold ? map->v32() : 0;
 
             // create job with adjusted size that corresponds to the * in the specification (i.e. exactly the data)
-            jobs.push_back(new SeqReadTask(fd, block, map));
-        } else {
-            delete map;
-            ParseException(in.get(), "corrupted HD block");
+            jobs.push_back(new ParReadTask(fd, block, map, &barrier));
         }
     }
 
-    // perform read tasks
-    int i = 0;
-    try {
-        for (; i < jobs.size(); i++) {
-            Job *j = jobs[i];
-            j->run();
-            delete j;
+    // await allocations of class and hull types
+    barrier.takeMany(classes.size() + awaitHulls);
 
-            // TODO default initialization!
-        }
-    } catch (std::exception &e) {
-        // delete remaining jobs in case of error
-        for (; i < jobs.size(); i++) {
-            delete jobs[i];
-        }
+    // start read tasks
+    threadPool->runAll(jobs);
 
-        throw e;
+    // TODO start tasks that perform default initialization of fields not obtained from file
+}
+
+void ParParser::AllocateHull::run() {
+    concurrent::Semaphore::ScopedPermit release(&self->barrier);
+    int block = p->allocateInstances(count, map);
+
+    // create hull read data task except for StringPool which is still lazy per element and eager per offset
+    if (8 != p->typeID) {
+        self->jobs.push_back(new PHRT(p, block, map, &self->barrier));
     }
 }

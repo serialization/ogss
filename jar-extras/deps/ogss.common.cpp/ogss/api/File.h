@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <memory>
 #include "String.h"
+#include "../concurrent/Pool.h"
 #include "../fieldTypes/AbstractEnumType.h"
 #include "../fieldTypes/HullType.h"
 #include "../internal/AbstractPool.h"
@@ -103,6 +104,11 @@ namespace ogss {
              * True iff the state can perform write operations.
              */
             bool canWrite;
+
+            /**
+             * The thread pool associated with this file. Can be null, if none was ever used.
+             */
+            concurrent::Pool *threadPool;
 
             File(internal::StateInitializer *init);
 

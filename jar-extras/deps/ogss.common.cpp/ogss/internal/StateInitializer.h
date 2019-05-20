@@ -55,6 +55,11 @@ namespace ogss {
             fieldTypes::FieldType **const SIFA;
             const size_t sifaSize;
 
+            /**
+             * The thread pool used to create this initializer. Nullptr, if not a ParParser.
+             */
+            concurrent::Pool *threadPool;
+
         protected:
             /**
              * next SIFA ID to be used if some type is added to SIFA
@@ -80,7 +85,11 @@ namespace ogss {
             void fixContainerMD();
 
         public:
-            /// state initializer is freed by the OGFile constructor
+            /**
+             * state initializer is freed by the generated OGFile constructor
+             *
+             * @note in OGSS/Java this corresponds to awaitResults
+             */
             virtual ~StateInitializer();
         };
     }

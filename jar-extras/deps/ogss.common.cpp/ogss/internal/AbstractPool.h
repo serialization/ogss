@@ -39,6 +39,10 @@ namespace ogss {
 
         class Parser;
 
+        class ParParser;
+
+        class ParReadTask;
+
         class SeqParser;
 
         class SeqReadTask;
@@ -270,6 +274,10 @@ namespace ogss {
             friend class Creator;
 
             friend class Parser;
+
+            friend class ParParser;
+
+            friend class ParReadTask;
 
             friend class SeqParser;
 
