@@ -63,7 +63,14 @@ ${
      * Create a new unmanaged ${ogssname(t)}. Allocation of objects without using the
      * access factory method is discouraged.
      */
-    public ${name(t)}(int ID) {
+    public ${name(t)}() {
+        super(0);
+    }
+
+    /**
+     * Used for internal construction only!
+     */
+    ${name(t)}(int ID) {
         super(ID);
     }
 
