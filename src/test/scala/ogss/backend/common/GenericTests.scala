@@ -99,7 +99,7 @@ abstract class GenericTests extends FunSuite with BeforeAndAfterAll {
 
   for (path ← getFileList(new File("src/test/resources/testgen")) if path.getName.endsWith(testOnly + ".skill")) {
     try {
-      val r"""#!\s(\w+)${ name }(.*)${ options }""" =
+      val r"""#!\s([ÄÖÜäöüFA-Za-z0-9]+)${ name }(.*)${ options }""" =
         io.Source.fromFile(path)(Codec.UTF8).getLines.toSeq.headOption.getOrElse("")
 
       makeTest(path, name, options.split("\\s+").filter(_.length() != 0))
