@@ -74,7 +74,7 @@ namespace ogss {
 
 
 ParParser::ParParser(const std::string &path, streams::FileInputStream *in, const PoolBuilder &pb)
-        : Parser(path, in, pb), barrier(), jobs() {
+        : Parser(path, in, pb), barrier(), jobs(), jobMX() {
     // we use a thread pool, so we have to create it
     threadPool = new concurrent::Pool();
 }
@@ -183,6 +183,7 @@ void ParParser::processData() {
             BlockID block = fd->owner->cachedSize >= ogss::FD_Threshold ? map->v32() : 0;
 
             // create job with adjusted size that corresponds to the * in the specification (i.e. exactly the data)
+            std::lock_guard<std::mutex> lock(jobMX);
             jobs.push_back(new ParReadTask(fd, block, map, &barrier));
         }
     }
@@ -202,6 +203,7 @@ void ParParser::AllocateHull::run() {
 
     // create hull read data task except for StringPool which is still lazy per element and eager per offset
     if (KnownTypeID::STRING != p->typeID) {
+        std::lock_guard<std::mutex> lock(self->jobMX);
         self->jobs.push_back(new PHRT(p, block, map, &self->barrier));
     }
 }

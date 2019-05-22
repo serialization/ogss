@@ -23,6 +23,8 @@ namespace ogss {
 
             // jobs is a field as we need it for await
             std::vector<concurrent::Job *> jobs;
+            // protection for jobs until we implement a wait-free queue
+            std::mutex jobMX;
 
             ParParser(const std::string &path, streams::FileInputStream *in, const PoolBuilder &pb);
 
