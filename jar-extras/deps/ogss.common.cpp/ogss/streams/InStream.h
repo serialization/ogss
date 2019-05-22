@@ -38,7 +38,7 @@ namespace ogss {
             /**
              * Proper destruction happens in child destructors
              */
-            virtual ~InStream() {}
+            virtual ~InStream() = default;
 
             inline int8_t i8() {
                 ensure(position < end);

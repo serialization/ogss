@@ -146,7 +146,7 @@ void SeqParser::processData() {
             BlockID block = p->allocateInstances(count, map);
 
             // create hull read data task except for StringPool which is still lazy per element and eager per offset
-            if (8 != p->typeID) {
+            if (KnownTypeID::STRING != p->typeID) {
                 jobs.push_back(new SHRT(p, block, map));
             }
 

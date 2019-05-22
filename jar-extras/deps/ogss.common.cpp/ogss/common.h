@@ -29,6 +29,26 @@ namespace ogss {
     typedef int TypeID;
 
     /**
+     * These typeIDs belong to language defined types and are therefore eternal constants.
+     *
+     * @note we cannot take an enum class because we need implicit conversion to TypeID
+     */
+    namespace KnownTypeID {
+        enum KnownTypeID : TypeID {
+            BOOL = 0,
+            I8 = 1,
+            I16 = 2,
+            I32 = 3,
+            I64 = 4,
+            V64 = 5,
+            F32 = 6,
+            F64 = 7,
+            ANY_REF = 8,
+            STRING = 9
+        };
+    }
+
+    /**
      * In theory, blockIDs can be up to 2**50 (2**60/2**14).
      * In practice, they are almost always smaller than 100.
      */

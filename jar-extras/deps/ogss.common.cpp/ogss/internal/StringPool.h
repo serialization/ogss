@@ -96,8 +96,8 @@ namespace ogss {
                 return r;
             }
 
-            api::Box get(ObjectID ID) const {
-                api::Box r;
+            api::Box get(ObjectID ID) const final {
+                api::Box r{};
                 r.string = byID(ID);
                 return r;
             }

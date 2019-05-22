@@ -11,7 +11,7 @@ using namespace ogss;
 using api::String;
 
 internal::StringPool::StringPool(const AbstractStringKeeper *sk)
-        : HullType(9, -1), in(nullptr), knownStrings(), literals(sk),
+        : HullType(KnownTypeID::STRING, -1), in(nullptr), knownStrings(), literals(sk),
           literalStrings(sk->strings), literalStringCount(sk->size),
           positions(nullptr), lastID(0) {
 
@@ -30,6 +30,9 @@ internal::StringPool::~StringPool() {
         delete s;
 
     delete[] positions;
+
+    // delete in, as it may still be valid
+    delete in;
 
     // free string literals, if they are dynamically heap allocated
     if (literalStrings != literals->strings)

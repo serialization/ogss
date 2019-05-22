@@ -61,8 +61,11 @@ Pool::~Pool() {
     cv.notify_all();
 
     // wait for workers to terminate
-    for (size_t i = 0; i < workerCount; i++)
-        workers[i]->join();
+    for (size_t i = 0; i < workerCount; i++) {
+        auto w = workers[i];
+        w->join();
+        delete w;
+    }
 
     delete[] workers;
 

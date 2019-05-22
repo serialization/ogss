@@ -24,7 +24,7 @@ namespace ogss {
 
         public:
             // copy a mapped in stream for later use
-            MappedInStream(const MappedInStream *other)
+            explicit MappedInStream(const MappedInStream *other)
                     : InStream(other->base, other->end) {
                 this->position = other->position;
             }
@@ -33,7 +33,7 @@ namespace ogss {
             MappedInStream(const MappedInStream *other, size_t begin, size_t end);
 
             //! requires no action; all resources are managed elsewhere
-            ~MappedInStream() {}
+            ~MappedInStream() override = default;
         };
     }
 }

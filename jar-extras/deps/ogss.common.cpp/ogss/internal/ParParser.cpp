@@ -2,9 +2,10 @@
 // Created by Timm Felden on 16.05.19.
 //
 
-#include <future>
-#include "ParParser.h"
 #include "LazyField.h"
+#include "ParParser.h"
+
+#include <future>
 
 using namespace ogss::internal;
 
@@ -81,7 +82,10 @@ ParParser::ParParser(const std::string &path, streams::FileInputStream *in, cons
 ParParser::~ParParser() {
     barrier.takeMany(jobs.size());
 
-    // TODO propagate readErrors
+    if (threadPool->hasErrors()) {
+        SK_TODO;
+        // error propagation code, i.e. aggregate error messages
+    }
 }
 
 /**
@@ -96,7 +100,7 @@ void ParParser::typeBlock() {
 
     // calculate cached size and next for all pools
     {
-        const auto cs = classes.size();
+        const int cs = classes.size();
         if (0 != cs) {
             int i = cs - 2;
             if (i >= 0) {
@@ -197,7 +201,7 @@ void ParParser::AllocateHull::run() {
     int block = p->allocateInstances(count, map);
 
     // create hull read data task except for StringPool which is still lazy per element and eager per offset
-    if (8 != p->typeID) {
+    if (KnownTypeID::STRING != p->typeID) {
         self->jobs.push_back(new PHRT(p, block, map, &self->barrier));
     }
 }
