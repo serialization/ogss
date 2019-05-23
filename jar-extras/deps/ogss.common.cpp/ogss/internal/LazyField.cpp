@@ -9,67 +9,47 @@ using namespace ogss;
 using namespace internal;
 
 api::Box LazyField::getR(const api::Object *i) {
-    if (-1 == i->id)
+    ObjectID ID = i->id;
+    if (-1 == ID)
         return newData[i];
 
     ensureIsLoaded();
-    return data[i->id - 1];
+    if (--ID >= lastID)
+        throw std::out_of_range("illegal access to distributed field");
+    return data[ID - firstID];
 }
 
 void LazyField::setR(api::Object *i, api::Box v) {
-    if (-1 == i->id)
+    ObjectID ID = i->id;
+    if (-1 == ID)
         newData[i] = v;
 
     ensureIsLoaded();
-    data[i->id - 1] = v;
+    if (--ID >= lastID)
+        throw std::out_of_range("illegal access to distributed field");
+    data[ID - firstID] = v;
 }
 
 void LazyField::load() {
-    SK_TODO;
+    // we recycled first and last ID, so it is already set as intended
+    const ObjectID high = lastID - firstID;
+    ObjectID i = 0;
+    data = new api::Box[high];
+    while (i != high) {
+        data[i++] = type->r(*input);
+    }
 
-    //    if (!data.p)
-    //        new(&data) streams::SparseArray<api::Box>((size_t) owner->base->size(),
-    //                                                  owner->blocks.size() <= 1 && !owner->blocks[0].bpo);
-    //
-    //    for (const auto &e : *parts) {
-    //        const auto &target = e.first;
-    //        auto &part = e.second;
-    //        ogss::streams::MappedInStream &in = *part;
-    //
-    //        try {
-    //            if (dynamic_cast<const SimpleChunk *>(target)) {
-    //                for (::ogss::ObjectID i = ((const ::ogss::internal::SimpleChunk *) target)->bpo,
-    //                             high = i + target->count; i != high; i++)
-    //                    data[i] = type->r(in);
-    //            } else {
-    //                //case bci : BulkChunk ⇒
-    //                for (int i = 0; i < ((const ::ogss::internal::BulkChunk *) target)->blockCount; i++) {
-    //                    const auto &b = owner->blocks[i];
-    //                    for (::ogss::ObjectID i = b.bpo, end = i + b.dynamicCount; i != end; i++)
-    //                        data[i] = type->r(in);
-    //                }
-    //            }
-    //        } catch (::ogss::Exception& e) {
-    //            throw ParseException(
-    //                    in.getPosition(),
-    //                    part->getPosition() + target->begin,
-    //                    part->getPosition() + target->end, e.what());
-    //        } catch (...) {
-    //            throw ParseException(
-    //                    in.getPosition(),
-    //                    part->getPosition() + target->begin,
-    //                    part->getPosition() + target->end, "unexpected foreign exception");
-    //        }
-    //
-    //        if (!in.eof())
-    //            throw ParseException(
-    //                    in.getPosition(),
-    //                    part->getPosition() + target->begin,
-    //                    part->getPosition() + target->end, "did not consume all bytes");
-    //        delete part;
-    //    }
-    //    delete parts;
-    //    parts = nullptr;
+    if (!input->eof())
+        throw std::out_of_range("lazy read task did not consume InStream");
+
+    delete input;
+    input = nullptr;
+}
+
+void LazyField::read(int i, int last, ogss::streams::MappedInStream &in) const {
+    this->firstID = i;
+    this->lastID = last;
+    this->input = &in;
 }
 
 bool LazyField::check() const {
@@ -78,7 +58,5 @@ bool LazyField::check() const {
 }
 
 LazyField::~LazyField() {
-    if (input) {
-        delete input;
-    }
+    delete input;
 }

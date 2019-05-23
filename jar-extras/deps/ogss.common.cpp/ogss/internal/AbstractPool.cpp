@@ -8,6 +8,8 @@
 #include "AutoField.h"
 #include "DataField.h"
 #include "../iterators/TypeHierarchyIterator.h"
+#include "../iterators/FieldIterator.h"
+#include "../iterators/StaticFieldIterator.h"
 
 using namespace ogss;
 using namespace internal;
@@ -60,4 +62,12 @@ api::Box AbstractPool::r(streams::InStream &in) const {
                ? (((Pool<Object> *) this)->data[id - 1])
                : nullptr;
     return r;
+}
+
+iterators::StaticFieldIterator internal::AbstractPool::fields() const {
+    return iterators::StaticFieldIterator(this);
+}
+
+iterators::FieldIterator internal::AbstractPool::allFields() const {
+    return iterators::FieldIterator(this);
 }

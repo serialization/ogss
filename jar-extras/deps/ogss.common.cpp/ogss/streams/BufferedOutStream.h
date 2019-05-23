@@ -111,7 +111,7 @@ namespace ogss {
 
             inline void i16(int16_t v) {
                 require(2);
-                std::memcpy(&v, current.begin, 2);
+                std::memcpy(current.begin, &v, 2);
                 current.begin += 2;
             }
 
@@ -122,13 +122,13 @@ namespace ogss {
 
             inline void i32(int32_t v) {
                 require(4);
-                std::memcpy(&v, current.begin, 4);
+                std::memcpy(current.begin, &v, 4);
                 current.begin += 4;
             }
 
             inline void f32(float v) {
                 require(4);
-                std::memcpy(&v, current.begin, 4);
+                std::memcpy(current.begin, &v, 4);
                 current.begin += 4;
             }
 
@@ -139,13 +139,13 @@ namespace ogss {
 
             inline void i64(int64_t v) {
                 require(8);
-                std::memcpy(&v, current.begin, 8);
+                std::memcpy(current.begin, &v, 8);
                 current.begin += 8;
             }
 
             inline void f64(double v) {
                 require(8);
-                std::memcpy(&v, current.begin, 8);
+                std::memcpy(current.begin, &v, 8);
                 current.begin += 8;
             }
 

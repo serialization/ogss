@@ -10,13 +10,23 @@ using namespace ogss;
 using namespace internal;
 
 api::Box DistributedField::getR(const api::Object *i) {
-    return (-1 == i->id) ?
-           newData[i] :
-           data[i->id - 1];
+    ObjectID ID = i->id;
+    if (-1 == ID)
+        return newData[i];
+
+    if (--ID >= lastID)
+        throw std::out_of_range("illegal access to distributed field");
+    return data[ID - firstID];
 }
 
 void DistributedField::setR(api::Object *i, api::Box v) {
-    ((-1 == i->id) ? newData[i] : data[i->id - 1]) = v;
+    ObjectID ID = i->id;
+    if (-1 == ID)
+        newData[i] = v;
+
+    if (--ID >= lastID)
+        throw std::out_of_range("illegal access to distributed field");
+    data[ID - firstID] = v;
 }
 
 bool DistributedField::check() const {
@@ -39,8 +49,7 @@ bool DistributedField::check() const {
 
 
 DistributedField::~DistributedField() {
-    if (data)
-        delete[] (data + firstID);
+    delete[] data;
 }
 
 
@@ -48,8 +57,10 @@ void DistributedField::read(int i, const int last, streams::MappedInStream &in) 
     // we fill in data and data is nullptr at this point, so we have to allocate it first
     firstID = i;
     lastID = last;
-    data = new api::Box[last - i] - firstID;
-    while (i != last) {
+    const int high = last - i;
+    i = 0;
+    data = new api::Box[high];
+    while (i != high) {
         data[i++] = type->r(in);
     }
 }
@@ -67,7 +78,10 @@ bool DistributedField::write(int i, const int last, streams::BufferedOutStream *
         //        }
         //        wrap.unwrap();
     } else {
-        while (i < last) {
+        // it is always data and therefore shifted
+        const ObjectID high = last - i;
+        i = 0;
+        while (i < high) {
             drop &= type->w(data[i++], out);
         }
     }

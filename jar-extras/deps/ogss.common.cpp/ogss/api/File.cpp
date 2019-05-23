@@ -4,6 +4,7 @@
 
 #include "../fieldTypes/AnyRefType.h"
 #include "../internal/EnumPool.h"
+#include "../internal/LazyField.h"
 #include "../internal/StateInitializer.h"
 #include "../internal/Writer.h"
 #include "../streams/FileOutputStream.h"
@@ -152,13 +153,12 @@ void File::loadLazyData() {
     // ensure that strings are loaded
     ((StringPool *) strings)->loadLazyData();
 
-    // TODO
-    //                // ensure that lazy fields have been loaded
-    //                for (Pool<?> p : classes)
-    //                for (FieldDeclaration<?, ?> f : p.dataFields)
-    //                if (f instanceof LazyField<?, ?>)
-    //                ((LazyField<?, ?>) f).ensureLoaded();
-    //
+    // ensure that lazy fields have been loaded
+    for (AbstractPool *p : *this) {
+        for (DataField *df : p->dataFields)
+            if (auto f = dynamic_cast<LazyField *>(df))
+                f->ensureIsLoaded();
+    }
 
     // close the file input stream and ensure that it is not read again
     delete fromFile;

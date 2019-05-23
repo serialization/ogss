@@ -543,7 +543,6 @@ void ogss::internal::Parser::readFields(ogss::AbstractPool *p) {
 
     // create remaining auto fields
     for (; p->KFN(ki); ki++) {
-        // nextID wont be used anyway
-        p->KFC(ki, SIFA, 0);
+        p->KFC(ki, SIFA, nextFieldID++);
     }
 }

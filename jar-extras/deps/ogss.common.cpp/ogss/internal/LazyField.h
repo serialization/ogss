@@ -11,8 +11,7 @@
 namespace ogss {
     namespace internal {
         class LazyField : public DistributedField {
-
-            streams::MappedInStream *input;
+            mutable streams::MappedInStream *input;
 
             inline bool isLoaded() { return nullptr == input; }
 
@@ -35,6 +34,8 @@ namespace ogss {
                 if (!isLoaded())
                     load();
             }
+
+            void read(int i, int last, streams::MappedInStream &in) const override;
 
             virtual api::Box getR(const api::Object *i) override;
 

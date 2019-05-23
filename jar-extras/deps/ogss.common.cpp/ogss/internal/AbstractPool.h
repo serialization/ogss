@@ -28,6 +28,10 @@ namespace ogss {
         class DynamicDataIterator;
 
         class TypeHierarchyIterator;
+
+        class StaticFieldIterator;
+
+        class FieldIterator;
     }
     using restrictions::TypeRestriction;
     namespace internal {
@@ -238,6 +242,10 @@ namespace ogss {
                 return size;
             }
 
+            iterators::StaticFieldIterator fields() const;
+
+            iterators::FieldIterator allFields() const;
+
         protected:
             std::vector<DataField *> dataFields;
             size_t afCount;
@@ -292,6 +300,10 @@ namespace ogss {
             template<class T>
             friend
             class iterators::DynamicDataIterator;
+
+            friend class iterators::FieldIterator;
+
+            friend class iterators::StaticFieldIterator;
         };
     }
 }

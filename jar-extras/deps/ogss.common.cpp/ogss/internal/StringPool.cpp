@@ -11,8 +11,8 @@ using namespace ogss;
 using api::String;
 
 internal::StringPool::StringPool(const AbstractStringKeeper *sk)
-        : HullType(KnownTypeID::STRING, -1), in(nullptr), knownStrings(), literals(sk),
-          literalStrings(sk->strings), literalStringCount(sk->size),
+        : HullType(KnownTypeID::STRING, -1), in(nullptr), knownStrings(), owned(),
+          literals(sk), literalStrings(sk->strings), literalStringCount(sk->size),
           positions(nullptr), lastID(0) {
 
     knownStrings.reserve(sk->size);
@@ -21,12 +21,8 @@ internal::StringPool::StringPool(const AbstractStringKeeper *sk)
 }
 
 internal::StringPool::~StringPool() {
-    // remove literals from knownStrings
-    for (ObjectID i = 0; i < literals->size; i++)
-        knownStrings.erase(literals->strings[i]);
-
-    // delete remaining knownStrings
-    for (auto s : knownStrings)
+    // delete owned strings
+    for (auto s : owned)
         delete s;
 
     delete[] positions;
@@ -71,15 +67,17 @@ void internal::StringPool::readSL(ogss::streams::FileInputStream *in) {
     bool hasFI, hasKI;
     while ((hasFI = fi < count) | (hasKI = ki < literals->size)) {
         // note: we will intern the string only if it is unknown
-        const int cmp = hasFI ? (hasKI ? ogssLess::javaCMP(next, literals->strings[ki]) : 1) : -1;
+        const int cmp = hasFI ? (hasKI ? equalityLess::javaCMP(literals->strings[ki], next) : 1) : -1;
 
         if (0 <= cmp) {
             if (0 == cmp) {
                 // discard next
                 delete next;
                 next = literals->strings[ki++];
+            } else {
+                // use next
+                owned.push_back(next);
             }
-            // else, use next
             merged.push_back(next);
             idMap.push_back((void *) next);
 
@@ -89,10 +87,10 @@ void internal::StringPool::readSL(ogss::streams::FileInputStream *in) {
             if (++fi < count)
                 next = in->literalString();
         } else {
-            merged.push_back(literals->strings[ki++]);
+            merged.push_back(literals->strings[ki]);
 
             // in C++ we have to add literals to known strings, because there is no intern
-            knownStrings.insert(next);
+            knownStrings.insert(literals->strings[ki++]);
         }
     }
 

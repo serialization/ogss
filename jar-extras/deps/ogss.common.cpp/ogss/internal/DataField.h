@@ -27,6 +27,7 @@ namespace ogss {
             DataField(const FieldType *const type, api::String const name,
                       const TypeID fieldID, AbstractPool *const owner)
                     : FieldDeclaration(type, name, fieldID, owner) {
+                assert(fieldID);
                 owner->dataFields.push_back(this);
             }
 

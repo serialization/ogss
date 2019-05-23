@@ -45,6 +45,9 @@ namespace ogss {
              * improving the performance of hash containers and name checks:)
              */
             mutable std::unordered_set<String, equalityHash, equalityEquals> knownStrings;
+            /// strings in here will be deleted by the pool
+            /// @note we keep this list to allow freeing of strings that are no longer reachable otherwise
+            mutable std::vector<String> owned;
 
             /**
              * Strings known at compile time. Literals are not deleted and cannot be removed from a pool.
@@ -83,6 +86,7 @@ namespace ogss {
             /**
              * convert a const char* to a string reusing already existing strings with the same image
              * @note this is essentially Javas String.intern()
+             * @note the resulting string object is owned by this pool
              */
             api::String add(const char *img) const {
                 auto r = new std::string(img);
@@ -93,6 +97,7 @@ namespace ogss {
                 }
                 // else, it is not known yet
                 knownStrings.insert(r);
+                owned.push_back(r);
                 return r;
             }
 
@@ -122,6 +127,7 @@ namespace ogss {
                         if (it == knownStrings.end()) {
                             // a new string
                             knownStrings.insert(result);
+                            owned.push_back(result);
                         } else {
                             // a string that exists already;
                             // the string cannot be from the file, so set the id

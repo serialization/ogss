@@ -45,19 +45,10 @@ namespace ogss {
                     return 1;
 
 
-                {
-                    if (const auto cmp = lhs->size() - rhs->size())
-                        return cmp;
-                }
+                if (const int cmp = lhs->size() - rhs->size())
+                    return cmp;
 
-                auto l = lhs->data();
-                auto r = rhs->data();
-                for (int i = lhs->size(); i > 0; i--) {
-                    if (auto cmp = *l++ - *r++)
-                        return cmp;
-                }
-
-                return 0;
+                return *lhs < *rhs ? -1 : 1;
             }
         };
 
@@ -67,6 +58,21 @@ namespace ogss {
         struct equalityLess {
             bool operator()(const String &lhs, const String &rhs) const {
                 return *lhs < *rhs;
+            }
+
+            /**
+             * perform a three-state Java-style comparison
+             */
+            static int javaCMP(const String &lhs, const String &rhs) {
+                if (lhs == rhs)
+                    return 0;
+                if (nullptr == lhs)
+                    return -1;
+                if (nullptr == rhs)
+                    return 1;
+
+                std::equal_to<std::string> eq;
+                return eq(*lhs, *rhs) ? 0 : (*lhs < *rhs ? -1 : 1);
             }
         };
 

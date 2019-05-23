@@ -30,7 +30,8 @@ namespace ogss {
             }
 
             ~ParReadTask() final {
-                delete in;
+                if (!dynamic_cast<LazyField *>(f))
+                    delete in;
             }
 
             void run() final {
