@@ -24,6 +24,7 @@ import org.scalatest.junit.JUnitRunner
 
 import ogss.frontend.common.ParseException
 import ogss.main.CommandLine
+import scala.reflect.ClassTag
 
 /**
  * Contains generic parser tests based on src/test/resources/frontend directory.
@@ -32,22 +33,16 @@ import ogss.main.CommandLine
 @RunWith(classOf[JUnitRunner])
 class GenericFrontendTest extends FunSuite {
 
-  CommandLine.exit = { s ⇒ fail(s) }
+  CommandLine.exit = { s ⇒
+    // if commandline check fails, thats also fine
+    throw new ParseException(s)
+  }
+
   private def check(file : File) = CommandLine.main(Array[String](
     "build",
     file.getAbsolutePath,
     "-o", "/tmp/gen"
   ))
-
-  def fail[E <: Exception](f : ⇒ Unit)(implicit manifest : scala.reflect.Manifest[E]) : E = try {
-    f;
-    fail(s"expected ${manifest.runtimeClass.getName()}, but no exception was thrown");
-  } catch {
-    case e : TestFailedException ⇒ throw e
-    case e : E ⇒
-      println(e.getMessage()); e
-    case e : Throwable ⇒ e.printStackTrace(); assert(e.getClass() === manifest.runtimeClass); null.asInstanceOf[E]
-  }
 
   def succeedOn(file : File) {
     test("succeed on " + file.getName()) { check(file) }
@@ -55,8 +50,11 @@ class GenericFrontendTest extends FunSuite {
 
   def failOn(file : File) {
     test("fail on " + file.getName()) {
-      fail[ParseException] {
+      try {
         check(file)
+        fail("expected an exception to be thrown")
+      } catch {
+        case e : ParseException ⇒ // success
       }
     }
   }

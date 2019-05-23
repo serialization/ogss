@@ -112,7 +112,10 @@ abstract class DefinitionPostProcessing(self : FrontEnd) extends CommonParseRule
     // create type hierarchy
     for (
       (t, supers) ← superTypes;
-      sup ← supers.map(definitions).collect { case t : WithInheritance ⇒ t }
+      sup ← supers.map(s ⇒ definitions.getOrElse(
+        s,
+        self.reportError(t.getPos, s"type ${t.getName.getOgss} has an undefined super type ${s.getOgss}")
+      )).collect { case t : WithInheritance ⇒ t }
     ) {
       sup match {
         case sup : ClassDef if (null != t.getSuperType) ⇒ self.reportError(t.getPos, s"$t cannot have two super classes")

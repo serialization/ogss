@@ -4,6 +4,11 @@ import scala.collection.JavaConverters.iterableAsScalaIterableConverter
 
 import ogss.oil.OGFile
 import ogss.oil.TypeContext
+import ogss.oil.SeqType
+import ogss.oil.MapType
+import ogss.oil.EnumDef
+import scala.collection.mutable.HashSet
+import ogss.oil.Identifier
 
 /**
  * This object provides some functions to check the well-formedness of
@@ -77,6 +82,32 @@ object IRChecks {
       superInterface ← t.getSuperInterfaces.asScala; ssi = superInterface.getSuperType if null != ssi
     ) {
       expect(false, s"type ${t.getName.getOgss} has no super class but its super interface ${superInterface.getName.getOgss} has a super class: ${ssi.getName.getOgss}")
+    }
+
+    // check that all user type names are unique
+    {
+      val seen = new HashSet[String]
+      for (t ← tc.getClasses.asScala ++ tc.getInterfaces.asScala ++ tc.getContainers.asScala ++ tc.getEnums.asScala) {
+        expect(!seen(t.getName.getOgss), s"type ${t.getName.getOgss} has the same name as another type")
+        seen += t.getName.getOgss
+      }
+    }
+
+    // check that containers do not have bool or enum as base type
+    for (t ← tc.getContainers.asScala) {
+      t match {
+        case t : SeqType ⇒ {
+          expect(0 != t.getBaseType.getStid, s"type ${t.getName.getOgss} has bool as base type")
+          expect(!t.getBaseType.isInstanceOf[EnumDef], s"type ${t.getName.getOgss} has an enum as base type")
+        }
+        case t : MapType ⇒ {
+          expect(0 != t.getKeyType.getStid, s"type ${t.getName.getOgss} has bool as key type")
+          expect(!t.getKeyType.isInstanceOf[EnumDef], s"type ${t.getName.getOgss} has an enum as key type")
+
+          expect(0 != t.getValueType.getStid, s"type ${t.getName.getOgss} has bool as value type")
+          expect(!t.getValueType.isInstanceOf[EnumDef], s"type ${t.getName.getOgss} has an enum as value type")
+        }
+      }
     }
   }
 
