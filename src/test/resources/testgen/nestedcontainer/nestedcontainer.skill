@@ -1,0 +1,25 @@
+#! nestedcontainer
+
+NestedContainer { 
+  v64[][] a;
+  v64[][][][] aa;
+  list<list<v64>> l;
+  set<set<v64>> s;
+  map<v64, map<v64, v64>> m;
+}
+
+NestedContainerString {
+  string[][] a;
+  list<list<string>> l;
+  set<set<string>> s;
+  map<string, map<string, string>> m;
+}
+
+A {}
+
+NestedContainerA {
+  A[][] a;
+  list<list<A>> l;
+  set<set<A>> s;
+  map<A, map<A, A>> m;
+}
