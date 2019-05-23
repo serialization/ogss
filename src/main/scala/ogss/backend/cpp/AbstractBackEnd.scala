@@ -180,7 +180,7 @@ trait AbstractBackEnd extends BackEnd {
    */
   final protected def beginGuard(t : Type) : String = beginGuard(escaped(name(t)))
   final protected def beginGuard(word : String) : String = {
-    val guard = "OGSS_CPP_GENERATED_" + packageParts.map(_.toUpperCase).mkString("", "_", "_") + word.toUpperCase
+    val guard = escaped("OGSS_CPP_GENERATED_" + packageParts.map(_.toUpperCase).mkString("", "_", "_") + word.toUpperCase)
     s"""#ifndef $guard
 #define $guard
 """

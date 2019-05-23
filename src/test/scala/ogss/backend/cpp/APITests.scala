@@ -101,7 +101,7 @@ using namespace common;
 
   def makeSkipTest(out : PrintWriter, kind : String, name : String, testName : String, accept : Boolean) {
     out.write(s"""
-TEST(${name.capitalize}_API_Test, ${gen.escaped(kind)}_skipped_${gen.escaped(testName)}) {${
+TEST(${gen.escaped(name.capitalize)}_API_Test, ${gen.escaped(kind)}_skipped_${gen.escaped(testName)}) {${
       if (accept) ""
       else """
     GTEST_FAIL() << "The test was skipped by the test generator.";"""
@@ -112,7 +112,7 @@ TEST(${name.capitalize}_API_Test, ${gen.escaped(kind)}_skipped_${gen.escaped(tes
 
   override def makeRegularTest(out : PrintWriter, kind : String, name : String, testName : String, accept : Boolean, TC : TypeContext, obj : JSONObject) {
     out.write(s"""
-TEST(${name.capitalize}_API_Test, ${if (accept) "Acc" else "Fail"}_${gen.escaped(testName)}) {
+TEST(${gen.escaped(name.capitalize)}_API_Test, ${if (accept) "Acc" else "Fail"}_${gen.escaped(testName)}) {
     try {
         auto sf = common::tempFile<File>();
 
@@ -196,7 +196,7 @@ TEST(${name.capitalize}_API_Test, ${if (accept) "Acc" else "Fail"}_${gen.escaped
       if (null == v || v.toString().equals("null"))
         "nullptr"
       else
-        v.toString()
+        gen.escaped(v.toString())
   }
 
   private def valueMap(obj : JSONObject, k : Type, v : Type) : String = {
@@ -221,7 +221,7 @@ TEST(${name.capitalize}_API_Test, ${if (accept) "Acc" else "Fail"}_${gen.escaped
         val typeName = typ(tc, t);
 
         s"""
-        auto $name = sf->${typeName}->make();"""
+        auto ${gen.escaped(name)} = sf->${typeName}->make();"""
       }
 
       rval.mkString
@@ -245,7 +245,7 @@ TEST(${name.capitalize}_API_Test, ${if (accept) "Acc" else "Fail"}_${gen.escaped
             val f = field(tc, t, fieldName)
             val setter = gen.setter(f)
             s"""
-        $name->$setter(${value(fs.get(fieldName), f)});"""
+        ${gen.escaped(name)}->$setter(${value(fs.get(fieldName), f)});"""
           }
 
           assignments.mkString

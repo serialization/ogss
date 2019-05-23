@@ -193,11 +193,11 @@ object EscapeFunction {
       | "or" | "xor" | "cin" | "endl" | "INT_MIN" | "iomanip" | "main" | "npos" | "std" | "cout" | "include"
       | "INT_MAX" | "iostream" | "MAX_RAND" | "NULL" | "string" | "stid" ⇒ s"_$target"
 
-    case t if t.forall(c ⇒ '_' == c || Character.isLetterOrDigit(c)) ⇒ t
+    case t if t.forall(c ⇒ '_' == c || Character.isLetterOrDigit(c) && c < 128) ⇒ t
 
     case _ ⇒ target.map {
       case 'Z' ⇒ "ZZ"
-      case c if '_' == c || Character.isLetterOrDigit(c) ⇒ "" + c
+      case c if '_' == c || Character.isLetterOrDigit(c) && c < 128 ⇒ "" + c
       case c ⇒ f"Z$c%04X"
     }.mkString
   }

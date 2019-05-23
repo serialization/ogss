@@ -41,6 +41,8 @@ class GenericTests extends common.GenericTests {
 
   override def language : String = "cpp"
 
+  var gen = new Main
+
   override def deleteOutDir(out : String) {
     import scala.reflect.io.Directory
     Directory(new File("testsuites/cpp/src/", out)).deleteRecursively
@@ -61,6 +63,9 @@ class GenericTests extends common.GenericTests {
 
   def newTestFile(packagePath : String, name : String) : PrintWriter = {
     val packageName = packagePath.split("/").map(EscapeFunction.apply).mkString("::")
+    gen = new Main
+    gen.setPackage(List(packagePath))
+
     val f = new File(s"testsuites/cpp/test/$packagePath/generic${name}Test.cpp")
     f.getParentFile.mkdirs
     if (f.exists)
@@ -91,7 +96,7 @@ using ::$packageName::api::File;
       val out = newTestFile(name, "Read")
 
       for (f ← accept) out.write(s"""
-TEST(${name.capitalize}_Read_Test, Accept_${f.getName.replaceAll("\\W", "_")}) {
+TEST(${gen.escaped(name.capitalize)}_Read_Test, Accept_${f.getName.replaceAll("\\W", "_")}) {
     try {
         auto s = std::unique_ptr<File>(File::open("../../${f.getPath.replaceAll("\\\\", "\\\\\\\\")}"));
         s->check();
@@ -102,7 +107,7 @@ TEST(${name.capitalize}_Read_Test, Accept_${f.getName.replaceAll("\\W", "_")}) {
 }
 """)
       for (f ← reject) out.write(s"""
-TEST(${name.capitalize}_Read_Test, Reject_${f.getName.replaceAll("\\W", "_")}) {
+TEST(${gen.escaped(name.capitalize)}_Read_Test, Reject_${f.getName.replaceAll("\\W", "_")}) {
     try {
         auto s = std::unique_ptr<File>(File::open("../../${f.getPath.replaceAll("\\\\", "\\\\\\\\")}"));
         s->check();
