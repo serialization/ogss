@@ -63,7 +63,10 @@ StateInitializer::StateInitializer(const std::string &path, FileInputStream *in,
 
 void StateInitializer::fixContainerMD() {
     // increase deps caused by containsers whose maxDeps is nonzero
-    for (HullType *c : containers) {
+    // @note we have to increase deps in reverse order, because used container containers appear after their bases
+    int i = containers.size();
+    while (i != 0) {
+        const auto c = containers[--i];
         if (c->maxDeps != 0) {
             if (auto cc = dynamic_cast<SingleArgumentType *>(c)) {
                 FieldType *b = cc->base;
