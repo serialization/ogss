@@ -143,11 +143,7 @@ final class Main extends AbstractBackEnd
    * Tries to escape a string without decreasing the usability of the generated identifier.
    */
   private val escapeCache = new HashMap[String, String]();
-  final def escapedLonely(target : String) : String = escapeCache.getOrElse(target, {
-    val result = EscapeFunction(target)
-    escapeCache(target) = result
-    result
-  })
+  final def escapedLonely(target : String) : String = escapeCache.getOrElseUpdate(target, EscapeFunction(target))
 
   protected def filterIntarfacesFromIR(TS : TypeContext) {
     // find implementers
