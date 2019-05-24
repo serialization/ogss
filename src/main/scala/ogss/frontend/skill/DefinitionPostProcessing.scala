@@ -74,12 +74,7 @@ abstract class DefinitionPostProcessing(self : FrontEnd) extends CommonParseRule
       }
     }
   ) ~ rep("[" ~> "]") ^^ {
-      case t ~ as ⇒
-        var r = t
-        for (0 ← 0 until as.size) {
-          r = self.makeArray(r)
-        }
-        r
+      case t ~ as ⇒ as.foldLeft[Type](t) { (l, r) ⇒ self.makeArray(l) }
     }
 
   private def parseType(image : String) : Type = parseAll(fieldType, image) match {
