@@ -219,10 +219,6 @@ ${
         out.write(s"""
 
         ::ogss::TypeID stid() const override { return ${t.getStid}; }
-
-        virtual void prettyString(std::ostream &os) const {
-            os << u8"${capital(t.getName)}#" << id;
-        }
     };
 
     class ${name(t)}_UnknownSubType : public ${name(t)}, public ::ogss::api::NamedObj {

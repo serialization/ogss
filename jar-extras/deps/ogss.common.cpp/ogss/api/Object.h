@@ -9,9 +9,9 @@
 
 namespace ogss {
     namespace internal {
-        class FieldDeclaration;
-
         class DistributedField;
+
+        class FieldDeclaration;
 
         class LazyField;
 
@@ -26,6 +26,7 @@ namespace ogss {
         class AnyRefType;
     }
     namespace api {
+        class File;
 
         /**
          * an abstract skill object, i.e. the type of an annotation and the base type of
@@ -51,15 +52,6 @@ namespace ogss {
              */
             bool isDeleted() const { return 0 == id; }
 
-            /**
-             * inserts a human readable presentation of the object into the argument ostream
-             *
-             * @note constant time operation, i.e. referenced objects are not pretty themselves
-             *
-             * @todo should not be virtual!
-             */
-            virtual void prettyString(std::ostream &os) const = 0;
-
             friend class internal::AbstractPool;
 
             template<class T>
@@ -75,10 +67,12 @@ namespace ogss {
             friend class internal::DistributedField;
 
             friend class internal::LazyField;
-            
+
             friend class internal::Writer;
 
             friend class fieldTypes::AnyRefType;
+
+            friend class File;
         };
 
         /**
@@ -93,16 +87,6 @@ namespace ogss {
             const internal::AbstractPool *const pool;
         };
     }
-}
-
-inline std::ostream &operator<<(std::ostream &os, const ogss::api::Object &obj) {
-    obj.prettyString(os);
-    return os;
-}
-
-inline std::ostream &operator<<(std::ostream &os, const ogss::api::Object *obj) {
-    obj->prettyString(os);
-    return os;
 }
 
 #endif //SKILL_CPP_COMMON_OBJECT_H

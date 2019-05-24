@@ -170,13 +170,19 @@ namespace ogss {
                 return pool(ref)->name;
             }
 
+            /**
+             * @return a pretty string representing this object
+             * @note cost is an expensive constant
+             * @pre contains(ref)
+             */
+             std::string to_string(Object* ref);
+
 
             /**
              * @return true, iff the argument object is managed by this state
              * @note will return true, if argument is null
              * @note this operation is O(1) but kind of expensive
              */
-            // TODO implementation
             bool contains(Object *ref) const;
 
             /**

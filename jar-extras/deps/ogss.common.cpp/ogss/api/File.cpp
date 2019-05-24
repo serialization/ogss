@@ -5,8 +5,10 @@
 #include "../fieldTypes/AnyRefType.h"
 #include "../internal/EnumPool.h"
 #include "../internal/LazyField.h"
+#include "../internal/Pool.h"
 #include "../internal/StateInitializer.h"
 #include "../internal/Writer.h"
+#include "../iterators/FieldIterator.h"
 #include "../streams/FileOutputStream.h"
 #include "File.h"
 
@@ -141,6 +143,82 @@ void File::changeMode(WriteMode newMode) {
     else {
         if (!canWrite)
             throw std::invalid_argument("this file is read-only");
+    }
+}
+
+std::string File::to_string(ogss::Object *ref) {
+    if (!ref)
+        return "(null)";
+
+    const auto p = pool(ref);
+    std::stringstream ss;
+
+    ss << p->name << "#" << ref->id << "{";
+    bool first = true;
+    iterators::FieldIterator fs(p);
+    while (fs.hasNext()) {
+        auto f = fs.next();
+        if (first) {
+            first = false;
+        } else {
+            ss << ", ";
+        }
+
+        ss << *f->name << "=";
+        switch (f->type->typeID) {
+            case ogss::KnownTypeID::BOOL:
+                ss << f->getR(ref).boolean;
+                break;
+            case ogss::KnownTypeID::I8:
+                ss << f->getR(ref).i8;
+                break;
+            case ogss::KnownTypeID::I16:
+                ss << f->getR(ref).i16;
+                break;
+            case ogss::KnownTypeID::I32:
+                ss << f->getR(ref).i32;
+                break;
+            case ogss::KnownTypeID::I64:
+            case ogss::KnownTypeID::V64:
+                ss << f->getR(ref).i64;
+                break;
+            case ogss::KnownTypeID::F32:
+                ss << f->getR(ref).f32;
+                break;
+            case ogss::KnownTypeID::F64:
+                ss << f->getR(ref).f64;
+                break;
+            case ogss::KnownTypeID::STRING:
+                ss << *f->getR(ref).string;
+                break;
+            default:
+                ss << f->getR(ref).anyRef;
+                break;
+        }
+    }
+
+    ss << "}";
+
+    return ss.str();
+}
+
+bool File::contains(ogss::Object *ref) const {
+    if (!ref)
+        return false;
+    const ObjectID ID = ref->id;
+    if (!ID)
+        return false;
+
+    try {
+        const auto p = pool(ref);
+
+        if (0 < ID)
+            return ref == p->getAsAnnotation(ID);
+
+        return ref == ((internal::Pool<Object> *) p)->newObjects.at(-1 - ID);
+    } catch (...) {
+        // out of bounds or similar mean its not one of ours
+        return false;
     }
 }
 

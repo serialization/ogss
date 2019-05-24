@@ -13,6 +13,9 @@
 #include "../iterators/AllObjectIterator.h"
 
 namespace ogss {
+    namespace api {
+        class File;
+    }
     namespace iterators {
         template<class T>
         class StaticDataIterator;
@@ -149,6 +152,8 @@ namespace ogss {
             friend class AbstractPool;
 
             friend class Writer;
+
+            friend class api::File;
 
             //! static data iterator can traverse over new objects
             friend class iterators::StaticDataIterator<T>;
