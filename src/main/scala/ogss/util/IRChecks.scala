@@ -1,14 +1,14 @@
 package ogss.util
 
 import scala.collection.JavaConverters.iterableAsScalaIterableConverter
-
-import ogss.oil.OGFile
-import ogss.oil.TypeContext
-import ogss.oil.SeqType
-import ogss.oil.MapType
-import ogss.oil.EnumDef
 import scala.collection.mutable.HashSet
-import ogss.oil.Identifier
+
+import ogss.oil.EnumDef
+import ogss.oil.MapType
+import ogss.oil.OGFile
+import ogss.oil.SeqType
+import ogss.oil.SetType
+import ogss.oil.TypeContext
 
 /**
  * This object provides some functions to check the well-formedness of
@@ -107,6 +107,21 @@ object IRChecks {
           expect(0 != t.getValueType.getStid, s"type ${t.getName.getOgss} has bool as value type")
           expect(!t.getValueType.isInstanceOf[EnumDef], s"type ${t.getName.getOgss} has an enum as value type")
         }
+      }
+    }
+
+    // check that sets or map keys are not containers
+    for (t ← tc.getContainers.asScala) {
+      t match {
+        case t : SetType ⇒ {
+          expect(!t.getBaseType.isInstanceOf[SeqType]
+            && !t.getBaseType.isInstanceOf[MapType], s"set ${t.getName.getOgss} has a container as base type")
+        }
+        case t : MapType ⇒ {
+          expect(!t.getKeyType.isInstanceOf[SeqType]
+            && !t.getKeyType.isInstanceOf[MapType], s"set ${t.getName.getOgss} has a container as key type")
+        }
+        case _ ⇒ // ok
       }
     }
   }
