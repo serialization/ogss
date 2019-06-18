@@ -1,0 +1,6 @@
+#! aWithFields
+
+A {
+	A[] arr;
+	A inst;
+}
