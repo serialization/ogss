@@ -5,28 +5,31 @@
 #include <future>
 
 #include "../api/File.h"
-#include "../streams/FileOutputStream.h"
 #include "../fieldTypes/HullType.h"
 #include "../fieldTypes/MapType.h"
 #include "../fieldTypes/SingleArgumentType.h"
+#include "../streams/FileOutputStream.h"
 
 #include "DataField.h"
+#include "DistributedField.h"
+#include "EnumPool.h"
 #include "Pool.h"
 #include "Writer.h"
-#include "EnumPool.h"
 
 using namespace ogss::internal;
-using ogss::streams::BufferedOutStream;
 using ogss::fieldTypes::HullType;
+using ogss::streams::BufferedOutStream;
 
-Writer::Writer(api::File *state, streams::FileOutputStream &out)
-        : resultLock(), results(), errors() {
+Writer::Writer(api::File *state, streams::FileOutputStream &out) :
+  resultLock(),
+  results(),
+  errors() {
     /**
      * *************** * G * ****************
      */
 
     if (state->guard.empty()) {
-        out.i16((short) 0x2622);
+        out.i16((short)0x2622);
     } else {
         out.i8('#');
         out.put(&state->guard);
@@ -39,7 +42,7 @@ Writer::Writer(api::File *state, streams::FileOutputStream &out)
 
     // prepare string pool
     {
-        StringPool *const sp = (StringPool *) state->strings;
+        StringPool *const sp = (StringPool *)state->strings;
         sp->resetIDs();
 
         // create inverse in
@@ -50,14 +53,13 @@ Writer::Writer(api::File *state, streams::FileOutputStream &out)
         for (size_t i = 0; i < sp->literalStringCount; i++) {
             const String s = sp->literalStrings[i];
             sp->IDs[s] = sp->idMap.size();
-            sp->idMap.push_back((void*)s);
+            sp->idMap.push_back((void *)s);
         }
         sp->hullOffset = sp->idMap.size();
     }
     // write in parallel to writing of TF
-    auto SB = std::async(std::launch::async,
-                         StringPool::writeLiterals, (StringPool *) state->strings, &out);
-
+    auto SB = std::async(std::launch::async, StringPool::writeLiterals,
+                         (StringPool *)state->strings, &out);
 
     /**
      * *************** * T F * ****************
@@ -90,9 +92,12 @@ Writer::Writer(api::File *state, streams::FileOutputStream &out)
                 // if a task crashed, we will inevitably notice it here,
                 // because sending its buffer is its last action
                 hasErrors = true;
-                // @note there is still a data race between successful threads and crashing threads that may lead to a
-                // crash; it would become harmless, if we get rid of resultLock, because Writer is stack-local
-                // @note we could also set a shutdown flag, if this is a serious problem
+                // @note there is still a data race between successful threads
+                // and crashing threads that may lead to a crash; it would
+                // become harmless, if we get rid of resultLock, because Writer
+                // is stack-local
+                // @note we could also set a shutdown flag, if this is a serious
+                // problem
                 break;
             }
 
@@ -139,7 +144,7 @@ uint32_t Writer::writeTF(api::File *const state, BufferedOutStream &out) {
     uint32_t awaitHulls = 0;
 
     std::vector<DataField *> fieldQueue;
-    StringPool *const string = (StringPool *) state->strings;
+    StringPool *const string = (StringPool *)state->strings;
 
     /**
      * *************** * T Class * ****************
@@ -154,8 +159,8 @@ uint32_t Writer::writeTF(api::File *const state, BufferedOutStream &out) {
         for (int i = 0; i < classCount; i++) {
             AbstractPool *const p = state->classes[i];
             if (nullptr == p->super) {
-                barrier.push_back(std::async(std::launch::async,
-                                             compress, p, bpos));
+                barrier.push_back(
+                  std::async(std::launch::async, compress, p, bpos));
             }
         }
 
@@ -186,14 +191,13 @@ uint32_t Writer::writeTF(api::File *const state, BufferedOutStream &out) {
                 out.v64(p->bpo);
             }
 
-            out.v64((int) p->dataFields.size());
+            out.v64((int)p->dataFields.size());
 
             // add field to queues for description and data tasks
             for (DataField *f : p->dataFields) {
                 fieldQueue.push_back(f);
             }
         }
-
     }
 
     /**
@@ -221,7 +225,7 @@ uint32_t Writer::writeTF(api::File *const state, BufferedOutStream &out) {
         }
         awaitHulls += count;
 
-        out.v64((int) count);
+        out.v64((int)count);
         for (int i = 0; i < containerCount; i++) {
             HullType *const c = state->containers[i];
             if (c->maxDeps != 0) {
@@ -230,15 +234,16 @@ uint32_t Writer::writeTF(api::File *const state, BufferedOutStream &out) {
         }
     }
 
-    // note: we cannot start field jobs immediately because they could decrement deps to 0 multiple times in that
-    // case
+    // note: we cannot start field jobs immediately because they could decrement
+    // deps to 0 multiple times in that case
     {
         std::lock_guard<std::mutex> rLock(resultLock);
-        // C++ bullshit: we have to reserve space for futures, because they would be deleted on resize :-(
+        // C++ bullshit: we have to reserve space for futures, because they
+        // would be deleted on resize :-(
         results.reserve(fieldQueue.size() + awaitHulls);
         for (DataField *f : fieldQueue) {
-            results.emplace_back(std::async(std::launch::async,
-                                            writeField, this, f));
+            results.emplace_back(
+              std::async(std::launch::async, writeField, this, f));
         }
     }
 
@@ -248,11 +253,11 @@ uint32_t Writer::writeTF(api::File *const state, BufferedOutStream &out) {
 
     if (state->enumCount) {
         // write count of the type block
-        out.v64((int) state->enumCount);
+        out.v64((int)state->enumCount);
         for (int i = 0; i < state->enumCount; i++) {
             internal::AbstractEnumPool *p = state->enums[i];
             out.v64(string->id(p->name));
-            out.v64((int) ((EnumPool<api::UnknownEnum> *) p)->values.size());
+            out.v64((int)((EnumPool<api::UnknownEnum> *)p)->values.size());
             for (AbstractEnumProxy *v : *p) {
                 out.v64(string->id(v->name));
             }
@@ -295,7 +300,8 @@ void Writer::compress(AbstractPool *const base, int *bpos) {
     // calculate correct dynamic size for all sub pools (in reverse order)
     {
         // @note this can only happen, if there is a class
-        AbstractPool *const *cs = base->owner->classes + base->owner->classCount - 1;
+        AbstractPool *const *cs =
+          base->owner->classes + base->owner->classCount - 1;
         AbstractPool *p;
         while (base != (p = *(cs--))) {
             if (base == p->base) {
@@ -304,14 +310,25 @@ void Writer::compress(AbstractPool *const base, int *bpos) {
         }
     }
 
-    // TODO compress distributed fields (has to be done before compression of pools)
+    // reset layout of distributed fields
+    {
+        AbstractPool *p = base;
+        while (p) {
+            for (DataField *f : p->dataFields) {
+                if (auto df = dynamic_cast<DistributedField *>(f)) {
+                    df->compress(bpos[p->typeID - 10]);
+                }
+            }
+            p = p->next;
+        }
+    }
 
     // from now on, size will take deleted objects into account, thus d may
     // in fact be smaller then data!
-    Object **tmp = ((Pool<Object> *) base)->data;
+    Object **tmp = ((Pool<Object> *)base)->data;
     base->allocateData();
-    Object **d = ((Pool<Object> *) base)->data;
-    ((Pool<Object> *) base)->data = tmp;
+    Object **d = ((Pool<Object> *)base)->data;
+    ((Pool<Object> *)base)->data = tmp;
     ObjectID pos = 0;
 
     {
@@ -322,7 +339,7 @@ void Writer::compress(AbstractPool *const base, int *bpos) {
                 d[pos] = i;
                 i->id = ++pos;
             } else {
-                ((Pool<Object> *) base->owner->pool(i))->book->free(i);
+                ((Pool<Object> *)base->owner->pool(i))->book->free(i);
             }
         }
     }
@@ -353,11 +370,11 @@ BufferedOutStream *Writer::writeField(Writer *self, DataField *f) {
             discard = f->write(i, h, buffer);
         }
 
-        if (auto ht = dynamic_cast<HullType *>((FieldType *) f->type)) {
+        if (auto ht = dynamic_cast<HullType *>((FieldType *)f->type)) {
             if (0 == --ht->deps) {
                 std::lock_guard<std::mutex> rLock(self->resultLock);
-                self->results.emplace_back(std::async(std::launch::async,
-                                                      writeHull, self, ht));
+                self->results.emplace_back(
+                  std::async(std::launch::async, writeHull, self, ht));
             }
         }
     } catch (std::exception &e) {
@@ -378,7 +395,6 @@ BufferedOutStream *Writer::writeField(Writer *self, DataField *f) {
     return buffer;
 }
 
-
 BufferedOutStream *Writer::writeHull(Writer *self, HullType *t) {
     BufferedOutStream *buffer = new BufferedOutStream();
 
@@ -392,26 +408,27 @@ BufferedOutStream *Writer::writeHull(Writer *self, HullType *t) {
             if (auto bt = dynamic_cast<HullType *>(p->base)) {
                 if (0 == --bt->deps) {
                     std::lock_guard<std::mutex> rLock(self->resultLock);
-                    self->results.push_back(std::async(std::launch::async,
-                                                       writeHull, self, bt));
+                    self->results.push_back(
+                      std::async(std::launch::async, writeHull, self, bt));
                 }
             }
         } else if (dynamic_cast<StringPool *>(t)) {
             // nothing to do (in fact we cant type check a MapType)
         } else {
-            fieldTypes::MapType<api::Box, api::Box> *p = (fieldTypes::MapType<Box, Box> *) t;
+            fieldTypes::MapType<api::Box, api::Box> *p =
+              (fieldTypes::MapType<Box, Box> *)t;
             if (auto bt = dynamic_cast<HullType *>(p->keyType)) {
                 if (0 == --bt->deps) {
                     std::lock_guard<std::mutex> rLock(self->resultLock);
-                    self->results.push_back(std::async(std::launch::async,
-                                                       writeHull, self, bt));
+                    self->results.push_back(
+                      std::async(std::launch::async, writeHull, self, bt));
                 }
             }
             if (auto bt = dynamic_cast<HullType *>(p->valueType)) {
                 if (0 == --bt->deps) {
                     std::lock_guard<std::mutex> rLock(self->resultLock);
-                    self->results.push_back(std::async(std::launch::async,
-                                                       writeHull, self, bt));
+                    self->results.push_back(
+                      std::async(std::launch::async, writeHull, self, bt));
                 }
             }
         }

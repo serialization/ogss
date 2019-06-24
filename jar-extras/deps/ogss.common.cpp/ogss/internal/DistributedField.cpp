@@ -47,14 +47,12 @@ bool DistributedField::check() const {
     //    return true;
 }
 
+DistributedField::~DistributedField() { delete[] data; }
 
-DistributedField::~DistributedField() {
-    delete[] data;
-}
-
-
-void DistributedField::read(int i, const int last, streams::MappedInStream &in) const {
-    // we fill in data and data is nullptr at this point, so we have to allocate it first
+void DistributedField::read(int i, const int last,
+                            streams::MappedInStream &in) const {
+    // we fill in data and data is nullptr at this point, so we have to allocate
+    // it first
     firstID = i;
     lastID = last;
     const int high = last - i;
@@ -65,7 +63,8 @@ void DistributedField::read(int i, const int last, streams::MappedInStream &in) 
     }
 }
 
-bool DistributedField::write(int i, const int last, streams::BufferedOutStream *out) const {
+bool DistributedField::write(int i, const int last,
+                             streams::BufferedOutStream *out) const {
     bool drop = true;
     if (auto bt = dynamic_cast<const fieldTypes::BoolFieldType *>(type)) {
         SK_TODO;
@@ -90,55 +89,38 @@ bool DistributedField::write(int i, const int last, streams::BufferedOutStream *
 
 /**
  * @note this method is invoked _before_ object IDs get reassigned!
- *
- * @todo append is not implemented, because there is no way to test it, yet.
- *
- * @todo implementation of append may require a second parameter (bool isAppend)
- *
- * @todo ignores deletes!
  */
-//void DistributedField::resetChunks(ObjectID lbpo, ObjectID newSize) {
-// note to self: data could be null
+void DistributedField::compress(const ObjectID newLBPO) const {
+    // create new data
+    api::Box *d = new api::Box[owner->cachedSize];
 
-//    // @note we cannot delete objects and we will always write
-//    // therefore, new IDs will be data ++ newData matching exactly the pool's last block
-//
-//
-//    // update internal (requires old block structure, so that's the first action)
-//    {
-//        // create new data on the stack
-//        api::Box *d = new api::Box[lbpo + newSize];
-//
-//        // update data -> d
-//        size_t newI = (size_t) lbpo;
-//        {
-//            // todo subtract deleted objects on implementation of delete
-//            size_t newEnd = (size_t) (lbpo);
-//            for (const auto *chunk : dataChunks) {
-//                newEnd += chunk->count;
-//            }
-//            auto iter = ((Pool<Object> *) owner)->allInTypeOrder();
-//            while (newI < newEnd) {
-//                assert(iter.hasNext());
-//                d[newI++] = data[iter.next()->id - 1];
-//            }
-//        }
-//
-//        // update newData -> d
-//        {
-//            const size_t newEnd = (size_t) (lbpo + newSize);
-//            while (newI < newEnd) {
-//                d[newI] = newData[owner->getAsAnnotation(newI)];
-//                newI++;
-//            }
-//            newData.clear();
-//        }
-//
-//        // move d -> data
-//        SK_TODO;
-//        // data.resize(d);
-//    }
-//
-//    SK_TODO;
-//    //    FieldDeclaration::resetChunks(newSize, 0);
-//}
+    // calculate new data
+    // note: data could be null
+    ObjectID next = 0;
+    if (data) {
+        auto is = owner->allObjects();
+        while (is->hasNext()) {
+            const Object *const i = is->next();
+            if (0 != i->id) {
+                d[next++] = i->id < 0 ? newData[i] : data[i->id - firstID];
+            }
+        }
+    } else {
+        auto is = owner->allObjects();
+        while (is->hasNext()) {
+            const Object *const i = is->next();
+            if (0 != i->id) {
+                d[next++] = i->id < 0 ? newData[i] : api::Box{};
+            }
+        }
+    }
+
+    // update state
+    delete[] data;
+    data = d;
+    firstID = newLBPO;
+    lastID = firstID + owner->cachedSize;
+    assert(next == owner->cachedSize);
+
+    newData.clear();
+}
