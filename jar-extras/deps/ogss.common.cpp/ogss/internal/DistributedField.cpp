@@ -101,8 +101,9 @@ void DistributedField::compress(const ObjectID newLBPO) const {
         auto is = owner->allObjects();
         while (is->hasNext()) {
             const Object *const i = is->next();
-            if (0 != i->id) {
-                d[next++] = i->id < 0 ? newData[i] : data[i->id - firstID];
+            ObjectID ID = i->id;
+            if (0 != ID) {
+                d[next++] = i->id < 0 ? newData[i] : data[--ID - firstID];
             }
         }
     } else {

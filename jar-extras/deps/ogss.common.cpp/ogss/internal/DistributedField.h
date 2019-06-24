@@ -33,6 +33,8 @@ class DistributedField : public DataField {
     DistributedField(const FieldType *const type, api::String name,
                      const TypeID index, AbstractPool *const owner) :
       DataField(type, name, index, owner),
+      firstID(0),
+      lastID(0),
       data(nullptr),
       newData() {}
 
