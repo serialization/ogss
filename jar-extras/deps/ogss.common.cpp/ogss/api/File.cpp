@@ -2,6 +2,7 @@
 // Created by Timm Felden on 04.11.15.
 //
 
+#include "File.h"
 #include "../fieldTypes/AnyRefType.h"
 #include "../internal/EnumPool.h"
 #include "../internal/LazyField.h"
@@ -10,7 +11,6 @@
 #include "../internal/Writer.h"
 #include "../iterators/FieldIterator.h"
 #include "../streams/FileOutputStream.h"
-#include "File.h"
 
 #include <atomic>
 
@@ -18,36 +18,37 @@ using namespace ogss;
 using namespace api;
 using namespace internal;
 
-// file.cpp knows anything anyway, so we realize global constants here to speed-up compilation
+// file.cpp knows anything anyway, so we realize global constants here to
+// speed-up compilation
 namespace ogss {
-    namespace fieldTypes {
-        BoolFieldType BoolType;
-        I8FieldType I8;
-        I16FieldType I16;
-        I32FieldType I32;
-        I64FieldType I64;
-        V64FieldType V64;
-        F32FieldType F32;
-        F64FieldType F64;
-    }
-}
+namespace fieldTypes {
+BoolFieldType BoolType;
+I8FieldType I8;
+I16FieldType I16;
+I32FieldType I32;
+I64FieldType I64;
+V64FieldType V64;
+F32FieldType F32;
+F64FieldType F64;
+} // namespace fieldTypes
+} // namespace ogss
 
-File::File(internal::StateInitializer *init)
-        : guard(*init->guard),
-          strings(init->strings),
-          anyRef(init->anyRef),
-          classCount(init->classes.size()),
-          classes(new AbstractPool *[classCount]),
-          containerCount(init->containers.size()),
-          containers(new HullType *[containerCount]),
-          enumCount(init->enums.size()),
-          enums(new AbstractEnumPool *[enumCount]),
-          TBN(nullptr),
-          fromFile(init->in.release()),
-          currentWritePath(init->path),
-          canWrite(init->canWrite),
-          threadPool(init->threadPool),
-          SIFA({}) {
+File::File(internal::StateInitializer *init) :
+  guard(*init->guard),
+  strings(init->strings),
+  anyRef(init->anyRef),
+  classCount(init->classes.size()),
+  classes(new AbstractPool *[classCount]),
+  containerCount(init->containers.size()),
+  containers(new HullType *[containerCount]),
+  enumCount(init->enums.size()),
+  enums(new AbstractEnumPool *[enumCount]),
+  TBN(nullptr),
+  fromFile(init->in.release()),
+  currentWritePath(init->path),
+  canWrite(init->canWrite),
+  threadPool(init->threadPool),
+  SIFA({}) {
 
     // release complex builtin types
     init->strings = nullptr;
@@ -110,14 +111,17 @@ void File::check() {
     //    std::atomic<bool> failed;
     //    failed = false;
     //
-    //    // @note this should be more like, each pool is checking its type restriction, aggregating its field restrictions,
-    //    // and if there are any, then they will all be checked using (hopefully) overridden check methods
+    //    // @note this should be more like, each pool is checking its type
+    //    restriction, aggregating its field restrictions,
+    //    // and if there are any, then they will all be checked using
+    //    (hopefully) overridden check methods
     //#pragma omp parallel for
     //    for (size_t i = 0; i < fields.size(); i++) {
     //        const auto f = fields[i];
     //        if (!f->check()) {
-    //            std::cerr << "Restriction check failed for " << *(f->owner->name) << "." << *(f->name) << std::endl;
-    //            failed = true;
+    //            std::cerr << "Restriction check failed for " <<
+    //            *(f->owner->name) << "." << *(f->name) << std::endl; failed =
+    //            true;
     //        }
     //    }
     //
@@ -132,10 +136,7 @@ void File::changePath(std::string path) {
     }
 }
 
-const std::string &File::currentPath() const {
-    return currentWritePath;
-}
-
+const std::string &File::currentPath() const { return currentWritePath; }
 
 void File::changeMode(WriteMode newMode) {
     if (newMode == WriteMode::readOnly)
@@ -166,34 +167,34 @@ std::string File::to_string(ogss::Object *ref) {
 
         ss << *f->name << "=";
         switch (f->type->typeID) {
-            case ogss::KnownTypeID::BOOL:
-                ss << f->getR(ref).boolean;
-                break;
-            case ogss::KnownTypeID::I8:
-                ss << f->getR(ref).i8;
-                break;
-            case ogss::KnownTypeID::I16:
-                ss << f->getR(ref).i16;
-                break;
-            case ogss::KnownTypeID::I32:
-                ss << f->getR(ref).i32;
-                break;
-            case ogss::KnownTypeID::I64:
-            case ogss::KnownTypeID::V64:
-                ss << f->getR(ref).i64;
-                break;
-            case ogss::KnownTypeID::F32:
-                ss << f->getR(ref).f32;
-                break;
-            case ogss::KnownTypeID::F64:
-                ss << f->getR(ref).f64;
-                break;
-            case ogss::KnownTypeID::STRING:
-                ss << *f->getR(ref).string;
-                break;
-            default:
-                ss << f->getR(ref).anyRef;
-                break;
+        case ogss::KnownTypeID::BOOL:
+            ss << f->getR(ref).boolean;
+            break;
+        case ogss::KnownTypeID::I8:
+            ss << f->getR(ref).i8;
+            break;
+        case ogss::KnownTypeID::I16:
+            ss << f->getR(ref).i16;
+            break;
+        case ogss::KnownTypeID::I32:
+            ss << f->getR(ref).i32;
+            break;
+        case ogss::KnownTypeID::I64:
+        case ogss::KnownTypeID::V64:
+            ss << f->getR(ref).i64;
+            break;
+        case ogss::KnownTypeID::F32:
+            ss << f->getR(ref).f32;
+            break;
+        case ogss::KnownTypeID::F64:
+            ss << f->getR(ref).f64;
+            break;
+        case ogss::KnownTypeID::STRING:
+            ss << *f->getR(ref).string;
+            break;
+        default:
+            ss << f->getR(ref).anyRef;
+            break;
         }
     }
 
@@ -212,16 +213,20 @@ bool File::contains(ogss::Object *ref) const {
     try {
         const auto p = pool(ref);
 
+        // the returned pool could belong to another state
+        if (p->owner != this)
+            return false;
+
+        // ensure that ref does not belong to another state
         if (0 < ID)
             return ref == p->getAsAnnotation(ID);
 
-        return ref == ((internal::Pool<Object> *) p)->newObjects.at(-1 - ID);
+        return ref == ((internal::Pool<Object> *)p)->newObjects.at(-1 - ID);
     } catch (...) {
         // out of bounds or similar mean its not one of ours
         return false;
     }
 }
-
 
 void File::loadLazyData() {
     // check if the file input stream is still open
@@ -229,7 +234,7 @@ void File::loadLazyData() {
         return;
 
     // ensure that strings are loaded
-    ((StringPool *) strings)->loadLazyData();
+    ((StringPool *)strings)->loadLazyData();
 
     // ensure that lazy fields have been loaded
     for (AbstractPool *p : *this) {

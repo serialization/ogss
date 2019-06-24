@@ -194,6 +194,7 @@ namespace ogss {
                 if (!ref || ref->isDeleted())
                     return;
 
+                assert(contains(ref));
                 const_cast<internal::AbstractPool *>(pool(ref))->free(ref);
             }
 
