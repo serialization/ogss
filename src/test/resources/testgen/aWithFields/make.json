@@ -1,0 +1,11 @@
+{
+	"obj" : {
+	    "cont" : {
+	        "A" : {
+	            "arr"  : [ "cont", "cont", null ],
+	            "inst" : "cont"
+	        }
+	    }
+	}
+}
+
