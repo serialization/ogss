@@ -21,7 +21,7 @@ namespace ogss {
              */
             const api::String strings[0];
 
-            AbstractStringKeeper(const ObjectID size) : size(size), strings({}) {};
+            AbstractStringKeeper(const ObjectID size) : size(size), strings{} {};
         };
     }
 }
