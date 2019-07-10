@@ -41,6 +41,8 @@ namespace ogss {
 
             /**
              * write a box to a stream
+             *
+             * @return true iff v is a default value
              */
             virtual bool w(api::Box v, streams::BufferedOutStream *out) const = 0;
         };

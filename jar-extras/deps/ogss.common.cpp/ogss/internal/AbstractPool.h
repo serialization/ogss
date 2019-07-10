@@ -262,10 +262,13 @@ class AbstractPool : public fieldTypes::FieldType {
 
     bool w(api::Box target, streams::BufferedOutStream *out) const final {
         const auto v = target.anyRef;
-        if (v)
-            out->v64(target.anyRef->id);
-        else
-            out->i8(0);
+        if (v) {
+          out->v64(target.anyRef->id);
+          return false;
+        } else {
+          out->i8(0);
+          return true;
+        }
     }
 
     friend class AutoField;

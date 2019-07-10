@@ -19,12 +19,13 @@ struct OGSS_TODO_MESSAGE final {
 
     explicit OGSS_TODO_MESSAGE(const std::string &msg) : msg(msg) {}
 
-    ~OGSS_TODO_MESSAGE() {
+    ~OGSS_TODO_MESSAGE() throw(std::logic_error) {
         throw std::logic_error(msg);
     }
 
     OGSS_TODO_MESSAGE &operator+(const std::string &str) {
         msg += str;
+        return *this;
     }
 
 };
