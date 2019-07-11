@@ -16,16 +16,16 @@
 package ogss.io;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.Set;
 
 /**
- * This service holds state of file system interaction of a single generator
- * run. It encapsulates PrintWriter allocation so that can know the output
- * directories and hence, can clean it from all foreign files.
+ * This service holds state of file system interaction of a single generator run. It encapsulates PrintWriter allocation
+ * so that can know the output directories and hence, can clean it from all foreign files.
  * 
- * @note The primary intention of this class is to minimize file overwrite to
- *       improve compile time in the presence of incremental compilation.
- * 
+ * @note The primary intention of this class is to minimize file overwrite to improve compile time in the presence of
+ *       incremental compilation.
  * @author Timm Felden
  */
 public class PrintingService {
@@ -34,8 +34,7 @@ public class PrintingService {
     private final String header;
 
     /**
-     * Create a new printing service. One service should exist for each
-     * generator invocation.
+     * Create a new printing service. One service should exist for each generator invocation.
      * 
      * @param outPath
      *            BasePath for generated output as specified by the user
@@ -53,10 +52,15 @@ public class PrintingService {
     private final HashSet<File> files = new HashSet<>();
 
     /**
-     * Open a print writer that will cache the output and leave the original
-     * file untouched if it would not change.
-     * 
-     * The new file will contain the specified header.
+     * @return touched files not including directories
+     */
+    public Set<File> getTouchedFiles() {
+        return Collections.unmodifiableSet(files);
+    }
+
+    /**
+     * Open a print writer that will cache the output and leave the original file untouched if it would not change. The
+     * new file will contain the specified header.
      */
     public PrintWriter open(String path) {
         File target = new File(outPath, path);
@@ -65,10 +69,8 @@ public class PrintingService {
     }
 
     /**
-     * Open a print writer that will cache the output and leave the original
-     * file untouched if it would not change.
-     * 
-     * The new file will be empty, i.e. the default header will be missing.
+     * Open a print writer that will cache the output and leave the original file untouched if it would not change. The
+     * new file will be empty, i.e. the default header will be missing.
      */
     public PrintWriter openRaw(String path) {
         // remove characters that destroy NTFS
@@ -79,12 +81,9 @@ public class PrintingService {
     }
 
     /**
-     * Deletes all foreign files. A file is foreign, iff it resides in a folder
-     * that received.
+     * Deletes all foreign files. A file is foreign, iff it resides in a folder that received.
      * 
-     * @note should be called after all files have been created to prevent
-     *       unnecessary recreation of identical files
-     * 
+     * @note should be called after all files have been created to prevent unnecessary recreation of identical files
      * @param deleteDirectories
      *            also delete foreign directories if true
      */
@@ -117,13 +116,10 @@ public class PrintingService {
     }
 
     /**
-     * More aggressive variant of {@link #deleteForeignFiles(boolean)}. In this
-     * versions all foreign files residing below the output directory will be
-     * deleted. This is fine for some back-ends and inherently dangerous for
-     * others.
+     * More aggressive variant of {@link #deleteForeignFiles(boolean)}. In this versions all foreign files residing
+     * below the output directory will be deleted. This is fine for some back-ends and inherently dangerous for others.
      * 
-     * @note should be called after all files have been created to prevent
-     *       unnecessary recreation of identical files
+     * @note should be called after all files have been created to prevent unnecessary recreation of identical files
      */
     public void wipeOutPath() {
         wipeRecursively(outPath);

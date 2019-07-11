@@ -45,7 +45,9 @@ final class Main extends AbstractBackEnd
   with OGFileMaker
   with StringKeeperMaker
   with PoolsMaker
-  with TypesMaker {
+  with TypesMaker
+  //@note this maker has to be performed after others
+  with FileNamesMaker {
 
   override def name : String = "Cpp";
   override def description = "C++ source code"
@@ -125,13 +127,15 @@ final class Main extends AbstractBackEnd
     option match {
       case "revealid"        ⇒ revealObjectID = ("true".equals(value))
       case "interfacechecks" ⇒ interfaceChecks = ("true".equals(value))
+      case "writeFileNames"  ⇒ writeGeneratedSources = ("true".equals(value))
       case unknown           ⇒ sys.error(s"unkown Argument: $unknown")
     }
   }
 
   override def describeOptions = Seq(
     OptionDescription("revealID", "true/false", "if set to true, the generated API will reveal object IDs"),
-    OptionDescription("interfaceChecks", "true/false", "if set to true, the generated API will contain is[[interface]] methods")
+    OptionDescription("interfaceChecks", "true/false", "if set to true, the generated API will contain is[[interface]] methods"),
+    OptionDescription("writeFileNames", "true/false", "if set to true, create generatedFiles.txt that contains all generated file names")
   )
 
   override def customFieldManual : String = """

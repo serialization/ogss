@@ -70,6 +70,10 @@ trait AbstractBackEnd extends BackEnd {
    */
   protected var interfaceChecks = false;
   protected def filterIntarfacesFromIR(TS : TypeContext);
+  /**
+   * If set to true, create a file containing names of generated sources.
+   */
+  protected var writeGeneratedSources = false;
 
   /**
    * If interfaceChecks then skillName -> Name of sub-interfaces
