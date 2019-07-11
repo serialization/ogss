@@ -21,8 +21,10 @@ trait FileNamesMaker extends AbstractBackEnd {
   abstract override def make {
     super.make
 
-    val out = files.openRaw("generatedFiles.txt")
-    out.write(s"""${files.getTouchedFiles.asScala.map(_.getName).filterNot(_.equals("generatedFiles.txt")).mkString("\n")}""");
-    out.close()
+    if (writeGeneratedSources) {
+      val out = files.openRaw("generatedFiles.txt")
+      out.write(s"""${files.getTouchedFiles.asScala.map(_.getName).filterNot(_.equals("generatedFiles.txt")).mkString("\n")}""");
+      out.close()
+    }
   }
 }

@@ -19,7 +19,7 @@ struct OGSS_TODO_MESSAGE final {
 
     explicit OGSS_TODO_MESSAGE(const std::string &msg) : msg(msg) {}
 
-    ~OGSS_TODO_MESSAGE() throw(std::logic_error) {
+    ~OGSS_TODO_MESSAGE() noexcept(false) {
         throw std::logic_error(msg);
     }
 
