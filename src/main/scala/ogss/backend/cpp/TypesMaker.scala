@@ -267,6 +267,8 @@ void $packageName::${name(t)}::accept($packageName::api::Visitor *v) {
       // create cpp-Files only if we have to implement a visitor to speed-up compilation
       if (didWrite)
         out.close()
+      else
+        files.discard(out);
     }
   }
 
