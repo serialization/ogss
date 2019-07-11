@@ -251,24 +251,19 @@ $endGuard""")
 
     // one file per base type
     for (base ← IR if null == base.getSuperType) {
-      val out = files.open(s"TypesOf${name(base)}.cpp")
-      var didWrite = false;
-      out.write(s"""#include "File.h"
+      // create cpp-Files only if we have to implement a visitor to speed-up compilation
+      if (IR.exists(t ⇒ base == t.getBaseType && visited.contains(t.getName))) {
+        val out = files.open(s"TypesOf${name(base)}.cpp")
+        out.write(s"""#include "File.h"
 #include "TypesOf${name(base)}.h"${
-        (for (t ← IR if base == t.getBaseType && visited.contains(t.getName)) yield {
-          didWrite = true
-          s"""
+          (for (t ← IR if base == t.getBaseType && visited.contains(t.getName)) yield s"""
 void $packageName::${name(t)}::accept($packageName::api::Visitor *v) {
     v->visit(this);
-}"""
-        }).mkString
-      }
+}""").mkString
+        }
 """)
-      // create cpp-Files only if we have to implement a visitor to speed-up compilation
-      if (didWrite)
         out.close()
-      else
-        files.discard(out);
+      }
     }
   }
 

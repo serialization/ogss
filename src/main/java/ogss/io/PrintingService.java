@@ -79,13 +79,6 @@ public class PrintingService {
         files.add(target);
         return new PrintWriter(target, "");
     }
-    
-    /**
-     * Discard the argument print writer, because it will never be closed.
-     */
-    public void discard(PrintWriter out) {
-        files.remove(out);
-    }
 
     /**
      * Deletes all foreign files. A file is foreign, iff it resides in a folder that received.
