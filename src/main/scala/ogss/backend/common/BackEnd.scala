@@ -135,7 +135,7 @@ abstract class BackEnd extends IRUtils {
   /**
    * Ensure existence of dependencies
    */
-  final def makeDeps {
+  def makeDeps {
     if (!skipDependencies) {
       DependenciesMaker.copyDeps(dependencies, depsPath)
     }

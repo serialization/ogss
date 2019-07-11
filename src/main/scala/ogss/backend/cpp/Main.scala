@@ -40,6 +40,7 @@ import ogss.util.HeaderInfo
  * @author Timm Felden
  */
 final class Main extends AbstractBackEnd
+  with CMakeListsMaker
   with EnumMaker
   with FieldDeclarationsMaker
   with OGFileMaker
@@ -125,17 +126,21 @@ final class Main extends AbstractBackEnd
 
   override def setOption(option : String, value : String) {
     option match {
-      case "revealid"        ⇒ revealObjectID = ("true".equals(value))
-      case "interfacechecks" ⇒ interfaceChecks = ("true".equals(value))
-      case "writefilenames"  ⇒ writeGeneratedSources = ("true".equals(value))
-      case unknown           ⇒ sys.error(s"unkown Argument: $unknown")
+      case "revealid"         ⇒ revealObjectID = ("true".equals(value))
+      case "interfacechecks"  ⇒ interfaceChecks = ("true".equals(value))
+      case "writefilenames"   ⇒ writeGeneratedSources = ("true".equals(value))
+      case "pic"              ⇒ cmakeFPIC = ("true".equals(value))
+      case "suppressWarnings" ⇒ cmakeNoWarn = ("true".equals(value))
+      case unknown            ⇒ sys.error(s"unkown Argument: $unknown")
     }
   }
 
   override def describeOptions = Seq(
     OptionDescription("revealID", "true/false", "if set to true, the generated API will reveal object IDs"),
     OptionDescription("interfaceChecks", "true/false", "if set to true, the generated API will contain is[[interface]] methods"),
-    OptionDescription("writeFileNames", "true/false", "if set to true, create generatedFiles.txt that contains all generated file names")
+    OptionDescription("writeFileNames", "true/false", "if set to true, create generatedFiles.txt that contains all generated file names"),
+    OptionDescription("PIC", "true/false", "generated cmake project will create position independent code"),
+    OptionDescription("suppressWarnings", "true/false", "generated cmake project will tell gcc to suppress warnings")
   )
 
   override def customFieldManual : String = """

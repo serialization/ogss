@@ -17,13 +17,16 @@ package ogss.backend.cpp
 
 import scala.collection.JavaConverters._
 
+/**
+ * Create a file containing file names belonging to generated sources.
+ */
 trait FileNamesMaker extends AbstractBackEnd {
   abstract override def make {
     super.make
 
     if (writeGeneratedSources) {
       val out = files.openRaw("generatedFiles.txt")
-      out.write(s"""${files.getTouchedFiles.asScala.map(_.getName).filterNot(_.equals("generatedFiles.txt")).mkString("\n")}""");
+      out.write(s"""${files.getTouchedFiles.asScala.map(_.getName).filterNot(_.endsWith(".txt")).mkString("\n")}""");
       out.close()
     }
   }

@@ -76,6 +76,16 @@ trait AbstractBackEnd extends BackEnd {
   protected var writeGeneratedSources = false;
 
   /**
+   * If set to true, tell cmake to use FPIC parameters
+   */
+  protected var cmakeFPIC = false;
+
+  /**
+   * If set to true, tell cmake not to issue warnings
+   */
+  protected var cmakeNoWarn = false;
+
+  /**
    * If interfaceChecks then skillName -> Name of sub-interfaces
    * @note the same interface can be sub and super, iff the type is a base type;
    * in that case, super wins!
