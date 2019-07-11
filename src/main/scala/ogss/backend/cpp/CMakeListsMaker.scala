@@ -34,9 +34,9 @@ trait CMakeListsMaker extends AbstractBackEnd {
 cmake_minimum_required(VERSION 3.0.2)
 project(ogss_common_cpp)
 
-set(CMAKE_CXX_FLAGS "$${CMAKE_CXX_FLAGS} -std=c++11${
+set(CMAKE_CXX_FLAGS "$${CMAKE_CXX_FLAGS} -std=c++11 ${
         if (cmakeNoWarn) "-w"
-        else " -Wall -pedantic"
+        else "-Wall -pedantic"
       }")
 
 find_package (Threads REQUIRED)
