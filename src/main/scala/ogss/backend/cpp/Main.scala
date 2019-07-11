@@ -130,7 +130,7 @@ final class Main extends AbstractBackEnd
       case "interfacechecks"  ⇒ interfaceChecks = ("true".equals(value))
       case "writefilenames"   ⇒ writeGeneratedSources = ("true".equals(value))
       case "pic"              ⇒ cmakeFPIC = ("true".equals(value))
-      case "suppressWarnings" ⇒ cmakeNoWarn = ("true".equals(value))
+      case "suppresswarnings" ⇒ cmakeNoWarn = ("true".equals(value))
       case unknown            ⇒ sys.error(s"unkown Argument: $unknown")
     }
   }
