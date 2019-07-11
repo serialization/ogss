@@ -127,7 +127,7 @@ final class Main extends AbstractBackEnd
     option match {
       case "revealid"        ⇒ revealObjectID = ("true".equals(value))
       case "interfacechecks" ⇒ interfaceChecks = ("true".equals(value))
-      case "writeFileNames"  ⇒ writeGeneratedSources = ("true".equals(value))
+      case "writefilenames"  ⇒ writeGeneratedSources = ("true".equals(value))
       case unknown           ⇒ sys.error(s"unkown Argument: $unknown")
     }
   }
