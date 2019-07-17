@@ -11,7 +11,7 @@ using namespace internal;
 
 api::Box DistributedField::getR(const api::Object *i) {
     ObjectID ID = i->id;
-    if (-1 == ID)
+    if (ID < 0)
         return newData[i];
 
     if (--ID >= lastID)
@@ -21,7 +21,7 @@ api::Box DistributedField::getR(const api::Object *i) {
 
 void DistributedField::setR(api::Object *i, api::Box v) {
     ObjectID ID = i->id;
-    if (-1 == ID)
+    if (ID < 0)
         newData[i] = v;
 
     if (--ID >= lastID)
@@ -101,17 +101,18 @@ void DistributedField::compress(const ObjectID newLBPO) const {
         auto is = owner->allObjects();
         while (is->hasNext()) {
             const Object *const i = is->next();
-            ObjectID ID = i->id;
+            const ObjectID ID = i->id;
             if (0 != ID) {
-                d[next++] = i->id < 0 ? newData[i] : data[--ID - firstID];
+                d[next++] = ID < 0 ? newData[i] : data[(ID-1) - firstID];
             }
         }
     } else {
         auto is = owner->allObjects();
         while (is->hasNext()) {
             const Object *const i = is->next();
-            if (0 != i->id) {
-                d[next++] = i->id < 0 ? newData[i] : api::Box{};
+            const ObjectID ID = i->id;
+            if (0 != ID) {
+                d[next++] = ID < 0 ? newData[i] : api::Box{};
             }
         }
     }
