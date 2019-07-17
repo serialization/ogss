@@ -181,7 +181,7 @@ public class Generic${name}Test extends common.CommonTest {
       }
 
     case t : SeqType ⇒ v match {
-      case JSONObject.NULL ⇒ s"$left == null"
+      case null | JSONObject.NULL ⇒ s"$left == null"
       case v : JSONArray ⇒ v.iterator().asScala.toArray.map(value(_, t.getBaseType, "_2")).mkString(t match {
         case t : ListType ⇒ s"$left != null && $left.equals(list("
         case t : SetType  ⇒ s"$left != null && $left.equals(set("

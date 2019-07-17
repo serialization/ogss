@@ -169,12 +169,14 @@ class GenericAPITest extends CommonTest {
         case _             ⇒ v.toString()
       }
 
-    case t : SeqType ⇒
-      v.asInstanceOf[JSONArray].iterator().asScala.toArray.map(value(_, t.getBaseType)).mkString(t match {
+    case t : SeqType ⇒ v match {
+      case null | JSONObject.NULL ⇒ "null"
+      case v : JSONArray ⇒ v.iterator().asScala.toArray.map(value(_, t.getBaseType)).mkString(t match {
         case t : ListType ⇒ "list("
         case t : SetType  ⇒ "set("
         case _            ⇒ "array("
       }, ", ", ")").replace("java.util.", "")
+    }
 
     case t : MapType if v != null ⇒ valueMap(v.asInstanceOf[JSONObject], t.getKeyType, t.getValueType)
 
