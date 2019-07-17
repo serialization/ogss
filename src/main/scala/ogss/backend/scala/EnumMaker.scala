@@ -13,31 +13,36 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  ******************************************************************************/
-package ogss.main
+package ogss.backend.scala
 
-import ogss.backend._;
+import scala.collection.JavaConversions.asScalaBuffer
+import scala.collection.JavaConversions.mapAsScalaMap
 
-/**
- * Known back-ends have to be registered here.
- *
- * @author Timm Felden
- */
-object KnownBackEnds {
+trait EnumMaker extends AbstractBackEnd {
+  abstract override def make {
+    super.make
 
-  val allClasses : Array[Class[_ <: common.BackEnd]] = Array(
-    classOf[cpp.Main],
-    classOf[java.Main],
-    classOf[oil.Main],
-    classOf[ogss.backend.skill.Main],
-    classOf[scala.Main],
-  )
+    if (enums.isEmpty)
+      return ;
 
-  private[main] val all = allClasses.map(_.newInstance)
+    val out = files.open(s"Enums.scala")
+    out.write(s"""package ${this.packageName};
+""")
 
-  def forLanguage(language : String) : common.BackEnd = {
-    val lang = language.toLowerCase()
-    all.find { f ⇒
-      f.name.toLowerCase.equals(lang)
-    }.getOrElse(CommandLine.error(s"no available back-end matches language $language")).getClass.newInstance()
+    for (t ← enums) {
+      // package
+      out.write(s"""
+object ${name(t)} extends Enumeration {
+  type ${name(t)} = Value
+  ${
+        (
+          for (v ← t.getValues) yield s"""
+  ${comment(v)}val ${name(v)} = Value"""
+        ).mkString
+      }
+}
+""");
+    }
+    out.close()
   }
 }

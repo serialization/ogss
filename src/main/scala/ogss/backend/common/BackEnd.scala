@@ -255,5 +255,5 @@ abstract class BackEnd extends IRUtils {
   /**
    * The default value used for initialization of a given field
    */
-  protected def defaultValue(f : Field) : String = ???
+  protected def defaultValue(f : Field) : String
 }

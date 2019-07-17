@@ -32,11 +32,14 @@ import ogss.oil.MapType
 import ogss.oil.ContainerType
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.HashMap
+import ogss.oil.BuiltinType
 
 /**
  * Utility functions that simplify working with some OIL classes.
  */
 trait IRUtils {
+  
+  def isInteger(t : Type) : Boolean = 1 <= t.getStid && t.getStid <= 5
 
   def allSuperTypes(t : WithInheritance) : HashSet[WithInheritance] = {
     val r = new HashSet[WithInheritance]
@@ -62,12 +65,26 @@ trait IRUtils {
   }
 
   def allFields(t : WithInheritance) : HashSet[Field] = {
-    allSuperTypes(t).flatMap(_.getFields.asScala) ++ t.getFields.asScala
+    if(null == t) HashSet()
+    else allSuperTypes(t).flatMap(_.getFields.asScala) ++ t.getFields.asScala
   }
 
   def allViews(t : WithInheritance) : HashSet[View] = {
     allSuperTypes(t).flatMap(_.getViews.asScala) ++ t.getViews.asScala
   }
+  
+  def isDistributed(f : Field) : Boolean = {
+      // TODO check distributed or lazy attribute
+      false
+  }
+
+  /**
+   * query for distributed in any field. This is required to create a correct API in the presence of
+   * distributed fields.
+   *
+   * @return true, if the type or a super type has a distributed field
+   */
+  def hasDistributedField(t : WithInheritance) : Boolean = allFields(t).exists(isDistributed)
 
   def ogssname(t : Type) : String = {
     t.getName.getOgss

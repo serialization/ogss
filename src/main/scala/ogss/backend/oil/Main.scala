@@ -20,6 +20,7 @@ import ogss.oil.OGFile
 import ogss.util.HeaderInfo
 import java.nio.file.Path
 import java.io.File
+import ogss.oil.Field
 
 /**
  * A back-end that produces an .oil-file, i.e. the oil-file created to communicate between back-end and front-end is
@@ -27,7 +28,7 @@ import java.io.File
  *
  * @author Timm Felden
  */
-class Main extends DefaultBackEnd {
+final class Main extends DefaultBackEnd {
 
   /**
    * The name of this back-end as per command line interface.
@@ -53,4 +54,6 @@ class Main extends DefaultBackEnd {
     IR.changePath(f.toPath)
     IR.close()
   }
+
+  override protected def defaultValue(f : Field) : String = ???
 }

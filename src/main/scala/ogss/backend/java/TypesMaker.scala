@@ -39,10 +39,6 @@ ${
       }
 """)
 
-      val packageName =
-        if (this.packageName.contains('.')) this.packageName.substring(this.packageName.lastIndexOf('.') + 1)
-        else this.packageName;
-
       val fields = allFields(t)
 
       out.write(s"""

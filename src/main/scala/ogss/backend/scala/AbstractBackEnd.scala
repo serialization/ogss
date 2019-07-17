@@ -1,37 +1,23 @@
-/*******************************************************************************
- * Copyright 2019 University of Stuttgart, Germany
- * 
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not
- * use this file except in compliance with the License.  You may obtain a copy
- * of the License at
- * 
- *   http://www.apache.org/licenses/LICENSE-2.0
- * 
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
- * License for the specific language governing permissions and limitations under
- * the License.
- ******************************************************************************/
-package ogss.backend.java
+package ogss.backend.scala
 
+import ogss.oil.OGFile
+import ogss.oil.TypeContext
 import ogss.backend.common.BackEnd
 import ogss.oil.FieldLike
 import ogss.oil.EnumDef
-import ogss.oil.OGFile
-import scala.collection.mutable.ArrayBuffer
-import ogss.oil.TypeContext
+import ogss.oil.InterfaceDef
+import ogss.oil.UserDefinedType
+import scala.collection.mutable.HashMap
+import ogss.oil.ClassDef
 
 import scala.collection.JavaConverters._
-import ogss.oil.InterfaceDef
 import ogss.oil.Type
-import ogss.oil.ClassDef
-import scala.collection.mutable.HashMap
-import ogss.oil.UserDefinedType
 import ogss.oil.Identifier
+import ogss.oil.Field
+import ogss.oil.EnumConstant
 
 /**
- * Abstract Java back-end
+ * Abstract Scala back-end
  *
  * @author Timm Felden
  */
@@ -60,18 +46,19 @@ abstract class AbstractBackEnd extends BackEnd {
 
   lineLength = 120
   override def comment(d : UserDefinedType) : String = format(d.getComment, "/**\n", " * ", " */\n")
-  override def comment(f : FieldLike) : String = format(f.getComment, "/**\n", "     * ", "     */\n    ")
+  override def comment(f : FieldLike) : String = format(f.getComment, "/**\n", "   * ", "     */\n  ")
+  def comment(v : EnumConstant) : String = format(v.getComment, "/**\n", "   * ", "     */\n  ")
+  def name(v : EnumConstant) : String = escaped(capital(v.getName))
 
-  // container type mappings
-  val ArrayTypeName = "java.util.ArrayList"
-  val ListTypeName = "java.util.LinkedList"
-  val SetTypeName = "java.util.HashSet"
-  val MapTypeName = "java.util.HashMap"
+  val ArrayTypeName = "scala.collection.mutable.ArrayBuffer"
+  val ListTypeName = "scala.collection.mutable.ListBuffer"
+  val SetTypeName = "scala.collection.mutable.HashSet"
+  val MapTypeName = "scala.collection.mutable.HashMap"
 
   /**
    * Translate a type to its Java type name
    */
-  def mapType(t : Type, boxed : Boolean = false) : String
+  def mapType(t : Type) : String
 
   /**
    * id's given to fields
@@ -131,11 +118,27 @@ abstract class AbstractBackEnd extends BackEnd {
   /**
    * getter name
    */
-  protected def getter(f : FieldLike) : String = s"get${escaped(capital(f.getName))}"
+  protected[scala] def getter(f : FieldLike) : String = escaped(capital(f.getName))
   /**
    * setter name
    */
-  protected def setter(f : FieldLike) : String = s"set${escaped(capital(f.getName))}"
+  protected[scala] def setter(f : FieldLike) : String = escaped(s"${capital(f.getName)}_=")
+
+  override protected def defaultValue(f : Field) : String = {
+    f.getType match {
+      case t : EnumDef ⇒ s"$packagePrefix${name(t)}.${name(t.getValues.get(0))}"
+      case t ⇒
+        val stid = t.getStid
+        if (stid < 0 | 8 <= stid)
+          "null"
+        else if (0 == stid)
+          "false"
+        else if (stid < 6)
+          "0"
+        else
+          "0.0f"
+    }
+  }
 
   /// options \\\
 

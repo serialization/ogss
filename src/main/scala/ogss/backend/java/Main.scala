@@ -112,7 +112,7 @@ class Main extends AbstractBackEnd
 
   override protected def defaultValue(f : Field) = {
     val stid = f.getType.getStid
-    if (stid < 0 || 8 >= stid)
+    if (stid < 0 || 8 <= stid)
       "null"
     else if (0 == stid)
       "false"
