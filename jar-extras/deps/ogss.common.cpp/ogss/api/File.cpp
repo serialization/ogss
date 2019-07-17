@@ -48,7 +48,7 @@ File::File(internal::StateInitializer *init) :
   currentWritePath(init->path),
   canWrite(init->canWrite),
   threadPool(init->threadPool),
-  SIFA({}) {
+  SIFA{} {
 
     // release complex builtin types
     init->strings = nullptr;
