@@ -15,6 +15,7 @@ import ogss.oil.Type
 import ogss.oil.Identifier
 import ogss.oil.Field
 import ogss.oil.EnumConstant
+import ogss.oil.WithInheritance
 
 /**
  * Abstract Scala back-end
@@ -49,6 +50,10 @@ abstract class AbstractBackEnd extends BackEnd {
   override def comment(f : FieldLike) : String = format(f.getComment, "/**\n", "   * ", "     */\n  ")
   def comment(v : EnumConstant) : String = format(v.getComment, "/**\n", "   * ", "     */\n  ")
   def name(v : EnumConstant) : String = escaped(capital(v.getName))
+
+  protected def subtype(t : WithInheritance) = escaped("sub " + capital(t.getName))
+  
+  protected def localFieldName(f : Field) = escaped("_" + camel(f.getName))
 
   val ArrayTypeName = "scala.collection.mutable.ArrayBuffer"
   val ListTypeName = "scala.collection.mutable.ListBuffer"
@@ -118,11 +123,11 @@ abstract class AbstractBackEnd extends BackEnd {
   /**
    * getter name
    */
-  protected[scala] def getter(f : FieldLike) : String = escaped(capital(f.getName))
+  protected[scala] def getter(f : FieldLike) : String = escaped(camel(f.getName))
   /**
    * setter name
    */
-  protected[scala] def setter(f : FieldLike) : String = escaped(s"${capital(f.getName)}_=")
+  protected[scala] def setter(f : FieldLike) : String = escaped(s"${camel(f.getName)}_=")
 
   override protected def defaultValue(f : Field) : String = {
     f.getType match {

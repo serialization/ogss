@@ -17,6 +17,8 @@ import ogss.oil.BuiltinType
  */
 final class Main extends AbstractBackEnd
   with EnumMaker
+  with InternalMaker
+  with OGFileMaker
   with TypesMaker {
 
   override def name : String = "Scala"
@@ -33,14 +35,14 @@ final class Main extends AbstractBackEnd
 
       case "Bool"   ⇒ "scala.Boolean"
 
-      case "I8"     ⇒ "Byte"
-      case "I16"    ⇒ "Short"
-      case "I32"    ⇒ "Int"
-      case "I64"    ⇒ "Long"
-      case "V64"    ⇒ "Long"
+      case "I8"     ⇒ "scala.Byte"
+      case "I16"    ⇒ "scala.Short"
+      case "I32"    ⇒ "scala.Int"
+      case "I64"    ⇒ "scala.Long"
+      case "V64"    ⇒ "scala.Long"
 
-      case "F32"    ⇒ "Float"
-      case "F64"    ⇒ "Double"
+      case "F32"    ⇒ "scala.Float"
+      case "F64"    ⇒ "scala.Double"
 
       case "String" ⇒ "java.lang.String"
     }

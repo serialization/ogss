@@ -107,7 +107,14 @@ ${
 
         out.write(s"""
 }
-""");
+""")
+
+        if (!isInterface) out.write(s"""
+final class ${subtype(t)}(val τp : ogss.common.scala.internal.Pool[_ <: ${name(t)}], _ID : scala.Int)
+  extends ${name(t)}(_ID) with ogss.common.scala.internal.NamedObj {
+  override def STID : scala.Int = -1
+}
+""")
       }
 
       out.close()
@@ -124,7 +131,7 @@ ${
     if (interfaces.forall(_.getSuperType != null))
       return ;
 
-    val out = files.open(s"TypesOfAnnotation.scala")
+    val out = files.open(s"TypesOfAnyRef.scala")
 
     //package
     out.write(s"""package ${this.packageName}
@@ -160,8 +167,6 @@ ${
   ///////////////////////
   // getters & setters //
   ///////////////////////
-
-  private def localFieldName(f : Field) = escaped("_" + camel(f.getName))
 
   private def makeGetterAndSetter(out : PrintWriter, t : WithInheritance, flatType : ClassDef) {
     val packageName = if (this.packageName.contains('.')) this.packageName.substring(this.packageName.lastIndexOf('.') + 1)
