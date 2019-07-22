@@ -2,8 +2,8 @@
 // Created by Timm Felden on 16.05.19.
 //
 
-#include "LazyField.h"
 #include "ParParser.h"
+#include "LazyField.h"
 
 #include <future>
 
@@ -13,69 +13,77 @@ using ogss::concurrent::Job;
 using ogss::concurrent::Semaphore;
 
 namespace ogss {
-    namespace internal {
+namespace internal {
 
-        // TODO error reporting in tasks will currently not work as intended!
+// TODO error reporting in tasks will currently not work as intended!
 
-        class ParReadTask final : public Job {
+class ParReadTask final : public Job {
 
-            const BlockID block;
-            DataField *const f;
-            streams::MappedInStream *const in;
-            Semaphore *const barrier;
+    const BlockID block;
+    DataField *const f;
+    streams::MappedInStream *const in;
+    Semaphore *const barrier;
 
-        public:
-            ParReadTask(DataField *f, BlockID block, streams::MappedInStream *in, Semaphore *barrier)
-                    : block(block), f(f), in(in), barrier(barrier) {
-            }
+  public:
+    ParReadTask(DataField *f, BlockID block, streams::MappedInStream *in,
+                Semaphore *barrier) :
+      block(block),
+      f(f),
+      in(in),
+      barrier(barrier) {}
 
-            ~ParReadTask() final {
-                if (!dynamic_cast<LazyField *>(f))
-                    delete in;
-            }
-
-            void run() final {
-                Semaphore::ScopedPermit release(barrier);
-
-                AbstractPool *const owner = f->owner;
-                const int bpo = owner->bpo;
-                const int first = block * ogss::FD_Threshold;
-                const int last = std::min(owner->cachedSize, first + ogss::FD_Threshold);
-
-                f->read(bpo + first, bpo + last, *in);
-
-                if (!in->eof() && !(dynamic_cast<LazyField *>(f)))
-                    throw std::out_of_range("read task did not consume InStream");
-            }
-        };
-
-        class PHRT final : public Job {
-
-            const BlockID block;
-            HullType *const t;
-            streams::MappedInStream *const in;
-            Semaphore *const barrier;
-
-        public:
-
-            PHRT(HullType *t, int block, streams::MappedInStream *in, Semaphore *barrier)
-                    : block(block), t(t), in(in), barrier(barrier) {}
-
-            ~PHRT() final {
-                delete in;
-            }
-
-            void run() override {
-                Semaphore::ScopedPermit release(barrier);
-                t->read(block, in);
-            }
-        };
+    ~ParReadTask() final {
+        if (!dynamic_cast<LazyField *>(f))
+            delete in;
     }
-}
 
+    void run() final {
+        Semaphore::ScopedPermit release(barrier);
 
-ParParser::ParParser(const std::string &path, streams::FileInputStream *in, const PoolBuilder &pb)
-        : Parser(path, in, pb), barrier(), jobs(), jobMX() {
+        AbstractPool *const owner = f->owner;
+        const int bpo = owner->bpo;
+        const int first = block * ogss::FD_Threshold;
+        const int last =
+          std::min(owner->cachedSize, first + ogss::FD_Threshold);
+
+        f->read(bpo + first, bpo + last, *in);
+
+        if (!in->eof() && !(dynamic_cast<LazyField *>(f)))
+            throw std::out_of_range("read task did not consume InStream");
+    }
+};
+
+class PHRT final : public Job {
+
+    const BlockID block;
+    HullType *const t;
+    streams::MappedInStream *const in;
+    Semaphore *const barrier;
+
+  public:
+    PHRT(HullType *t, int block, streams::MappedInStream *in,
+         Semaphore *barrier) :
+      block(block),
+      t(t),
+      in(in),
+      barrier(barrier) {}
+
+    ~PHRT() final { delete in; }
+
+    void run() override {
+        Semaphore::ScopedPermit release(barrier);
+        t->read(block, in);
+    }
+};
+} // namespace internal
+} // namespace ogss
+
+ParParser::ParParser(const std::string &path, streams::FileInputStream *in,
+                     const PoolBuilder &pb) :
+  Parser(path, in, pb),
+  barrier(),
+  jobs(),
+  jobMX() {
     // we use a thread pool, so we have to create it
     threadPool = new concurrent::Pool();
 }
@@ -112,7 +120,8 @@ void ParParser::typeBlock() {
                     n = p;
                     p = classes[i];
 
-                    // by compactness, if n has a super pool, p is the previous pool
+                    // by compactness, if n has a super pool, p is the previous
+                    // pool
                     if (n->super) {
                         n->super->cachedSize += n->cachedSize;
                     }
@@ -164,8 +173,8 @@ void ParParser::processData() {
     int awaitHulls = 0;
 
     while (!in->eof()) {
-        // create the map directly and use it for subsequent read-operations to avoid costly position and size
-        // readjustments
+        // create the map directly and use it for subsequent read-operations to
+        // avoid costly position and size readjustments
         streams::MappedInStream *const map = in->jumpAndMap(in->v32() + 2);
 
         const int id = map->v32();
@@ -181,9 +190,11 @@ void ParParser::processData() {
             threadPool->run(new AllocateHull(p, count, map, this));
 
         } else if (auto fd = dynamic_cast<DataField *>(f)) {
-            BlockID block = fd->owner->cachedSize >= ogss::FD_Threshold ? map->v32() : 0;
+            BlockID block =
+              fd->owner->cachedSize > ogss::FD_Threshold ? map->v32() : 0;
 
-            // create job with adjusted size that corresponds to the * in the specification (i.e. exactly the data)
+            // create job with adjusted size that corresponds to the * in the
+            // specification (i.e. exactly the data)
             std::lock_guard<std::mutex> lock(jobMX);
             jobs.push_back(new ParReadTask(fd, block, map, &barrier));
         }
@@ -195,14 +206,16 @@ void ParParser::processData() {
     // start read tasks
     threadPool->runAll(jobs);
 
-    // TODO start tasks that perform default initialization of fields not obtained from file
+    // TODO start tasks that perform default initialization of fields not
+    // obtained from file
 }
 
 void ParParser::AllocateHull::run() {
     concurrent::Semaphore::ScopedPermit release(&self->barrier);
     int block = p->allocateInstances(count, map);
 
-    // create hull read data task except for StringPool which is still lazy per element and eager per offset
+    // create hull read data task except for StringPool which is still lazy per
+    // element and eager per offset
     if (KnownTypeID::STRING != p->typeID) {
         std::lock_guard<std::mutex> lock(self->jobMX);
         self->jobs.push_back(new PHRT(p, block, map, &self->barrier));

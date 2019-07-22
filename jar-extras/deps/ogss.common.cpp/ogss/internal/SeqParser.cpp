@@ -3,69 +3,68 @@
 //
 
 #include "SeqParser.h"
-#include "LazyField.h"
 #include "../concurrent/Pool.h"
+#include "LazyField.h"
 
 using namespace ogss::internal;
 using ogss::concurrent::Job;
 
 namespace ogss {
-    namespace internal {
+namespace internal {
 
-        class SeqReadTask final : public Job {
-            const BlockID block;
+class SeqReadTask final : public Job {
+    const BlockID block;
 
-            DataField *const f;
+    DataField *const f;
 
-            streams::MappedInStream *const in;
+    streams::MappedInStream *const in;
 
-        public:
-            SeqReadTask(DataField *f, BlockID block, streams::MappedInStream *in)
-                    : block(block), f(f), in(in) {
-            }
+  public:
+    SeqReadTask(DataField *f, BlockID block, streams::MappedInStream *in) :
+      block(block),
+      f(f),
+      in(in) {}
 
-            ~SeqReadTask() final {
-                if (!dynamic_cast<LazyField *>(f))
-                    delete in;
-            }
-
-            void run() final {
-                AbstractPool *const owner = f->owner;
-                const int bpo = owner->bpo;
-                const int first = block * ogss::FD_Threshold;
-                const int last = std::min(owner->cachedSize, first + ogss::FD_Threshold);
-
-                f->read(bpo + first, bpo + last, *in);
-
-                if (!in->eof() && !(dynamic_cast<LazyField *>(f)))
-                    throw std::out_of_range("read task did not consume InStream");
-            }
-        };
-
-        class SHRT final : public Job {
-            const BlockID block;
-            HullType *const t;
-            streams::MappedInStream *const in;
-        public:
-
-            SHRT(HullType *t, int block, streams::MappedInStream *in)
-                    : block(block), t(t), in(in) {}
-
-            ~SHRT() final {
-                delete in;
-            }
-
-            void run() override {
-                t->read(block, in);
-            }
-        };
+    ~SeqReadTask() final {
+        if (!dynamic_cast<LazyField *>(f))
+            delete in;
     }
-}
 
+    void run() final {
+        AbstractPool *const owner = f->owner;
+        const int bpo = owner->bpo;
+        const int first = block * ogss::FD_Threshold;
+        const int last =
+          std::min(owner->cachedSize, first + ogss::FD_Threshold);
 
-SeqParser::SeqParser(const std::string &path, streams::FileInputStream *in, const PoolBuilder &pb)
-        : Parser(path, in, pb) {
-}
+        f->read(bpo + first, bpo + last, *in);
+
+        if (!in->eof() && !(dynamic_cast<LazyField *>(f)))
+            throw std::out_of_range("read task did not consume InStream");
+    }
+};
+
+class SHRT final : public Job {
+    const BlockID block;
+    HullType *const t;
+    streams::MappedInStream *const in;
+
+  public:
+    SHRT(HullType *t, int block, streams::MappedInStream *in) :
+      block(block),
+      t(t),
+      in(in) {}
+
+    ~SHRT() final { delete in; }
+
+    void run() override { t->read(block, in); }
+};
+} // namespace internal
+} // namespace ogss
+
+SeqParser::SeqParser(const std::string &path, streams::FileInputStream *in,
+                     const PoolBuilder &pb) :
+  Parser(path, in, pb) {}
 
 void SeqParser::typeBlock() {
     /**
@@ -86,7 +85,8 @@ void SeqParser::typeBlock() {
                     n = p;
                     p = classes[i];
 
-                    // by compactness, if n has a super pool, p is the previous pool
+                    // by compactness, if n has a super pool, p is the previous
+                    // pool
                     if (n->super) {
                         n->super->cachedSize += n->cachedSize;
                     }
@@ -95,7 +95,8 @@ void SeqParser::typeBlock() {
             }
 
             // allocate data and start instance allocation jobs
-            // note: this is different from Java, because we used templates in C++
+            // note: this is different from Java, because we used templates in
+            // C++
             while (++i < cs) {
                 AbstractPool *p = classes[i];
                 p->allocateData();
@@ -126,13 +127,14 @@ void SeqParser::typeBlock() {
 }
 
 void SeqParser::processData() {
-    // we expect one HD-entry per field, but an arbitrary amount of entries can be encountered
+    // we expect one HD-entry per field, but an arbitrary amount of entries can
+    // be encountered
     std::vector<Job *> jobs;
     jobs.reserve(fields.size());
 
     while (!in->eof()) {
-        // create the in directly and use it for subsequent read-operations to avoid costly position and size
-        // readjustments
+        // create the in directly and use it for subsequent read-operations to
+        // avoid costly position and size readjustments
         streams::MappedInStream *const map = in->jumpAndMap(in->v32() + 2);
 
         const int id = map->v32();
@@ -146,15 +148,18 @@ void SeqParser::processData() {
             // start hull allocation job
             BlockID block = p->allocateInstances(count, map);
 
-            // create hull read data task except for StringPool which is still lazy per element and eager per offset
+            // create hull read data task except for StringPool which is still
+            // lazy per element and eager per offset
             if (KnownTypeID::STRING != p->typeID) {
                 jobs.push_back(new SHRT(p, block, map));
             }
 
         } else if (auto fd = dynamic_cast<DataField *>(f)) {
-            BlockID block = fd->owner->cachedSize >= ogss::FD_Threshold ? map->v32() : 0;
+            BlockID block =
+              fd->owner->cachedSize > ogss::FD_Threshold ? map->v32() : 0;
 
-            // create job with adjusted size that corresponds to the * in the specification (i.e. exactly the data)
+            // create job with adjusted size that corresponds to the * in the
+            // specification (i.e. exactly the data)
             jobs.push_back(new SeqReadTask(fd, block, map));
         } else {
             delete map;
