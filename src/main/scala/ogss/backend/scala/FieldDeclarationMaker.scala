@@ -230,19 +230,21 @@ ${
     }
 
     case t : InterfaceDef if t.getSuperType != null ⇒ s"""val v = $fieldAccess;
-        if(null == v)
+        val id = if(null == v) 0 else v.ID
+        if(0 == id)
           out.i8(0);
         else {
           drop = false;
-          out.v64(v.ID);
+          out.v64(id);
         }"""
 
     case t : ClassDef ⇒ s"""val v = $fieldAccess;
-        if(null == v)
+        val id = if(null == v) 0 else v.ID
+        if(0 == id)
           out.i8(0);
         else {
           drop = false;
-          out.v64(v.ID);
+          out.v64(id);
         }"""
     case _ ⇒ s"drop &= t.w($fieldAccess, out)"
   }
