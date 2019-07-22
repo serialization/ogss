@@ -91,7 +91,7 @@ ${
     out.write(s"""
     public static final class PB extends ogss.common.java.internal.PoolBuilder {
         PB() {
-            super(${types.getByName.size});
+            super(${flatTC.getByName.size});
         }
 
         @Override
