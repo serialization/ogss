@@ -244,21 +244,23 @@ ${
     }
 
     case t : InterfaceDef if t.getSuperType != null ⇒ s"""Obj v = (Obj)$fieldAccess;
-            if(null == v)
+            final int id = (null == v ? 0 : v.ID());
+            if(0 == id)
                 out.i8((byte)0);
             else {
                 drop = false;
-                out.v64(v.ID());
+                out.v64(id);
             }"""
 
     case t : InterfaceDef ⇒ s"drop &= t.w((Obj)$fieldAccess, out)"
 
     case t : ClassDef ⇒ s"""${mapType(t)} v = $fieldAccess;
-            if(null == v)
+            final int id = (null == v ? 0 : v.ID());
+            if(0 == id)
                 out.i8((byte)0);
             else {
                 drop = false;
-                out.v64(v.ID());
+                out.v64(id);
             }"""
     case _ ⇒ s"drop &= type.w($fieldAccess, out)"
   }
