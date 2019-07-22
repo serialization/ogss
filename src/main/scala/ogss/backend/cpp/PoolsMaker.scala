@@ -108,7 +108,7 @@ namespace internal {
         else s"superPool"
       }, ${skName(t.getName)}, restrictions, ${fields.count(_.getIsTransient)}) { }
 
-        ${builder(t)}_IMPL<$typeT>* build() {
+        ${builder(t)}_IMPL<$typeT>* build() final {
             return new ${builder(t)}_IMPL<$typeT>(make());
         }
 
