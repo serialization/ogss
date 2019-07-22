@@ -572,13 +572,13 @@ void ogss::internal::Parser::readFields(ogss::AbstractPool *p) {
         if (!f) {
             // no known fields left, so it is obviously unknown
             f = new LazyField(t, name, nextFieldID, p);
-        }
 
-        nextFieldID++;
+            nextFieldID++;
 
-        // increase maxDeps
-        if (auto ft = dynamic_cast<const fieldTypes::HullType *>(f->type)) {
-            const_cast<fieldTypes::HullType *>(ft)->maxDeps++;
+            // increase maxDeps
+            if (auto ft = dynamic_cast<const fieldTypes::HullType *>(f->type)) {
+                const_cast<fieldTypes::HullType *>(ft)->maxDeps++;
+            }
         }
 
         // TODO f.addRestriction(rest);
