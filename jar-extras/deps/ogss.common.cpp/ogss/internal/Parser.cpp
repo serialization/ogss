@@ -2,11 +2,11 @@
 // Created by Timm Felden on 03.04.19.
 //
 
+#include "Parser.h"
 #include "AutoField.h"
 #include "DataField.h"
 #include "EnumPool.h"
 #include "LazyField.h"
-#include "Parser.h"
 #include "SubPool.h"
 #include "UnknownObject.h"
 
@@ -15,7 +15,6 @@
 #include "../fieldTypes/ListType.h"
 #include "../fieldTypes/MapType.h"
 #include "../fieldTypes/SetType.h"
-
 
 void ogss::internal::Parser::parseFile(FileInputStream *in) {
     // G
@@ -28,7 +27,7 @@ void ogss::internal::Parser::parseFile(FileInputStream *in) {
 
             guard.reset(new std::string());
         }
-            // guard is hash?
+        // guard is hash?
         else if (first == 0x23) {
             auto buf = new std::string();
             guard.reset(buf);
@@ -61,15 +60,17 @@ void ogss::internal::Parser::parseFile(FileInputStream *in) {
     }
 }
 
+ogss::internal::Parser::Parser(const std::string &path, FileInputStream *in,
+                               const PoolBuilder &pb) :
+  StateInitializer(path, in, pb),
+  pb(pb),
+  fields(),
+  fdts() {}
 
-ogss::internal::Parser::Parser(
-        const std::string &path, FileInputStream *in, const PoolBuilder &pb)
-        : StateInitializer(path, in, pb),
-          pb(pb), fields(), fdts() {
-}
-
-void ogss::internal::Parser::ParseException(ogss::InStream *in, const std::string &msg) {
-    throw Exception(std::string("ParseException at ") + std::to_string(in->getPosition()) + ": " + msg);
+void ogss::internal::Parser::ParseException(ogss::InStream *in,
+                                            const std::string &msg) {
+    throw Exception(std::string("ParseException at ") +
+                    std::to_string(in->getPosition()) + ": " + msg);
 }
 
 void ogss::internal::Parser::typeDefinitions() {
@@ -84,7 +85,8 @@ void ogss::internal::Parser::typeDefinitions() {
     AbstractPool *p = nullptr, *last = nullptr;
     AbstractPool *result;
 
-    // Name of all seen class names to prevent duplicate allocation of the same pool.
+    // Name of all seen class names to prevent duplicate allocation of the same
+    // pool.
     std::unordered_set<String> seenNames;
     int TCls = in->v32();
 
@@ -95,13 +97,15 @@ void ogss::internal::Parser::typeDefinitions() {
     std::unordered_set<TypeRestriction *> *attr = nullptr;
     int bpo = 0;
 
-    for (bool moreFile; (moreFile = (TCls > 0)) | (nullptr != nextName); TCls--) {
+    for (bool moreFile; (moreFile = (TCls > 0)) | (nullptr != nextName);
+         TCls--) {
         // read next pool from file if required
         if (moreFile) {
             // name
             name = static_cast<String>(strings->idMap.at(in->v32()));
             if (!name) {
-                ParseException(in.get(), "corrupted file: nullptr in type name");
+                ParseException(in.get(),
+                               "corrupted file: nullptr in type name");
             }
 
             // static size
@@ -123,12 +127,15 @@ void ogss::internal::Parser::typeDefinitions() {
                     superDef = nullptr;
                     bpo = 0;
                 } else if (superID > fdts.size())
-                    ParseException(in.get(), std::string("Type ") + *name +
-                                             " refers to an ill-formed super type.\n          found: " +
-                                             std::to_string(superID) +
-                                             "; current number of other types " + std::to_string(fdts.size()));
+                    ParseException(in.get(),
+                                   std::string("Type ") + *name +
+                                     " refers to an ill-formed super type.\n   "
+                                     "       found: " +
+                                     std::to_string(superID) +
+                                     "; current number of other types " +
+                                     std::to_string(fdts.size()));
                 else {
-                    superDef = (AbstractPool *) fdts[superID - 1];
+                    superDef = (AbstractPool *)fdts[superID - 1];
                     bpo = in->v32();
                 }
             }
@@ -159,8 +166,8 @@ void ogss::internal::Parser::typeDefinitions() {
                         }
                     } else {
 
-                        // depending on the files super THH, we can decide if we have to process the files type or
-                        // our type first;
+                        // depending on the files super THH, we can decide if we
+                        // have to process the files type or our type first;
                         // invariant: p != superDef ⇒ superDef.THH != THH
                         // invariant: ∀p. p.next.THH <= p.THH + 1
                         // invariant: ∀p. p.Super = null <=> p.THH = 0
@@ -193,7 +200,8 @@ void ogss::internal::Parser::typeDefinitions() {
                         last->next = nullptr;
                     }
                     last = nullptr;
-                    result = new SubPool<UnknownObject>(nextTID++, nullptr, name, attr);
+                    result = new SubPool<UnknownObject>(nextTID++, nullptr,
+                                                        name, attr);
                 }
                 result->bpo = bpo;
                 fdts.push_back(result);
@@ -214,7 +222,8 @@ void ogss::internal::Parser::typeDefinitions() {
                     last = nullptr;
                     p = pb.make(nextID[0]++, nextTID++);
                 }
-                // @note this is sane, because it is 0 if p is not part of the type hierarchy of superDef
+                // @note this is sane, because it is 0 if p is not part of the
+                // type hierarchy of superDef
                 p->bpo = bpo;
                 SIFA[nsID++] = p;
                 classes.push_back(p);
@@ -249,26 +258,30 @@ void ogss::internal::Parser::typeDefinitions() {
             }
             // check for duplicate adds
             if (seenNames.find(last->name) != seenNames.end()) {
-                throw ogss::Exception("duplicate definition of type " + *last->name);
+                throw ogss::Exception("duplicate definition of type " +
+                                      *last->name);
             }
             seenNames.insert(last->name);
         } while (keepFile);
 
         result->cachedSize = result->staticDataInstances = count;
 
-        // add a null value for each data field to ensure that the temporary size of data fields matches those
-        // from file
+        // add a null value for each data field to ensure that the temporary
+        // size of data fields matches those from file
         const int fieldCount = in->v32();
         if (fieldCount)
-            result->dataFields.insert(result->dataFields.end(), fieldCount, nullptr);
+            result->dataFields.insert(result->dataFields.end(), fieldCount,
+                                      nullptr);
     }
 }
 
-std::unordered_set<ogss::TypeRestriction *> *ogss::internal::Parser::typeRestrictions(int count) {
+std::unordered_set<ogss::TypeRestriction *> *
+ogss::internal::Parser::typeRestrictions(int count) {
     SK_TODO;
 }
 
-std::unordered_set<ogss::restrictions::FieldRestriction *> *ogss::internal::Parser::fieldRestrictions(int count) {
+std::unordered_set<ogss::restrictions::FieldRestriction *> *
+ogss::internal::Parser::fieldRestrictions(int count) {
     SK_TODO;
 }
 
@@ -277,31 +290,30 @@ using ogss::fieldTypes::FieldType;
 FieldType *ogss::internal::Parser::fieldType() {
     const TypeID typeID = in->v32();
     switch (typeID) {
-        case 0:
-            return (FieldType *) &fieldTypes::BoolType;
-        case 1:
-            return (FieldType *) &fieldTypes::I8;
-        case 2:
-            return (FieldType *) &fieldTypes::I16;
-        case 3:
-            return (FieldType *) &fieldTypes::I32;
-        case 4:
-            return (FieldType *) &fieldTypes::I64;
-        case 5:
-            return (FieldType *) &fieldTypes::V64;
-        case 6:
-            return (FieldType *) &fieldTypes::F32;
-        case 7:
-            return (FieldType *) &fieldTypes::F64;
-        case 8:
-            return anyRef;
-        case 9:
-            return strings;
-        default:
-            return fdts.at(typeID - 10);
+    case 0:
+        return (FieldType *)&fieldTypes::BoolType;
+    case 1:
+        return (FieldType *)&fieldTypes::I8;
+    case 2:
+        return (FieldType *)&fieldTypes::I16;
+    case 3:
+        return (FieldType *)&fieldTypes::I32;
+    case 4:
+        return (FieldType *)&fieldTypes::I64;
+    case 5:
+        return (FieldType *)&fieldTypes::V64;
+    case 6:
+        return (FieldType *)&fieldTypes::F32;
+    case 7:
+        return (FieldType *)&fieldTypes::F64;
+    case 8:
+        return anyRef;
+    case 9:
+        return strings;
+    default:
+        return fdts.at(typeID - 10);
     }
 }
-
 
 static uint32_t toUCC(uint32_t kind, FieldType *b1, FieldType *b2) {
     uint32_t baseTID1 = b1->typeID;
@@ -370,22 +382,25 @@ void ogss::internal::Parser::TContainer() {
         // the last constructed kcc was not the type from the file
         if (0 != cmp) {
             switch (fkind) {
-                case 0:
-                    r = new fieldTypes::ArrayType<api::Box>(tid++, kcc, fb1);
-                    break;
-                case 1:
-                    r = new fieldTypes::ListType<api::Box>(tid++, kcc, fb1);
-                    break;
-                case 2:
-                    r = new fieldTypes::SetType<api::Box>(tid++, kcc, fb1);
-                    break;
+            case 0:
+                r = new fieldTypes::ArrayType<api::Box>(tid++, kcc, fb1);
+                break;
+            case 1:
+                r = new fieldTypes::ListType<api::Box>(tid++, kcc, fb1);
+                break;
+            case 2:
+                r = new fieldTypes::SetType<api::Box>(tid++, kcc, fb1);
+                break;
 
-                case 3:
-                    r = new fieldTypes::MapType<api::Box, api::Box>(tid++, kcc, fb1, fb2);
-                    break;
+            case 3:
+                r = new fieldTypes::MapType<api::Box, api::Box>(tid++, kcc, fb1,
+                                                                fb2);
+                break;
 
-                default:
-                    throw ogss::Exception(std::string("Illegal container constructor ID: ") + std::to_string(fkind));
+            default:
+                throw ogss::Exception(
+                  std::string("Illegal container constructor ID: ") +
+                  std::to_string(fkind));
             }
 
             r->fieldID = nextFieldID++;
@@ -399,6 +414,29 @@ void ogss::internal::Parser::TContainer() {
         }
         fields.push_back(r);
         fdts.push_back(r);
+    }
+
+    // construct remaining known containers
+    while (-1u != kcc) {
+        const auto r = pb.makeContainer(kcc, tid++, kb1, kb2);
+        SIFA[nsID++] = r;
+        r->fieldID = nextFieldID++;
+        containers.push_back(r);
+
+        // check UCC order
+        if (lastUCC > kucc) {
+            ParseException(in.get(), "File is not UCC-ordered.");
+        }
+        lastUCC = kucc;
+
+        // move to next kcc
+        kcc = pb.kcc(++ki);
+        if (-1u != kcc) {
+            kkind = (kcc >> 30u) & 3u;
+            kb1 = SIFA[kcc & 0x7FFFu];
+            kb2 = 3 == kkind ? SIFA[(kcc >> 15u) & 0x7FFFu] : nullptr;
+            kucc = toUCC(kkind, kb1, kb2);
+        }
     }
 }
 
@@ -414,12 +452,13 @@ void ogss::internal::Parser::TEnum() {
         String name = static_cast<String>(strings->idMap.at(in->v32()));
         int vcount = in->v32();
         if (vcount <= 0)
-            ParseException(in.get(), std::string("Enum ") + *name + " is zero-sized.");
+            ParseException(in.get(),
+                           std::string("Enum ") + *name + " is zero-sized.");
 
         std::vector<api::String> vs;
         vs.reserve(vcount);
         for (auto i = vcount; i != 0; i--) {
-            vs.push_back((String) strings->idMap.at(in->v32()));
+            vs.push_back((String)strings->idMap.at(in->v32()));
         }
 
         int cmp = nextName ? api::ogssLess::javaCMP(name, nextName) : -1;
@@ -467,15 +506,17 @@ void ogss::internal::Parser::readFields(ogss::AbstractPool *p) {
     // we have not yet seen a known field
     int ki = 0;
 
-    // we pass the size by adding null's for each expected field in the stream because AL.clear does not return
-    // its backing array, i.e. we will likely not resize it that way
+    // we pass the size by adding null's for each expected field in the stream
+    // because AL.clear does not return its backing array, i.e. we will likely
+    // not resize it that way
     int idx = p->dataFields.size();
 
     p->dataFields.clear();
     String kfn = p->KFN(0);
     while (0 != idx--) {
         // read field
-        const String name = static_cast<String const>(strings->idMap.at(in->v32()));
+        const String name =
+          static_cast<String const>(strings->idMap.at(in->v32()));
         FieldType *t = fieldType();
         std::unordered_set<restrictions::FieldRestriction *> *attr;
         {
@@ -491,15 +532,18 @@ void ogss::internal::Parser::readFields(ogss::AbstractPool *p) {
         while ((kfn = p->KFN(ki))) {
             // is it the next known field?
             if (name == kfn) {
-                if (dynamic_cast<AutoField *>(f = p->KFC(ki++, SIFA, nextFieldID)))
-                    ParseException(in.get(), std::string("Found transient field ") +
-                                             *p->name + "." + *name + " in the file.");
+                if (dynamic_cast<AutoField *>(
+                      f = p->KFC(ki++, SIFA, nextFieldID)))
+                    ParseException(in.get(),
+                                   std::string("Found transient field ") +
+                                     *p->name + "." + *name + " in the file.");
 
                 if (f->type != t)
-                    ParseException(in.get(), std::string("Field ") +
-                                             *p->name + "." + *name +
-                                             " should have type " + std::to_string(f->type->typeID)
-                                             + " but has type " + std::to_string(t->typeID));
+                    ParseException(
+                      in.get(), std::string("Field ") + *p->name + "." + *name +
+                                  " should have type " +
+                                  std::to_string(f->type->typeID) +
+                                  " but has type " + std::to_string(t->typeID));
 
                 break;
             }
@@ -517,7 +561,8 @@ void ogss::internal::Parser::readFields(ogss::AbstractPool *p) {
                 nextFieldID++;
 
                 // increase maxDeps
-                if (auto ft = dynamic_cast<const fieldTypes::HullType *>(f->type)) {
+                if (auto ft =
+                      dynamic_cast<const fieldTypes::HullType *>(f->type)) {
                     const_cast<fieldTypes::HullType *>(ft)->maxDeps++;
                 }
             }
@@ -546,3 +591,4 @@ void ogss::internal::Parser::readFields(ogss::AbstractPool *p) {
         p->KFC(ki, SIFA, nextFieldID++);
     }
 }
+
