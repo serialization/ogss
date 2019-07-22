@@ -75,14 +75,9 @@ import java.nio.file.Path
 
 import org.junit.Assert
 
-import de.ust.skill.common.scala.api.Access
-import de.ust.skill.common.scala.api.Create
-import de.ust.skill.common.scala.api.SkillException
-import de.ust.skill.common.scala.api.Read
-import de.ust.skill.common.scala.api.ReadOnly
-import de.ust.skill.common.scala.api.Write
+import ogss.common.scala.api.Write
+import ogss.common.scala.api.Create
 
-import $packagePath.api.SkillFile
 import common.CommonTest
 
 /**
@@ -117,7 +112,7 @@ class GenericAPITest extends CommonTest {
       if (accept) ""
       else "try"
     }{
-        val sf = SkillFile.open(tmpFile("$testName.sf"), Create, Write);
+        val sf = OGFile.open(tmpFile("$testName.sf"), Create, Write);
 
         // create objects${createObjects(obj, tc, name)}
         
@@ -184,7 +179,7 @@ class GenericAPITest extends CommonTest {
   }
 
   private def valueMap(obj : JSONObject, k : Type, v : Type, suffix : String = "") : String = {
-    var rval = s"map()"
+    var rval = "map"
 
     // https://docs.scala-lang.org/overviews/collections/maps.html#operations-in-class-map
     // ms put (k, v) Adds mapping from key k to value v to ms and returns any value previously associated with k as an option.
@@ -207,7 +202,7 @@ class GenericAPITest extends CommonTest {
         val typeName = typ(tc, t);
 
         s"""
-        val $name = sf.${typeName}.reflectiveAllocateInstance;"""
+        val $name = sf.${typeName}.make;"""
       }
 
       rval.mkString

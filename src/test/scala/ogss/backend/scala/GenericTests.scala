@@ -62,21 +62,21 @@ import java.nio.file.Path
 
 import org.junit.Assert
 
-import de.ust.skill.common.scala.api.Access
-import de.ust.skill.common.scala.api.Create
-import de.ust.skill.common.scala.api.SkillException
-import de.ust.skill.common.scala.api.Read
-import de.ust.skill.common.scala.api.ReadOnly
-import de.ust.skill.common.scala.api.Write
 
-import $packagePath.api.SkillFile
+import ogss.common.scala.api.Access
+import ogss.common.scala.api.Create
+import ogss.common.scala.api.OGSSException
+import ogss.common.scala.api.Read
+import ogss.common.scala.api.ReadOnly
+import ogss.common.scala.api.Write
+
 import common.CommonTest
 
 /**
  * Tests the file reading capabilities.
  */
 class Generic${name}Test extends CommonTest {
-  @inline def read(s: String) = SkillFile.open("../../"+s)
+  @inline def read(s: String) = OGFile.open("../../"+s)
 """)
     rval
   }
@@ -103,7 +103,7 @@ class Generic${name}Test extends CommonTest {
 """)
 
       for (f ← reject) out.write(s"""
-  test("$name - read (reject): ${f.getName}") { intercept[SkillException] { read("${f.getPath.replaceAll("\\\\", "\\\\\\\\")}").check } }
+  test("$name - read (reject): ${f.getName}") { intercept[OGSSException] { read("${f.getPath.replaceAll("\\\\", "\\\\\\\\")}").check } }
 """)
       closeTestFile(out)
     }
@@ -115,24 +115,24 @@ class Generic${name}Test extends CommonTest {
       out.write(s"""
   test("$name - write reflective") {
     val path = tmpFile("write.generic");
-    val sf = SkillFile.open(path, Create, Write);
+    val sf = OGFile.open(path, Create, Write);
     reflectiveInit(sf);
     sf.close
   }
 
   test("$name - write reflective checked") {
     val path = tmpFile("write.generic.checked");
-    val sf = SkillFile.open(path, Create, Write);
+    val sf = OGFile.open(path, Create, Write);
     reflectiveInit(sf);
     // write file
-    sf.flush()
+    sf.flush
 
     // create a name -> type map
-    val types : Map[String, Access[_]] = sf.map(t ⇒ t.name -> t).toMap
+    val types : Map[String, Access[_]] = sf.allTypes.map(t ⇒ t.name -> t).toMap
 
     // read file and check skill IDs
-    val sf2 = SkillFile.open(path, Read, ReadOnly);
-    for (t2 ← sf2) {
+    val sf2 = OGFile.open(path, Read, ReadOnly);
+    for (t2 ← sf2.allTypes) {
       val t = types(t2.name)
       if(t.size != t2.size)
         fail("size missmatch")
