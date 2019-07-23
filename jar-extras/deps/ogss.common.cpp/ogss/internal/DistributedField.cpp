@@ -14,7 +14,7 @@ api::Box DistributedField::getR(const api::Object *i) {
     if (ID < 0)
         return newData[i];
 
-    if (--ID >= lastID)
+    if (0 == ID || ID >= lastID)
         throw std::out_of_range("illegal access to distributed field");
     return data[ID - firstID];
 }
@@ -24,7 +24,7 @@ void DistributedField::setR(api::Object *i, api::Box v) {
     if (ID < 0)
         newData[i] = v;
 
-    if (--ID >= lastID)
+    if (0 == ID || ID >= lastID)
         throw std::out_of_range("illegal access to distributed field");
     data[ID - firstID] = v;
 }
@@ -49,40 +49,34 @@ bool DistributedField::check() const {
 
 DistributedField::~DistributedField() { delete[] data; }
 
-void DistributedField::read(int i, const int last,
+//! global lock used to synchronize allocations of data
+static std::mutex dataLock;
+
+void DistributedField::read(int begin, const int end,
                             streams::MappedInStream &in) const {
     // we fill in data and data is nullptr at this point, so we have to allocate
     // it first
-    firstID = i;
-    lastID = last;
-    const int high = last - i;
-    i = 0;
-    data = new api::Box[high];
+    if (nullptr == data) {
+        std::lock_guard<std::mutex> m(dataLock);
+        if (nullptr == data) {
+            data = new api::Box[lastID - firstID];
+        }
+    }
+
+    const auto high = end - firstID;
+    auto i = begin - firstID;
     while (i != high) {
-        data[i++] = type->r(in);
+        data[++i] = type->r(in);
     }
 }
 
-bool DistributedField::write(int i, const int last,
+bool DistributedField::write(int begin, const int end,
                              streams::BufferedOutStream *out) const {
     bool drop = true;
-    if (auto bt = dynamic_cast<const fieldTypes::BoolFieldType *>(type)) {
-        SK_TODO;
-        //        BoolOutWrapper wrap = new BoolOutWrapper(out);
-        //        for (; i < h; i++) {
-        //            boolean v = Boolean.TRUE == data.get(d[i]);
-        //            wrap.
-        //            bool(v);
-        //            drop &= !v;
-        //        }
-        //        wrap.unwrap();
-    } else {
-        // it is always data and therefore shifted
-        const ObjectID high = last - i;
-        i = 0;
-        while (i < high) {
-            drop &= type->w(data[i++], out);
-        }
+    const auto high = end - firstID;
+    auto i = begin - firstID;
+    while (i != high) {
+        drop &= type->w(data[++i], out);
     }
     return drop;
 }
@@ -103,7 +97,7 @@ void DistributedField::compress(const ObjectID newLBPO) const {
             const Object *const i = is->next();
             const ObjectID ID = i->id;
             if (0 != ID) {
-                d[next++] = ID < 0 ? newData[i] : data[(ID-1) - firstID];
+                d[next++] = ID < 0 ? newData[i] : data[ID - firstID];
             }
         }
     } else {
@@ -120,7 +114,7 @@ void DistributedField::compress(const ObjectID newLBPO) const {
     // update state
     delete[] data;
     data = d;
-    firstID = newLBPO;
+    firstID = newLBPO + 1;
     lastID = firstID + owner->cachedSize;
     assert(next == owner->cachedSize);
 

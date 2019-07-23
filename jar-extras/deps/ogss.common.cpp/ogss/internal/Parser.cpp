@@ -591,4 +591,3 @@ void ogss::internal::Parser::readFields(ogss::AbstractPool *p) {
         p->KFC(ki, SIFA, nextFieldID++);
     }
 }
-

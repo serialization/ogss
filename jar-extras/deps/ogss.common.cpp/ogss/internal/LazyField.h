@@ -11,9 +11,14 @@
 namespace ogss {
 namespace internal {
 class LazyField : public DistributedField {
-    mutable streams::MappedInStream *input;
+    struct Chunk {
+        int begin;
+        int end;
+        streams::MappedInStream *in;
+    };
+    mutable std::vector<Chunk> *chunks;
 
-    inline bool isLoaded() { return nullptr == input; }
+    inline bool isLoaded() { return nullptr == chunks; }
 
     void load();
 
@@ -21,7 +26,7 @@ class LazyField : public DistributedField {
     LazyField(FieldType *const type, api::String name, TypeID index,
               AbstractPool *const owner) :
       DistributedField(type, name, index, owner),
-      input(nullptr) {}
+      chunks(nullptr) {}
 
     ~LazyField() override;
 

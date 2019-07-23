@@ -33,8 +33,8 @@ class DistributedField : public DataField {
     DistributedField(const FieldType *const type, api::String name,
                      const TypeID index, AbstractPool *const owner) :
       DataField(type, name, index, owner),
-      firstID(0),
-      lastID(0),
+      firstID(owner->bpo + 1),
+      lastID(firstID + owner->cachedSize),
       data(nullptr),
       newData() {}
 
@@ -46,7 +46,7 @@ class DistributedField : public DataField {
 
     void read(int i, int last, streams::MappedInStream &in) const override;
 
-    void compress(const ObjectID newLBPO) const;
+    void compress(ObjectID newLBPO) const;
 
     bool write(int i, int last, streams::BufferedOutStream *out) const final;
 

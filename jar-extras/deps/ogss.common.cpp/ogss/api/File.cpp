@@ -37,6 +37,7 @@ File::File(internal::StateInitializer *init) :
   guard(*init->guard),
   strings(init->strings),
   anyRef(init->anyRef),
+  sifaSize((int)init->sifaSize - 10),
   classCount(init->classes.size()),
   classes(new AbstractPool *[classCount]),
   containerCount(init->containers.size()),
@@ -214,7 +215,7 @@ bool File::contains(ogss::Object *ref) const {
         const auto p = pool(ref);
 
         // the returned pool could belong to another state
-        if (p->owner != this)
+        if (!p || p->owner != this)
             return false;
 
         // ensure that ref does not belong to another state
