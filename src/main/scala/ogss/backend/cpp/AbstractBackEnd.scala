@@ -53,7 +53,7 @@ trait AbstractBackEnd extends BackEnd {
   var IR : Array[ClassDef] = _
   var enums : Array[EnumDef] = _
 
-  lineLength = 120
+  lineLength = 80
   override def comment(d : UserDefinedType) : String = format(d.getComment, "/**\n", "     * ", "     */\n    ")
   override def comment(f : FieldLike) : String = format(f.getComment, "/**\n", "         * ", "         */\n        ")
 

@@ -215,6 +215,7 @@ uint32_t Writer::writeTF(api::File *const state, BufferedOutStream &out) {
         for (int i = 0; i < containerCount; i++) {
             HullType *const c = state->containers[i];
             if (c->maxDeps != 0) {
+                c->resetIDs();
                 c->deps.store(c->maxDeps);
                 count++;
             }

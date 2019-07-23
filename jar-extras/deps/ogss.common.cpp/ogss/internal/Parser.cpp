@@ -331,16 +331,19 @@ void ogss::internal::Parser::TContainer() {
     int ki = 0;
     // @note it is always possible to construct the next kcc from SIFA
     uint32_t kcc = pb.kcc(ki);
-    uint32_t kkind = 0;
+    uint32_t kkind;
     FieldType *kb1, *kb2;
     //@note using uint means we can accept more types than Java
     uint32_t lastUCC = 0;
-    uint32_t kucc = 0;
+    uint32_t kucc;
     if (-1u != kcc) {
         kkind = (kcc >> 30u) & 3u;
         kb1 = SIFA[kcc & 0x7FFFu];
         kb2 = 3 == kkind ? SIFA[(kcc >> 15u) & 0x7FFFu] : nullptr;
         kucc = toUCC(kkind, kb1, kb2);
+    } else {
+        kkind = kucc = 0;
+        kb1 = kb2 = nullptr;
     }
 
     for (int count = in->v32(); count != 0; count--) {
