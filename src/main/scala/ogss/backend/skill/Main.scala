@@ -73,10 +73,7 @@ class Main
 
   override def describeOptions = Seq()
 
-  override def customFieldManual : String = """
-  !include string+    Argument strings are added to the head of the generated file and included using
-                      <> around the strings content.
-  !default string     Text to be inserted as replacement for default initialization."""
+  override def customFieldManual : String = """(unsupported)"""
 
   /**
    * We do not escape anything
