@@ -169,8 +169,7 @@ ${
   ///////////////////////
 
   private def makeGetterAndSetter(out : PrintWriter, t : WithInheritance, flatType : ClassDef) {
-    val packageName = if (this.packageName.contains('.')) this.packageName.substring(this.packageName.lastIndexOf('.') + 1)
-    else this.packageName;
+    val packageName = packageLastName
 
     for (f ← t.getFields.asScala) {
 
@@ -189,7 +188,7 @@ ${
         out.write(s"""
   ${
           if (f.getIsTransient) "@transient " else ""
-        }final protected[${this.packageName}] var ${localFieldName(f)} : ${
+        }final protected[$packageName] var ${localFieldName(f)} : ${
           if (f.getType.isInstanceOf[EnumDef]) "AnyRef" else mapType(f.getType())
         } = ${defaultValue(f)}${
           if (f.getType.isInstanceOf[EnumDef]) {

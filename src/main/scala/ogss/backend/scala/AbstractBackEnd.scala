@@ -52,7 +52,7 @@ abstract class AbstractBackEnd extends BackEnd {
   def name(v : EnumConstant) : String = escaped(capital(v.getName))
 
   protected def subtype(t : WithInheritance) = escaped("sub " + capital(t.getName))
-  
+
   protected def localFieldName(f : Field) = escaped("_" + camel(f.getName))
 
   val ArrayTypeName = "scala.collection.mutable.ArrayBuffer"
@@ -111,6 +111,13 @@ abstract class AbstractBackEnd extends BackEnd {
    */
   protected def packagePrefix() : String
   protected def packageName = packagePrefix.substring(0, packagePrefix.length - 1)
+  protected def packageLastName = {
+    val name = packageName
+    name.lastIndexOf('.') match {
+      case -1 ⇒ name
+      case n  ⇒ name.substring(n + 1, name.length())
+    }
+  }
 
   /**
    * all string literals used in type and field names
