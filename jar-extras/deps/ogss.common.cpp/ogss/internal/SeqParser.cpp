@@ -4,6 +4,7 @@
 
 #include "SeqParser.h"
 #include "../concurrent/Pool.h"
+#include "../fieldTypes/ContainerType.h"
 #include "LazyField.h"
 
 using namespace ogss::internal;
@@ -46,18 +47,24 @@ class SeqReadTask final : public Job {
 
 class SHRT final : public Job {
     const BlockID block;
-    HullType *const t;
+    fieldTypes::ContainerType *const t;
     streams::MappedInStream *const in;
 
   public:
-    SHRT(HullType *t, int block, streams::MappedInStream *in) :
+    SHRT(fieldTypes::ContainerType *t, int block, streams::MappedInStream *in) :
       block(block),
       t(t),
       in(in) {}
 
     ~SHRT() final { delete in; }
 
-    void run() override { t->read(block, in); }
+    void run() override {
+        ObjectID i = block * ogss::HD_Threshold;
+        const ObjectID end =
+          std::min((ObjectID)t->idMap.size() - 1, i + ogss::HD_Threshold);
+
+        t->read(i, end, in);
+    }
 };
 } // namespace internal
 } // namespace ogss
@@ -150,8 +157,8 @@ void SeqParser::processData() {
 
             // create hull read data task except for StringPool which is still
             // lazy per element and eager per offset
-            if (KnownTypeID::STRING != p->typeID) {
-                jobs.push_back(new SHRT(p, block, map));
+            if (auto ct = dynamic_cast<fieldTypes::ContainerType *>(p)) {
+                jobs.push_back(new SHRT(ct, block, map));
             }
 
         } else if (auto fd = dynamic_cast<DataField *>(f)) {

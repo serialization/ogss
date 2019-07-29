@@ -3,6 +3,7 @@
 //
 
 #include "ParParser.h"
+#include "../fieldTypes/ContainerType.h"
 #include "LazyField.h"
 
 #include <future>
@@ -56,12 +57,12 @@ class ParReadTask final : public Job {
 class PHRT final : public Job {
 
     const BlockID block;
-    HullType *const t;
+    fieldTypes::ContainerType *const t;
     streams::MappedInStream *const in;
     Semaphore *const barrier;
 
   public:
-    PHRT(HullType *t, int block, streams::MappedInStream *in,
+    PHRT(fieldTypes::ContainerType *t, int block, streams::MappedInStream *in,
          Semaphore *barrier) :
       block(block),
       t(t),
@@ -72,7 +73,11 @@ class PHRT final : public Job {
 
     void run() override {
         Semaphore::ScopedPermit release(barrier);
-        t->read(block, in);
+
+        ObjectID i = block * ogss::HD_Threshold;
+        const ObjectID end =
+          std::min((ObjectID)t->idMap.size() - 1, i + ogss::HD_Threshold);
+        t->read(i, end, in);
     }
 };
 } // namespace internal
@@ -88,12 +93,19 @@ ParParser::ParParser(const std::string &path, streams::FileInputStream *in,
     threadPool = new concurrent::Pool();
 }
 
-ParParser::~ParParser() {
+ParParser::~ParParser() noexcept(false) {
     barrier.takeMany(jobs.size());
 
     if (threadPool->hasErrors()) {
-        SK_TODO;
         // error propagation code, i.e. aggregate error messages
+        std::vector<std::string> errors;
+        threadPool->takeErrors(errors);
+        std::stringstream ss;
+        ss << "read jobs had errors:" << std::endl;
+        for (auto &e : errors) {
+            ss << "  " << e << std::endl;
+        }
+        throw ogss::Exception(ss.str());
     }
 }
 
@@ -216,8 +228,8 @@ void ParParser::AllocateHull::run() {
 
     // create hull read data task except for StringPool which is still lazy per
     // element and eager per offset
-    if (KnownTypeID::STRING != p->typeID) {
+    if (const auto ct = dynamic_cast<fieldTypes::ContainerType *>(p)) {
         std::lock_guard<std::mutex> lock(self->jobMX);
-        self->jobs.push_back(new PHRT(p, block, map, &self->barrier));
+        self->jobs.push_back(new PHRT(ct, block, map, &self->barrier));
     }
 }

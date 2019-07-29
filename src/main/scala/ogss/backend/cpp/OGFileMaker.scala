@@ -52,7 +52,7 @@ ${
             /**
              * Reads a binary OGSS file and turns it into an instance of this class.
              */
-            static File *open(const std::string &path, int mode = ::ogss::api::ReadMode::read | ::ogss::api::WriteMode::write);
+            static File *open(const std::string &path, uint8_t mode = ::ogss::api::ReadMode::read | ::ogss::api::WriteMode::write);
 
         private:
 
@@ -200,7 +200,7 @@ ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}
     }
 ${packageParts.map(_ ⇒ "}").mkString}
 
-$packageName::api::File *$packageName::api::File::open(const std::string &path, int mode) {
+$packageName::api::File *$packageName::api::File::open(const std::string &path, uint8_t mode) {
     $packageName::internal::PB pb;
     return new $packageName::api::File(::ogss::internal::StateInitializer::make(path, pb, mode));
 }

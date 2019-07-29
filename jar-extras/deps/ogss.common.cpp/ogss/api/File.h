@@ -26,12 +26,12 @@ namespace api {
 /**
  * use first bit of mode
  */
-enum ReadMode : int { read = 0, create = 1 };
+enum ReadMode : uint8_t { read = 0u, create = 1u };
 
 /**
  * use second bit of mode
  */
-enum WriteMode : int { write = 0, readOnly = 2 };
+enum WriteMode : uint8_t { write = 0u, readOnly = 2u };
 
 /**
  * the type of the type by name mapping
@@ -57,7 +57,7 @@ class File {
     fieldTypes::AnyRefType *const anyRef;
 
   public:
-    const fieldTypes::AnyRefType *const getAnyRefType() const { return anyRef; }
+    const fieldTypes::AnyRefType *getAnyRefType() const { return anyRef; }
 
   protected:
     const int sifaSize;

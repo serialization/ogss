@@ -23,7 +23,8 @@ using ogss::streams::BufferedOutStream;
 Writer::Writer(api::File *state, streams::FileOutputStream &out) :
   resultLock(),
   results(),
-  errors() {
+  errors(),
+  awaitBuffers(0) {
     /**
      * *************** * G * ****************
      */
@@ -64,7 +65,6 @@ Writer::Writer(api::File *state, streams::FileOutputStream &out) :
     /**
      * *************** * T F * ****************
      */
-    int awaitBuffers;
     {
         // write T and F to a buffer, while S is written
         BufferedOutStream *const buffer = new BufferedOutStream();
@@ -87,21 +87,34 @@ Writer::Writer(api::File *state, streams::FileOutputStream &out) :
     for (; awaitBuffers != 0; awaitBuffers--, i++) {
         std::future<BufferedOutStream *> *f = nullptr;
         {
-            std::lock_guard<std::mutex> consumerLock(resultLock);
-            if (!errors.empty()) {
-                // if a task crashed, we will inevitably notice it here,
-                // because sending its buffer is its last action
-                hasErrors = true;
-                // @note there is still a data race between successful threads
-                // and crashing threads that may lead to a crash; it would
-                // become harmless, if we get rid of resultLock, because Writer
-                // is stack-local
-                // @note we could also set a shutdown flag, if this is a serious
-                // problem
-                break;
+            // if the writer is faster then encoders triggering hull fields, it
+            // could be that we have to await buffers which have not even been
+            // enqueued yet
+            while (true) {
+                {
+                    std::lock_guard<std::mutex> consumerLock(resultLock);
+                    if (!errors.empty()) {
+                        // if a task crashed, we will inevitably notice it here,
+                        // because sending its buffer is its last action
+                        hasErrors = true;
+                        // @note there is still a data race between successful
+                        // threads and crashing threads that may lead to a
+                        // crash; it would become harmless, if we get rid of
+                        // resultLock, because Writer is stack-local
+                        // @note we could also set a shutdown flag, if this is a
+                        // serious problem
+                        break;
+                    }
+                    if (i < results.size())
+                        break;
+                }
+                std::this_thread::yield();
             }
+            if (hasErrors)
+                break;
 
-            f = &results.at(i);
+            std::lock_guard<std::mutex> consumerLock(resultLock);
+            f = &results[i];
         }
         BufferedOutStream *const buf = f->get();
         if (buf) {
@@ -118,8 +131,7 @@ Writer::Writer(api::File *state, streams::FileOutputStream &out) :
             if (i < results.size()) {
                 auto buf = results.at(i).get();
                 // delete remaining successful buffers
-                if (buf)
-                    delete buf;
+                delete buf;
             }
         }
 
@@ -244,7 +256,7 @@ uint32_t Writer::writeTF(api::File *const state, BufferedOutStream &out) {
         results.reserve(fieldQueue.size() + awaitHulls);
         for (DataField *f : fieldQueue) {
             results.emplace_back(
-              std::async(std::launch::async, writeField, this, f));
+              std::async(std::launch::async, writeField, this, f, 0));
         }
     }
 
@@ -255,7 +267,7 @@ uint32_t Writer::writeTF(api::File *const state, BufferedOutStream &out) {
     if (state->enumCount) {
         // write count of the type block
         out.v64((int)state->enumCount);
-        for (int i = 0; i < state->enumCount; i++) {
+        for (size_t i = 0; i < state->enumCount; i++) {
             internal::AbstractEnumPool *p = state->enums[i];
             out.v64(string->id(p->name));
             out.v64((int)((EnumPool<api::UnknownEnum> *)p)->values.size());
@@ -355,98 +367,194 @@ void Writer::compress(AbstractPool *const base, int *bpos) {
     } while ((p = p->next));
 }
 
-BufferedOutStream *Writer::writeField(Writer *self, DataField *f) {
-    BufferedOutStream *buffer = new BufferedOutStream();
-
-    bool discard = true;
-
+BufferedOutStream *Writer::writeField(Writer *self, DataField *f,
+                                      BlockID block) {
     try {
-        AbstractPool *owner = f->owner;
-        int i = owner->bpo;
-        int h = i + owner->cachedSize;
+        const auto owner = f->owner;
+        const auto count = owner->cachedSize;
+
+        bool hasblocks = false;
+        BufferedOutStream *buffer = nullptr;
 
         // any empty field will be discarded
-        if (i != h) {
-            buffer->v64(f->fieldID);
-            discard = f->write(i, h, buffer);
-        }
+        if (count != 0) {
 
-        if (auto ht = dynamic_cast<HullType *>((FieldType *)f->type)) {
-            if (0 == --ht->deps) {
-                std::lock_guard<std::mutex> rLock(self->resultLock);
-                self->results.emplace_back(
-                  std::async(std::launch::async, writeHull, self, ht));
+            // iff we have blockID zero we may need to split
+            if (0 == block) {
+                // split large FD blocks into blocks
+                if (count > ogss::FD_Threshold) {
+                    hasblocks = true;
+
+                    // we have to fork this task
+                    int blockCount = (count - 1) / ogss::FD_Threshold;
+                    // @note we increment await by blockCount - 1
+                    self->awaitBuffers += blockCount++;
+
+                    f->blocks = blockCount;
+
+                    std::lock_guard<std::mutex> rLock(self->resultLock);
+                    for (int i = 1; i < blockCount; i++) {
+                        self->results.emplace_back(std::async(
+                          std::launch::async, writeField, self, f, i));
+                    }
+                }
+            } else {
+                hasblocks = true;
+            }
+
+            const auto bpo = owner->bpo;
+            int i = block * ogss::FD_Threshold;
+            int h = std::min(count, i + ogss::FD_Threshold);
+            i += bpo;
+            h += bpo;
+
+            buffer = new BufferedOutStream();
+
+            buffer->v64(f->fieldID);
+            if (count > ogss::FD_Threshold) {
+                buffer->v64(block);
+            }
+            bool discard = f->write(i, h, buffer);
+
+            // close buffer and discard it if possible
+            buffer->close();
+            if (discard) {
+                delete buffer;
+                buffer = nullptr;
             }
         }
+
+        bool done = true;
+        if (hasblocks) {
+            done = 0 == --f->blocks;
+        }
+
+        if (done) {
+            if (auto ht = dynamic_cast<const HullType *>(f->type)) {
+                if (0 == --ht->deps) {
+                    std::lock_guard<std::mutex> rLock(self->resultLock);
+                    self->results.emplace_back(
+                      std::async(std::launch::async, writeHull, self, ht, 0));
+                }
+            }
+        }
+
+        return buffer;
     } catch (std::exception &e) {
         std::lock_guard<std::mutex> errLock(self->resultLock);
-
         self->errors.emplace_back(e.what());
+        return nullptr;
     } catch (...) {
+        std::lock_guard<std::mutex> errLock(self->resultLock);
         self->errors.emplace_back("write task non-standard crash");
-    }
-
-    // close buffer and discard it if possible
-    buffer->close();
-    if (discard) {
-        delete buffer;
         return nullptr;
     }
-
-    return buffer;
 }
 
-BufferedOutStream *Writer::writeHull(Writer *self, HullType *t) {
-    BufferedOutStream *buffer = new BufferedOutStream();
-
-    bool discard = true;
-
+BufferedOutStream *Writer::writeHull(Writer *self, const HullType *ht,
+                                     BlockID block) {
     try {
-        buffer->v64(t->fieldID);
-        discard = t->write(buffer);
+        BufferedOutStream *buffer = nullptr;
+        const ObjectID size = ht->IDs.size();
+        bool done = true;
 
-        if (auto p = dynamic_cast<fieldTypes::SingleArgumentType *>(t)) {
-            if (auto bt = dynamic_cast<HullType *>(p->base)) {
-                if (0 == --bt->deps) {
-                    std::lock_guard<std::mutex> rLock(self->resultLock);
-                    self->results.push_back(
-                      std::async(std::launch::async, writeHull, self, bt));
+        if (const auto t =
+              dynamic_cast<const fieldTypes::ContainerType *>(ht)) {
+            if (0 != size) {
+                bool hasblocks = false;
+
+                // iff we have blockID zero we may need to split
+                if (0 == block) {
+                    // split non-HS blocks that are too large into blocks
+                    if (t->typeID != KnownTypeID::STRING &&
+                        size > ogss::HD_Threshold) {
+                        hasblocks = true;
+                        // we have to fork this task
+                        int blockCount = (size - 1) / ogss::HD_Threshold;
+
+                        std::lock_guard<std::mutex> rLock(self->resultLock);
+
+                        // @note we increment await by blockCount - 1
+                        self->awaitBuffers += blockCount++;
+
+                        t->blocks = blockCount;
+                        for (int i = 1; i < blockCount; i++) {
+                            self->results.emplace_back(std::async(
+                              std::launch::async, writeHull, self, t, i));
+                        }
+                    }
+                } else {
+                    hasblocks = true;
+                }
+
+                buffer = new BufferedOutStream();
+                buffer->v64(t->fieldID);
+                buffer->v64(size);
+                if (size > ogss::HD_Threshold) {
+                    buffer->v64(block);
+                }
+                ObjectID i = block * ogss::HD_Threshold;
+                const ObjectID end = std::min(size, i + ogss::HD_Threshold);
+                t->write(i, end, buffer);
+
+                // close buffer and discard it if possible
+                buffer->close();
+
+                if (hasblocks) {
+                    done = 0 == --t->blocks;
                 }
             }
-        } else if (dynamic_cast<StringPool *>(t)) {
-            // nothing to do (in fact we cant type check a MapType)
         } else {
-            fieldTypes::MapType<api::Box, api::Box> *p =
-              (fieldTypes::MapType<Box, Box> *)t;
-            if (auto bt = dynamic_cast<HullType *>(p->keyType)) {
-                if (0 == --bt->deps) {
-                    std::lock_guard<std::mutex> rLock(self->resultLock);
-                    self->results.push_back(
-                      std::async(std::launch::async, writeHull, self, bt));
-                }
+            buffer = new BufferedOutStream();
+            bool discard = ((StringPool *)ht)->write(buffer);
+
+            // close buffer and discard it if possible
+            buffer->close();
+            if (discard) {
+                delete buffer;
+                buffer = nullptr;
             }
-            if (auto bt = dynamic_cast<HullType *>(p->valueType)) {
-                if (0 == --bt->deps) {
-                    std::lock_guard<std::mutex> rLock(self->resultLock);
-                    self->results.push_back(
-                      std::async(std::launch::async, writeHull, self, bt));
+        }
+
+        if (done) {
+            if (auto p =
+                  dynamic_cast<const fieldTypes::SingleArgumentType *>(ht)) {
+                if (auto bt = dynamic_cast<HullType *>(p->base)) {
+                    if (0 == --bt->deps) {
+                        std::lock_guard<std::mutex> rLock(self->resultLock);
+                        self->results.push_back(std::async(
+                          std::launch::async, writeHull, self, bt, 0));
+                    }
+                }
+            } else if (dynamic_cast<const StringPool *>(ht)) {
+                // nothing to do (in fact we cant type check a MapType)
+            } else {
+                const auto mt = (fieldTypes::MapType<Box, Box> *)ht;
+                if (auto bt = dynamic_cast<HullType *>(mt->keyType)) {
+                    if (0 == --bt->deps) {
+                        std::lock_guard<std::mutex> rLock(self->resultLock);
+                        self->results.push_back(std::async(
+                          std::launch::async, writeHull, self, bt, 0));
+                    }
+                }
+                if (auto bt = dynamic_cast<HullType *>(mt->valueType)) {
+                    if (0 == --bt->deps) {
+                        std::lock_guard<std::mutex> rLock(self->resultLock);
+                        self->results.push_back(std::async(
+                          std::launch::async, writeHull, self, bt, 0));
+                    }
                 }
             }
         }
+
+        return buffer;
     } catch (std::exception &e) {
         std::lock_guard<std::mutex> errLock(self->resultLock);
-
-        self->errors.push_back(e.what());
+        self->errors.emplace_back(e.what());
+        return nullptr;
     } catch (...) {
-        self->errors.push_back("write task non-standard crash");
-    }
-
-    // close buffer and discard it if possible
-    buffer->close();
-    if (discard) {
-        delete buffer;
+        std::lock_guard<std::mutex> errLock(self->resultLock);
+        self->errors.emplace_back("write task non-standard crash");
         return nullptr;
     }
-
-    return buffer;
 }

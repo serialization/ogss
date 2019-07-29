@@ -82,7 +82,7 @@ object internal {
   object PB extends ogss.common.scala.internal.PoolBuilder(${flatTC.getByName.size}) {
 
     override def literals : Array[String] = Array(${
-      allStrings.map(_.getOgss).mkString("\"", "\", \"", "\"")
+      allStrings.map(n ⇒ s""""${n.getOgss}"""").mkString(", ")
     })
 
     override def kcc(ID : scala.Int) : scala.Int = ID match {${

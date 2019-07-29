@@ -5,65 +5,69 @@
 #ifndef OGSS_TEST_CPP_PARPARSER_H
 #define OGSS_TEST_CPP_PARPARSER_H
 
-
-#include "Parser.h"
-#include "../concurrent/Semaphore.h"
 #include "../concurrent/Pool.h"
+#include "../concurrent/Semaphore.h"
+#include "Parser.h"
 
 namespace ogss {
-    namespace internal {
+namespace internal {
 
-        /**
-         * A parallel .sg-file parser.
-         *
-         * @author Timm Felden
-         */
-        class ParParser final : public Parser {
-            concurrent::Semaphore barrier;
+/**
+ * A parallel .sg-file parser.
+ *
+ * @author Timm Felden
+ */
+class ParParser final : public Parser {
+    concurrent::Semaphore barrier;
 
-            // jobs is a field as we need it for await
-            std::vector<concurrent::Job *> jobs;
-            // protection for jobs until we implement a wait-free queue
-            std::mutex jobMX;
+    // jobs is a field as we need it for await
+    std::vector<concurrent::Job *> jobs;
+    // protection for jobs until we implement a wait-free queue
+    std::mutex jobMX;
 
-            ParParser(const std::string &path, streams::FileInputStream *in, const PoolBuilder &pb);
+    ParParser(const std::string &path, streams::FileInputStream *in,
+              const PoolBuilder &pb);
 
-            // await parellel read jobs
-            ~ParParser() final;
+    // await parellel read jobs
+    ~ParParser() noexcept(false) final;
 
-            void typeBlock() final;
+    void typeBlock() final;
 
-            void processData() final;
+    void processData() final;
 
-            struct AllocateInstances final : public concurrent::Job {
-                AbstractPool *const p;
-                concurrent::Semaphore *const barrier;
+    struct AllocateInstances final : public concurrent::Job {
+        AbstractPool *const p;
+        concurrent::Semaphore *const barrier;
 
-                AllocateInstances(AbstractPool *p, concurrent::Semaphore *barrier)
-                        : p(p), barrier(barrier) {}
+        AllocateInstances(AbstractPool *p, concurrent::Semaphore *barrier) :
+          p(p),
+          barrier(barrier) {}
 
-                void run() final {
-                    concurrent::Semaphore::ScopedPermit release(barrier);
-                    p->allocateInstances();
-                }
-            };
+        void run() final {
+            concurrent::Semaphore::ScopedPermit release(barrier);
+            p->allocateInstances();
+        }
+    };
 
-            struct AllocateHull final : public concurrent::Job {
-                HullType *const p;
-                const int count;
-                streams::MappedInStream *const map;
-                ParParser *const self;
+    struct AllocateHull final : public concurrent::Job {
+        HullType *const p;
+        const int count;
+        streams::MappedInStream *const map;
+        ParParser *const self;
 
-                AllocateHull(HullType *p, int count, streams::MappedInStream *map, ParParser *self)
-                        : p(p), count(count), map(map), self(self) {}
+        AllocateHull(HullType *p, int count, streams::MappedInStream *map,
+                     ParParser *self) :
+          p(p),
+          count(count),
+          map(map),
+          self(self) {}
 
-                void run() final;
-            };
+        void run() final;
+    };
 
-            friend struct StateInitializer;
-        };
-    }
-}
+    friend struct StateInitializer;
+};
+} // namespace internal
+} // namespace ogss
 
-
-#endif //SKILL_CPP_TESTSUITE_PARPARSER_H
+#endif // SKILL_CPP_TESTSUITE_PARPARSER_H

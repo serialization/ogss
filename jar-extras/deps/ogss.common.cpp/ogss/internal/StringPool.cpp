@@ -4,16 +4,22 @@
 
 #include <assert.h>
 
-#include "StringPool.h"
 #include "AbstractStringKeeper.h"
+#include "StringPool.h"
 
 using namespace ogss;
 using api::String;
 
-internal::StringPool::StringPool(const AbstractStringKeeper *sk)
-        : HullType(KnownTypeID::STRING, -1), in(nullptr), knownStrings(), owned(),
-          literals(sk), literalStrings(sk->strings), literalStringCount(sk->size),
-          positions(nullptr), lastID(0) {
+internal::StringPool::StringPool(const AbstractStringKeeper *sk) :
+  HullType(KnownTypeID::STRING, -1),
+  in(nullptr),
+  knownStrings(),
+  owned(),
+  literals(sk),
+  literalStrings(sk->strings),
+  literalStringCount(sk->size),
+  positions(nullptr),
+  lastID(0) {
 
     knownStrings.reserve(sk->size);
     for (ObjectID i = 0; i < sk->size; i++)
@@ -49,7 +55,6 @@ void internal::StringPool::loadLazyData() {
     in = nullptr;
 }
 
-
 void internal::StringPool::readSL(ogss::streams::FileInputStream *in) {
     const int count = in->v32();
     if (0 == count) {
@@ -67,7 +72,10 @@ void internal::StringPool::readSL(ogss::streams::FileInputStream *in) {
     bool hasFI, hasKI;
     while ((hasFI = fi < count) | (hasKI = ki < literals->size)) {
         // note: we will intern the string only if it is unknown
-        const int cmp = hasFI ? (hasKI ? equalityLess::javaCMP(literals->strings[ki], next) : 1) : -1;
+        const int cmp =
+          hasFI
+            ? (hasKI ? equalityLess::javaCMP(literals->strings[ki], next) : 1)
+            : -1;
 
         if (0 <= cmp) {
             if (0 == cmp) {
@@ -79,9 +87,10 @@ void internal::StringPool::readSL(ogss::streams::FileInputStream *in) {
                 owned.push_back(next);
             }
             merged.push_back(next);
-            idMap.push_back((void *) next);
+            idMap.push_back((void *)next);
 
-            // in C++ we have to add literals to known strings, because there is no intern
+            // in C++ we have to add literals to known strings, because there is
+            // no intern
             knownStrings.insert(next);
 
             if (++fi < count)
@@ -89,7 +98,8 @@ void internal::StringPool::readSL(ogss::streams::FileInputStream *in) {
         } else {
             merged.push_back(literals->strings[ki]);
 
-            // in C++ we have to add literals to known strings, because there is no intern
+            // in C++ we have to add literals to known strings, because there is
+            // no intern
             knownStrings.insert(literals->strings[ki++]);
         }
     }
@@ -109,7 +119,9 @@ void internal::StringPool::readSL(ogss::streams::FileInputStream *in) {
     lastID = literalStringCount;
 }
 
-ogss::BlockID internal::StringPool::allocateInstances(int count, ogss::streams::MappedInStream *in) {
+ogss::BlockID
+internal::StringPool::allocateInstances(int count,
+                                        ogss::streams::MappedInStream *in) {
     this->in = in;
     lastID += count;
 
@@ -125,8 +137,8 @@ ogss::BlockID internal::StringPool::allocateInstances(int count, ogss::streams::
     positions = sp;
 
     // store offsets
-    // @note this has to be done after reading all offsets, as sizes are relative to that point and decoding
-    // is done using absolute sizes
+    // @note this has to be done after reading all offsets, as sizes are
+    // relative to that point and decoding is done using absolute sizes
     size_t last = in->getPosition();
     for (int i = 0; i < count; i++) {
         const size_t len = offsets[i];
@@ -140,33 +152,33 @@ ogss::BlockID internal::StringPool::allocateInstances(int count, ogss::streams::
     return 0;
 }
 
-void internal::StringPool::read(BlockID block, streams::MappedInStream *in) {
-    // -- done -- (strings are lazy)
-}
-
-
-void internal::StringPool::writeLiterals(StringPool *const sp, ogss::streams::FileOutputStream *out) {
+void internal::StringPool::writeLiterals(StringPool *const sp,
+                                         ogss::streams::FileOutputStream *out) {
     const int count = sp->hullOffset - 1;
 
     out->v64(count);
     for (int i = 1; i <= count; i++) {
-        auto s = (String) sp->idMap[i];
-        out->v64((int) s->size());
+        auto s = (String)sp->idMap[i];
+        out->v64((int)s->size());
         out->put(s);
     }
 }
 
 bool internal::StringPool::write(ogss::streams::BufferedOutStream *out) {
     const int count = idMap.size() - hullOffset;
-    if (0 == count)
+    if (0 == count) {
         return true;
+    }
+
+    // write fieldID (always 0)
+    out->i8(0);
 
     out->v64(count);
 
     // lengths
     for (int i = 0; i < count; i++) {
         const String s = static_cast<String const>(idMap[i + hullOffset]);
-        out->v64((int) s->size());
+        out->v64((int)s->size());
     }
 
     // data

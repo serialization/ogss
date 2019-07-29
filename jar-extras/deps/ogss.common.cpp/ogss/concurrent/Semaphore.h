@@ -5,6 +5,8 @@
 #ifndef OGSS_COMMON_CPP_CONCURRENT_SEMAPHORE_H
 #define OGSS_COMMON_CPP_CONCURRENT_SEMAPHORE_H
 
+#include <cassert>
+
 namespace ogss {
     namespace concurrent {
         /**

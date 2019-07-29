@@ -2,20 +2,21 @@
 // Created by Timm Felden on 03.02.16.
 //
 
-#include <sys/stat.h>
-#include <sys/mman.h>
-#include <unistd.h>
-#include <string.h>
 #include "FileOutputStream.h"
 #include "../api/Exception.h"
 #include "BufferedOutStream.h"
+#include <string.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 using namespace ogss::streams;
 
-FileOutputStream::FileOutputStream(const std::string &path)
-        : Stream(&buffer, (void *) (((long) &buffer) + BUFFER_SIZE)),
-          path(path), file(fopen(path.c_str(), "w+")),
-          bytesWriten(0) {
+FileOutputStream::FileOutputStream(const std::string &path) :
+  Stream(&buffer, (void *)(((long)&buffer) + BUFFER_SIZE)),
+  path(path),
+  file(fopen(path.c_str(), "w+")),
+  bytesWriten(0) {
     if (nullptr == file)
         throw Exception(std::string("could not open file ") + path);
 }
@@ -29,9 +30,9 @@ void FileOutputStream::flush() {
     // prevent double flushs
     assert(base != position);
 
-    fwrite(base, 1, position - (uint8_t *) base, file);
-    bytesWriten += position - (uint8_t *) base;
-    position = (uint8_t *) base;
+    fwrite(base, 1, position - (uint8_t *)base, file);
+    bytesWriten += position - (uint8_t *)base;
+    position = (uint8_t *)base;
 }
 
 void FileOutputStream::write(BufferedOutStream *out) {
@@ -51,6 +52,8 @@ void FileOutputStream::write(BufferedOutStream *out) {
 }
 
 void FileOutputStream::writeSized(BufferedOutStream *out) {
+    assert(out->bytesWriten > 1);
+
     // @note write has been called before writeSized, hence base == position
     bytesWriten += out->bytesWriten;
     v64(out->bytesWriten - 2);
