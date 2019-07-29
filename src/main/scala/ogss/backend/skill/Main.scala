@@ -24,20 +24,20 @@ class Main
   override def defaultCleanMode = "file";
 
   override def mapType(t : Type) : String = t match {
-    case t : BuiltinType ⇒ camel(t.getName) match {
+    case t : BuiltinType ⇒ camel(t.name) match {
       case "anyRef" ⇒ "annotation"
       case s        ⇒ s
     }
-    case t : ArrayType ⇒ s"${mapType(t.getBaseType())}[]"
-    case t : ListType  ⇒ s"list<${mapType(t.getBaseType())}>"
-    case t : SetType   ⇒ s"set<${mapType(t.getBaseType())}>"
+    case t : ArrayType ⇒ s"${mapType(t.baseType)}[]"
+    case t : ListType  ⇒ s"list<${mapType(t.baseType)}>"
+    case t : SetType   ⇒ s"set<${mapType(t.baseType)}>"
 
     // note: should rebuild n-ary maps
-    case t : MapType ⇒ s"map<${mapType(t.getKeyType)}, ${mapType(t.getValueType)}>"
+    case t : MapType ⇒ s"map<${mapType(t.keyType)}, ${mapType(t.valueType)}>"
       .replace(", map<", ", ")
       .replaceAll(">+", ">")
 
-    case t ⇒ t.getName.getOgss
+    case t ⇒ t.name.ogss
   }
 
   override def makeHeader(headerInfo : HeaderInfo) : String = headerInfo.format(this, "# ", "", "# ", "", "# ", "\n")

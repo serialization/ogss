@@ -21,7 +21,6 @@ import java.io.FileOutputStream
 import java.io.OutputStreamWriter
 import java.io.PrintWriter
 
-import scala.collection.JavaConverters.asScalaBufferConverter
 import scala.collection.JavaConverters.asScalaIteratorConverter
 
 import org.json.JSONArray
@@ -146,7 +145,7 @@ public class Generic${name}Test extends common.CommonTest {
   private def typ(tc : TypeContext, name : String) : String = {
     val n = name.toLowerCase()
     try {
-      escaped(capital((tc.getClasses.asScala ++ tc.getInterfaces.asScala).filter(d ⇒ lowercase(d.getName).equals(n)).head.getName))
+      escaped(capital((tc.classes ++ tc.interfaces).filter(d ⇒ lowercase(d.name).equals(n)).head.name))
     } catch {
       case e : NoSuchElementException ⇒ fail(s"Type '$n' does not exist, fix your test description!")
     }
@@ -154,20 +153,20 @@ public class Generic${name}Test extends common.CommonTest {
 
   private def field(tc : TypeContext, typ : String, field : String) = {
     val tn = typ.toLowerCase()
-    val t = tc.getClasses.asScala.find(d ⇒ lowercase(d.getName).equals(tn)).get
+    val t = tc.classes.find(d ⇒ lowercase(d.name).equals(tn)).get
     val fn = field.toLowerCase()
 
     val fs = allFields(t)
-    fs.find(d ⇒ lowercase(d.getName).equals(fn)).getOrElse(
+    fs.find(d ⇒ lowercase(d.name).equals(fn)).getOrElse(
       fail(s"Field '$fn' does not exist, fix your test description!")
     )
   }
 
-  private def equalValue(left : String, v : Any, f : Field) : String = equalValue(left, v, f.getType)
+  private def equalValue(left : String, v : Any, f : Field) : String = equalValue(left, v, f.`type`)
 
   private def equalValue(left : String, v : Any, t : Type) : String = t match {
     case t : BuiltinType ⇒
-      t.getName.getOgss match {
+      t.name.ogss match {
         case _ if JSONObject.NULL == v ⇒ s"$left == null"
         case "String" if null != v ⇒ s"""$left != null && $left.equals("${v.toString()}")"""
         case "I8" ⇒ s"$left == (byte)" + v.toString()
@@ -182,7 +181,7 @@ public class Generic${name}Test extends common.CommonTest {
 
     case t : SeqType ⇒ v match {
       case null | JSONObject.NULL ⇒ s"$left == null"
-      case v : JSONArray ⇒ v.iterator().asScala.toArray.map(value(_, t.getBaseType, "_2")).mkString(t match {
+      case v : JSONArray ⇒ v.iterator().asScala.toArray.map(value(_, t.baseType, "_2")).mkString(t match {
         case t : ListType ⇒ s"$left != null && $left.equals(list("
         case t : SetType  ⇒ s"$left != null && $left.equals(set("
         case _            ⇒ s"$left != null && $left.equals(array("
@@ -190,7 +189,7 @@ public class Generic${name}Test extends common.CommonTest {
     }
 
     case t : MapType if v != null ⇒
-      s"$left != null && $left.equals(" + valueMap(v.asInstanceOf[JSONObject], t.getKeyType, t.getValueType, "_2") + ")"
+      s"$left != null && $left.equals(" + valueMap(v.asInstanceOf[JSONObject], t.keyType, t.valueType, "_2") + ")"
 
     case _ ⇒
       if (v == null || v.toString().equals("null")) s"$left == (${gen.mapType(t)}) null"
@@ -205,7 +204,7 @@ public class Generic${name}Test extends common.CommonTest {
     else
       t match {
         case t : BuiltinType ⇒
-          t.getName.getOgss match {
+          t.name.ogss match {
             case "String" if null != v ⇒ s""""${v.toString()}""""
             case "I8"                  ⇒ "(byte)" + v.toString()
             case "I16"                 ⇒ "(short)" + v.toString()
@@ -218,13 +217,13 @@ public class Generic${name}Test extends common.CommonTest {
           }
 
         case t : SeqType ⇒
-          v.asInstanceOf[JSONArray].iterator().asScala.toArray.map(value(_, t.getBaseType, suffix)).mkString(t match {
+          v.asInstanceOf[JSONArray].iterator().asScala.toArray.map(value(_, t.baseType, suffix)).mkString(t match {
             case t : ListType ⇒ "list("
             case t : SetType  ⇒ "set("
             case _            ⇒ "array("
           }, ", ", ")").replace("java.util.", "")
 
-        case t : MapType if v != null ⇒ valueMap(v.asInstanceOf[JSONObject], t.getKeyType, t.getValueType, suffix)
+        case t : MapType if v != null ⇒ valueMap(v.asInstanceOf[JSONObject], t.keyType, t.valueType, suffix)
 
         case _ ⇒
           if (v == null || v.toString().equals("null")) s"(${gen.mapType(t)}) null"
@@ -322,10 +321,10 @@ public class Generic${name}Test extends common.CommonTest {
         else {
           val assignments = for (fieldName ← JSONObject.getNames(fs).toSeq) yield {
             val f = field(tc, t, fieldName)
-            val getter = escaped("get" + capital(f.getName))
+            val getter = escaped("get" + capital(f.name))
 
             // do not check auto fields as they cannot obtain the stored value from file
-            if (f.getIsTransient) ""
+            if (f.isTransient) ""
             else s"""
             Assert.assertTrue(${equalValue(s"${name}_2.$getter()", fs.get(fieldName), f)});"""
           }
@@ -353,10 +352,10 @@ public class Generic${name}Test extends common.CommonTest {
         else {
           val assignments = for (fieldName ← JSONObject.getNames(fs).toSeq) yield {
             val f = field(tc, t, fieldName)
-            val setter = escaped("set" + capital(f.getName))
+            val setter = escaped("set" + capital(f.name))
 
             s"""
-        $name.$setter(${value(fs.get(fieldName), f.getType)});"""
+        $name.$setter(${value(fs.get(fieldName), f.`type`)});"""
           }
 
           assignments.mkString

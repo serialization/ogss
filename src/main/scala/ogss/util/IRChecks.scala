@@ -1,6 +1,5 @@
 package ogss.util
 
-import scala.collection.JavaConverters.iterableAsScalaIterableConverter
 import scala.collection.mutable.HashSet
 
 import ogss.oil.EnumDef
@@ -22,7 +21,7 @@ object IRChecks {
    * Check a whole file by performing checks on its contents.
    */
   def check(sg : OGFile) {
-    sg.TypeContexts.asScala.foreach(check)
+    sg.TypeContext.foreach(check)
   }
 
   /**
@@ -32,94 +31,94 @@ object IRChecks {
   def check(tc : TypeContext) {
 
     // check that alias targets exist
-    for (t ← tc.getAliases.asScala) {
-      if (null == t.getTarget)
-        throw new IllegalStateException(s"Type alias ${t.getName.getOgss} has no target")
+    for (t ← tc.aliases) {
+      if (null == t.target)
+        throw new IllegalStateException(s"Type alias ${t.name.ogss} has no target")
     }
 
     // check that enums have at least one instance
-    for (t ← tc.getEnums.asScala) {
-      if (t.getValues.isEmpty())
-        throw new IllegalStateException(s"Enum ${t.getName.getOgss} has no instances")
+    for (t ← tc.enums) {
+      if (t.values.isEmpty)
+        throw new IllegalStateException(s"Enum ${t.name.ogss} has no instances")
     }
 
     // check that containers are UCC-ordered
-    tc.getContainers.asScala.scanLeft(-1L) {
+    tc.containers.scanLeft(-1L) {
       case (last, c) ⇒
-        val ucc = IRUtils.ucc(c.getKcc)
+        val ucc = IRUtils.ucc(c.kcc)
         if (last < ucc)
           ucc
         else
-          throw new IllegalStateException(f"Container ${c.getName.getOgss} has UCC $ucc%8x, but last container had $last%8x")
+          throw new IllegalStateException(f"Container ${c.name.ogss} has UCC $ucc%8x, but last container had $last%8x")
     }
 
     // check that all types have STIDs and that they are continuous
     var nextSTID = 10
-    for (t ← tc.getClasses.asScala) {
-      expect(nextSTID == t.getStid, s"type ${t.getName.getOgss} has an invalid STID: ${t.getStid}, should be $nextSTID")
+    for (t ← tc.classes) {
+      expect(nextSTID == t.stid, s"type ${t.name.ogss} has an invalid STID: ${t.stid}, should be $nextSTID")
       nextSTID += 1
     }
-    for (t ← tc.getContainers.asScala) {
-      expect(nextSTID == t.getStid, s"type ${t.getName.getOgss} has an invalid STID: ${t.getStid}, should be $nextSTID")
+    for (t ← tc.containers) {
+      expect(nextSTID == t.stid, s"type ${t.name.ogss} has an invalid STID: ${t.stid}, should be $nextSTID")
       nextSTID += 1
     }
-    for (t ← tc.getEnums.asScala) {
-      expect(nextSTID == t.getStid, s"type ${t.getName.getOgss} has an invalid STID: ${t.getStid}, should be $nextSTID")
+    for (t ← tc.enums) {
+      expect(nextSTID == t.stid, s"type ${t.name.ogss} has an invalid STID: ${t.stid}, should be $nextSTID")
       nextSTID += 1
     }
 
     // check that all super types have lower STIDS
-    for (t ← tc.getClasses.asScala; sup = t.getSuperType if null != sup) {
-      expect(sup.getStid < t.getStid, s"class ${t.getName.getOgss} has an STID lower than that of its super class: ${t.getStid}, super: ${sup.getStid}")
+    for (t ← tc.classes; sup = t.superType if null != sup) {
+      expect(sup.stid < t.stid, s"class ${t.name.ogss} has an STID lower than that of its super class: ${t.stid}, super: ${sup.stid}")
     }
-    for (t ← tc.getInterfaces.asScala; sup = t.getSuperType if null != sup) {
-      for (superInterface ← t.getSuperInterfaces.asScala; ssi = superInterface.getSuperType if null != ssi)
-        expect(ssi.getStid <= sup.getStid, s"interface ${t.getName.getOgss} has a super type with an STID lower than that of its super interfaces (${superInterface.getName.getOgss}) super class(${ssi.getName.getOgss}): ${sup.getStid}, super: ${ssi.getStid}")
+    for (t ← tc.interfaces; sup = t.superType if null != sup) {
+      for (superInterface ← t.superInterfaces; ssi = superInterface.superType if null != ssi)
+        expect(ssi.stid <= sup.stid, s"interface ${t.name.ogss} has a super type with an STID lower than that of its super interfaces (${superInterface.name.ogss}) super class(${ssi.name.ogss}): ${sup.stid}, super: ${ssi.stid}")
     }
     // check that all super types without supertypes have only super interfaces without supertypes
     for (
-      t ← tc.getClasses.asScala ++ tc.getInterfaces.asScala if null == t.getSuperType;
-      superInterface ← t.getSuperInterfaces.asScala; ssi = superInterface.getSuperType if null != ssi
+      t ← tc.classes ++ tc.interfaces if null == t.superType;
+      superInterface ← t.superInterfaces; ssi = superInterface.superType if null != ssi
     ) {
-      expect(false, s"type ${t.getName.getOgss} has no super class but its super interface ${superInterface.getName.getOgss} has a super class: ${ssi.getName.getOgss}")
+      expect(false, s"type ${t.name.ogss} has no super class but its super interface ${superInterface.name.ogss} has a super class: ${ssi.name.ogss}")
     }
 
     // check that all user type names are unique
     {
       val seen = new HashSet[String]
-      for (t ← tc.getClasses.asScala ++ tc.getInterfaces.asScala ++ tc.getContainers.asScala ++ tc.getEnums.asScala) {
-        expect(!seen(t.getName.getOgss), s"type ${t.getName.getOgss} has the same name as another type")
-        seen += t.getName.getOgss
+      for (t ← tc.classes ++ tc.interfaces ++ tc.containers ++ tc.enums) {
+        expect(!seen(t.name.ogss), s"type ${t.name.ogss} has the same name as another type")
+        seen += t.name.ogss
       }
     }
 
     // check that containers do not have bool or enum as base type
-    for (t ← tc.getContainers.asScala) {
+    for (t ← tc.containers) {
       t match {
         case t : SeqType ⇒ {
-          expect(0 != t.getBaseType.getStid, s"type ${t.getName.getOgss} has bool as base type")
-          expect(!t.getBaseType.isInstanceOf[EnumDef], s"type ${t.getName.getOgss} has an enum as base type")
+          expect(0 != t.baseType.stid, s"type ${t.name.ogss} has bool as base type")
+          expect(!t.baseType.isInstanceOf[EnumDef], s"type ${t.name.ogss} has an enum as base type")
         }
         case t : MapType ⇒ {
-          expect(0 != t.getKeyType.getStid, s"type ${t.getName.getOgss} has bool as key type")
-          expect(!t.getKeyType.isInstanceOf[EnumDef], s"type ${t.getName.getOgss} has an enum as key type")
+          expect(0 != t.keyType.stid, s"type ${t.name.ogss} has bool as key type")
+          expect(!t.keyType.isInstanceOf[EnumDef], s"type ${t.name.ogss} has an enum as key type")
 
-          expect(0 != t.getValueType.getStid, s"type ${t.getName.getOgss} has bool as value type")
-          expect(!t.getValueType.isInstanceOf[EnumDef], s"type ${t.getName.getOgss} has an enum as value type")
+          expect(0 != t.valueType.stid, s"type ${t.name.ogss} has bool as value type")
+          expect(!t.valueType.isInstanceOf[EnumDef], s"type ${t.name.ogss} has an enum as value type")
         }
       }
     }
 
     // check that sets or map keys are not containers
-    for (t ← tc.getContainers.asScala) {
+    for (t ← tc.containers) {
       t match {
         case t : SetType ⇒ {
-          expect(!t.getBaseType.isInstanceOf[SeqType]
-            && !t.getBaseType.isInstanceOf[MapType], s"set ${t.getName.getOgss} has a container as base type")
+          expect(!t.baseType.isInstanceOf[SeqType]
+            && !t.baseType.isInstanceOf[MapType], s"set ${t.name.ogss} has a container as base type")
         }
         case t : MapType ⇒ {
-          expect(!t.getKeyType.isInstanceOf[SeqType]
-            && !t.getKeyType.isInstanceOf[MapType], s"set ${t.getName.getOgss} has a container as key type")
+          expect(!t.keyType.isInstanceOf[SeqType]
+            && !t.keyType.isInstanceOf[MapType], s"set ${t.name.ogss} has a container as key type")
         }
         case _ ⇒ // ok
       }

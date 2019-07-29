@@ -15,11 +15,10 @@
  ******************************************************************************/
 package ogss.backend.cpp
 
-import scala.collection.JavaConverters._
 import ogss.oil.ArrayType
 import ogss.oil.ListType
-import ogss.oil.SetType
 import ogss.oil.MapType
+import ogss.oil.SetType
 
 trait OGFileMaker extends AbstractBackEnd {
   abstract override def make {
@@ -64,7 +63,7 @@ ${
 
         // visitor implementation
         struct Visitor {${
-        (for (t ← IR if visited(t.getName)) yield s"""
+        (for (t ← IR if visited(t.name)) yield s"""
             virtual void visit(${name(t)} *node) {}""").mkString
       }
         };
@@ -101,7 +100,7 @@ ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}
         StringKeeper SK;
 
         struct PB final : public ::ogss::internal::PoolBuilder {
-            PB() : ::ogss::internal::PoolBuilder(${types.getByName.size}) {}
+            PB() : ::ogss::internal::PoolBuilder(${types.byName.size}) {}
 
             const ::ogss::internal::AbstractStringKeeper *getSK() const final {${
       (for ((n, i) ← allStrings.zipWithIndex) yield s"""
@@ -112,10 +111,10 @@ ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}
 
             uint32_t kcc(int id) const final {
                 ${
-      if (types.getContainers.isEmpty) "return -1u;"
-      else types.getContainers.asScala.zipWithIndex.map {
+      if (types.containers.isEmpty) "return -1u;"
+      else types.containers.zipWithIndex.map {
         case (ct, i) ⇒ f"""
-                    case $i: return 0x${ct.getKcc()}%08x; // ${ogssname(ct)}"""
+                    case $i: return 0x${ct.kcc}%08x; // ${ogssname(ct)}"""
       }.mkString("""switch (id) {""", "", """
                     default: return -1;
                 }""")
@@ -127,15 +126,15 @@ ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}
                                                       ogss::fieldTypes::FieldType *kb2) const final {
                 ogss::fieldTypes::HullType * r;
                 ${
-      if (types.getContainers.isEmpty) "return nullptr;"
-      else types.getContainers.asScala.map {
+      if (types.containers.isEmpty) "return nullptr;"
+      else types.containers.map {
         case ct ⇒ f"""
-                    case 0x${ct.getKcc()}%08x: r = ${
+                    case 0x${ct.kcc}%08x: r = ${
           ct match {
-            case ct : ArrayType ⇒ s"new ogss::fieldTypes::ArrayType<${mapType(ct.getBaseType)}>(tid, kcc, kb1)"
-            case ct : ListType  ⇒ s"new ogss::fieldTypes::ListType<${mapType(ct.getBaseType)}>(tid, kcc, kb1)"
-            case ct : SetType   ⇒ s"new ogss::fieldTypes::SetType<${mapType(ct.getBaseType)}>(tid, kcc, kb1)"
-            case ct : MapType   ⇒ s"new ogss::fieldTypes::MapType<${mapType(ct.getKeyType)}, ${mapType(ct.getValueType)}>(tid, kcc, kb1, kb2)"
+            case ct : ArrayType ⇒ s"new ogss::fieldTypes::ArrayType<${mapType(ct.baseType)}>(tid, kcc, kb1)"
+            case ct : ListType  ⇒ s"new ogss::fieldTypes::ListType<${mapType(ct.baseType)}>(tid, kcc, kb1)"
+            case ct : SetType   ⇒ s"new ogss::fieldTypes::SetType<${mapType(ct.baseType)}>(tid, kcc, kb1)"
+            case ct : MapType   ⇒ s"new ogss::fieldTypes::MapType<${mapType(ct.keyType)}, ${mapType(ct.valueType)}>(tid, kcc, kb1, kb2)"
           }
         }; break;"""
       }.mkString.mkString("""switch (kcc) {""", "", """
@@ -148,9 +147,9 @@ ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}
             ogss::api::String name(int id) const final {
                 ${
       if (IR.isEmpty) "return nullptr;"
-      else IR.filter(_.getSuperType == null).zipWithIndex.map {
+      else IR.filter(_.superType == null).zipWithIndex.map {
         case (t, i) ⇒ s"""
-                    case $i: return ${skName(t.getName)};"""
+                    case $i: return ${skName(t.name)};"""
       }.mkString.mkString("""switch (id) {""", "", """
                     default: return nullptr;
                 }""")
@@ -160,7 +159,7 @@ ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}
             ogss::internal::AbstractPool* make(int id, ::ogss::TypeID index) const final {
                 ${
       if (IR.isEmpty) "return nullptr;"
-      else IR.filter(_.getSuperType == null).zipWithIndex.map {
+      else IR.filter(_.superType == null).zipWithIndex.map {
         case (t, i) ⇒ s"""
                     case $i: return new ${access(t)}(index, nullptr);"""
       }.mkString.mkString("""switch (id) {""", "", """
@@ -174,7 +173,7 @@ ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}
       if (enums.isEmpty) "return nullptr;"
       else enums.zipWithIndex.map {
         case (t, i) ⇒ s"""
-                    case $i: return ${skName(t.getName)};"""
+                    case $i: return ${skName(t.name)};"""
       }.mkString.mkString("""switch (id) {""", "", """
                     default: return nullptr;
                 }""")
@@ -188,8 +187,8 @@ ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}
       else enums.zipWithIndex.map {
         case (t, i) ⇒ s"""
                     case $i: {
-                        ogss::api::String names[] = {${t.getValues.asScala.map(v ⇒ skName(v.getName)).mkString(", ")}};
-                        return new ::ogss::internal::EnumPool<$packageName::${name(t)}>(index, ${skName(t.getName)}, foundValues, names, ${t.getValues.size()});
+                        ogss::api::String names[] = {${t.values.map(v ⇒ skName(v.name)).mkString(", ")}};
+                        return new ::ogss::internal::EnumPool<$packageName::${name(t)}>(index, ${skName(t.name)}, foundValues, names, ${t.values.size});
                     }"""
       }.mkString.mkString("""switch (id) {""", "", """
                     default: return nullptr;
@@ -209,11 +208,11 @@ $packageName::api::File::File(::ogss::internal::StateInitializer *init)
         : ::ogss::api::File(init)${
       (for (t ← IR)
         yield s""",
-        ${name(t)}((internal::${access(t)} *) init->SIFA[${t.getStid}])""").mkString
+        ${name(t)}((internal::${access(t)} *) init->SIFA[${t.stid}])""").mkString
     } {${
       (for (t ← IR)
         yield s"""
-    static_assert(offsetof($packageName::api::File, ${name(t)}) == offsetof(::ogss::api::File, SIFA[${t.getStid}-10]), "your compiler chose an ill-formed object layout");""").mkString
+    static_assert(offsetof($packageName::api::File, ${name(t)}) == offsetof(::ogss::api::File, SIFA[${t.stid}-10]), "your compiler chose an ill-formed object layout");""").mkString
     }
     delete init;
 }

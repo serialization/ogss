@@ -15,11 +15,9 @@
  ******************************************************************************/
 package ogss.backend.java
 
-import scala.collection.JavaConverters._
-import scala.collection.mutable.ArrayBuffer
-import ogss.oil.Type
 import ogss.oil.ClassDef
 import ogss.oil.InterfaceDef
+import ogss.oil.Type
 
 trait OGFileMaker extends AbstractBackEnd {
   abstract override def make {
@@ -98,7 +96,7 @@ ${
      */
     final public internal.${access(t)} ${name(t)}s;""").mkString("")
     }${
-      (for (t ← this.types.getInterfaces.asScala) yield s"""
+      (for (t ← this.types.interfaces) yield s"""
 
     /**
      * Access for all ${name(t)}s in this file
@@ -111,13 +109,13 @@ ${
 ${
       (for (t ← classes)
         yield s"""
-        ${name(t)}s = (internal.${access(t)}) init.SIFA[${t.getStid}];""").mkString("")
+        ${name(t)}s = (internal.${access(t)}) init.SIFA[${t.stid}];""").mkString("")
     }${
-      (for (t ← types.getInterfaces.asScala)
+      (for (t ← types.interfaces)
         yield s"""
         ${name(t)}s = new ${interfacePool(t)}("${ogssname(t)}", ${
-        if (null == t.getSuperType) "anyRefType"
-        else name(t.getSuperType) + "s";
+        if (null == t.superType) "anyRefType"
+        else name(t.superType) + "s";
       }${
         val realizations = collectRealizationNames(t);
         if (realizations.isEmpty) ""
@@ -135,8 +133,8 @@ ${
 
   private def collectRealizationNames(target : InterfaceDef) : Seq[String] = {
     def reaches(t : Type) : Boolean = t match {
-      case t : ClassDef     ⇒ t.getSuperInterfaces.contains(target) || t.getSuperInterfaces.asScala.exists(reaches)
-      case t : InterfaceDef ⇒ t.getSuperInterfaces.contains(target) || t.getSuperInterfaces.asScala.exists(reaches)
+      case t : ClassDef     ⇒ t.superInterfaces.contains(target) || t.superInterfaces.exists(reaches)
+      case t : InterfaceDef ⇒ t.superInterfaces.contains(target) || t.superInterfaces.exists(reaches)
       case _                ⇒ false
     }
 
@@ -147,8 +145,8 @@ ${
    * the name of an interface field type that acts as its pool
    */
   protected final def interfacePool(t : InterfaceDef) : String =
-    if (null == t.getSuperType)
+    if (null == t.superType)
       s"ogss.common.java.internal.UnrootedInterfacePool<${mapType(t)}>"
     else
-      s"ogss.common.java.internal.InterfacePool<${mapType(t)}, ${mapType(t.getSuperType)}>"
+      s"ogss.common.java.internal.InterfacePool<${mapType(t)}, ${mapType(t.superType)}>"
 }

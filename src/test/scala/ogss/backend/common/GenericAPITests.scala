@@ -19,14 +19,14 @@ import java.io.File
 import java.io.PrintWriter
 
 import scala.collection.JavaConverters.asScalaIteratorConverter
-import scala.collection.JavaConverters.iterableAsScalaIterableConverter
 import scala.collection.mutable.HashMap
 import scala.io.Source
 
 import org.json.JSONObject
 import org.json.JSONTokener
 
-import ogss.common.java.api.Mode
+import ogss.common.scala.api.Create
+import ogss.common.scala.api.Write
 import ogss.main.KnownFrontEnds
 import ogss.oil.OGFile
 import ogss.oil.TypeContext
@@ -69,7 +69,7 @@ abstract class GenericAPITests extends GenericTests with IRUtils {
   /**
    * obtain the preferred type context from IR
    */
-  def preferredTypeContext : TypeContext = IR.TypeContexts.asScala.find(tc ⇒ tc.getProjectedTypeDefinitions && !tc.getProjectedInterfaces).get
+  def preferredTypeContext : TypeContext = IR.TypeContext.find(tc ⇒ tc.projectedTypeDefinitions && !tc.projectedInterfaces).get
 
   def makeRegularTest(out : PrintWriter, kind : String, name : String, testName : String, accept : Boolean, tc : TypeContext, obj : JSONObject);
 
@@ -86,7 +86,7 @@ abstract class GenericAPITests extends GenericTests with IRUtils {
     val tmpPath = File.createTempFile("ogss", ".oil")
     tmpPath.deleteOnExit()
 
-    frontEnd.out = OGFile.open(tmpPath, Mode.Create, Mode.Write)
+    frontEnd.out = OGFile.open(tmpPath, Create, Write)
     frontEnd.run(spec)
     IR = frontEnd.out
 

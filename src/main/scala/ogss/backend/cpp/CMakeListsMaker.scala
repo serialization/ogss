@@ -17,7 +17,6 @@ package ogss.backend.cpp
 
 import java.io.File
 import java.io.PrintWriter
-import scala.collection.JavaConverters._
 
 /**
  * Create CMakeLists.txt in the library directory to allow the user to modify

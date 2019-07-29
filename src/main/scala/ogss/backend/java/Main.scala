@@ -20,13 +20,13 @@ import scala.collection.mutable.HashMap
 import ogss.oil.ArrayType
 import ogss.oil.BuiltinType
 import ogss.oil.EnumDef
+import ogss.oil.Field
 import ogss.oil.ListType
 import ogss.oil.MapType
 import ogss.oil.SetType
 import ogss.oil.Type
 import ogss.oil.WithInheritance
 import ogss.util.HeaderInfo
-import ogss.oil.Field
 
 /**
  * @author Timm Felden
@@ -49,7 +49,7 @@ class Main extends AbstractBackEnd
    * Translates types into Java type names.
    */
   override def mapType(t : Type, boxed : Boolean) : String = t match {
-    case t : BuiltinType ⇒ t.getName.getOgss match {
+    case t : BuiltinType ⇒ t.name.ogss match {
       case "AnyRef" ⇒ "ogss.common.java.internal.Obj"
 
       case "Bool"   ⇒ if (boxed) "java.lang.Boolean" else "boolean"
@@ -66,10 +66,10 @@ class Main extends AbstractBackEnd
       case "String" ⇒ "java.lang.String"
     }
 
-    case t : ArrayType       ⇒ s"$ArrayTypeName<${mapType(t.getBaseType(), true)}>"
-    case t : ListType        ⇒ s"$ListTypeName<${mapType(t.getBaseType(), true)}>"
-    case t : SetType         ⇒ s"$SetTypeName<${mapType(t.getBaseType(), true)}>"
-    case t : MapType         ⇒ s"$MapTypeName<${mapType(t.getKeyType, true)}, ${mapType(t.getValueType, true)}>"
+    case t : ArrayType       ⇒ s"$ArrayTypeName<${mapType(t.baseType, true)}>"
+    case t : ListType        ⇒ s"$ListTypeName<${mapType(t.baseType, true)}>"
+    case t : SetType         ⇒ s"$SetTypeName<${mapType(t.baseType, true)}>"
+    case t : MapType         ⇒ s"$MapTypeName<${mapType(t.keyType, true)}, ${mapType(t.valueType, true)}>"
 
     case t : EnumDef         ⇒ s"EnumProxy<$packagePrefix${name(t)}>"
 
@@ -111,7 +111,7 @@ class Main extends AbstractBackEnd
   !modifier string   A modifier, that will be put in front of the variable declaration."""
 
   override protected def defaultValue(f : Field) = {
-    val stid = f.getType.getStid
+    val stid = f.`type`.stid
     if (stid < 0 || 8 <= stid)
       "null"
     else if (0 == stid)

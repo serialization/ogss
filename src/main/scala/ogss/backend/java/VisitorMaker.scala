@@ -38,7 +38,7 @@ trait VisitorMaker extends AbstractBackEnd {
  *            the type of throws exception; use RuntimeException for nothrow
  */
 public abstract class Visitor<_R, _A, _E extends Exception> {${
-        (for (t ← IR if visited.contains(t.getName)) yield s"""
+        (for (t ← IR if visited.contains(t.name)) yield s"""
     public abstract _R visit(${mapType(t)} self, _A arg) throws _E;""").mkString
       }
 }

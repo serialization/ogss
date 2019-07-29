@@ -1,5 +1,9 @@
 # generated OIL implementation
 src/main/java/ogss/oil/**
+src/main/scala/ogss/oil/**
+
+# generated test implementations
+testsuites/**
 
 # Compiled class file
 *.class
@@ -28,6 +32,7 @@ hs_err_pid*
 #various project files
 *.pydevproject
 .project
+.cache
 .metadata
 bin/**
 *.tmp

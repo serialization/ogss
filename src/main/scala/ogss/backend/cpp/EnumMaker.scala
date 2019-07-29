@@ -15,9 +15,6 @@
  ******************************************************************************/
 package ogss.backend.cpp
 
-import scala.collection.JavaConversions.asScalaBuffer
-import scala.collection.JavaConversions.mapAsScalaMap
-
 trait EnumMaker extends AbstractBackEnd {
   abstract override def make {
     super.make
@@ -35,7 +32,7 @@ ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}""")
         UNKNOWN = (ogss::EnumBase)-1,
         ${
         // TODO comments!
-        t.getValues.map(id ⇒ escaped(camel(id.getName))).zipWithIndex.map{case (s, i) ⇒ s"$s = $i"}.mkString("", ",\n        ", "")
+        t.values.map(id ⇒ escaped(camel(id.name))).zipWithIndex.map { case (s, i) ⇒ s"$s = $i" }.mkString("", ",\n        ", "")
       }
     };
 """);

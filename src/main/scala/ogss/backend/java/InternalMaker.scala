@@ -13,16 +13,11 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  ******************************************************************************/
-
 package ogss.backend.java
 
-import scala.collection.JavaConverters._
-
-import scala.collection.mutable.ArrayBuffer
-import ogss.backend.java.internal.FieldDeclarationMaker
 import ogss.backend.java.internal.AccessMaker
+import ogss.backend.java.internal.FieldDeclarationMaker
 import ogss.io.PrintWriter
-import ogss.oil.Type
 
 /**
  * Create an internal class instead of a package. That way, the fucked-up Java
@@ -91,13 +86,13 @@ ${
     out.write(s"""
     public static final class PB extends ogss.common.java.internal.PoolBuilder {
         PB() {
-            super(${flatTC.getByName.size});
+            super(${flatTC.byName.size});
         }
 
         @Override
         protected String[] literals() {
             return new String[]${
-      allStrings.map(_.getOgss).mkString("{\"", "\", \"", "\"}")
+      allStrings.map(_.ogss).mkString("{\"", "\", \"", "\"}")
     };
         }
 
@@ -105,10 +100,10 @@ ${
         protected int kcc(int id) {
             switch (id) {${
       // predefine known containers
-      flatTC.getContainers.asScala.zipWithIndex.map {
+      flatTC.containers.zipWithIndex.map {
         case (ct, i) ⇒
           f"""
-            case $i: return 0x${ct.getKcc()}%08x; // ${ogssname(ct)}"""
+            case $i: return 0x${ct.kcc}%08x; // ${ogssname(ct)}"""
       }.mkString
     }
             default: return -1;
@@ -119,7 +114,7 @@ ${
         protected String name(int id) {
             ${
       if (IR.isEmpty) "return null;"
-      else IR.filter(_.getSuperType == null).zipWithIndex.map {
+      else IR.filter(_.superType == null).zipWithIndex.map {
         case (t, i) ⇒ s"""
             case $i: return "${ogssname(t)}";"""
       }.mkString("switch (id) {", "", """
@@ -132,7 +127,7 @@ ${
         protected Pool<?> make(int id, int idx) {
             ${
       if (IR.isEmpty) "return null;"
-      else IR.filter(_.getSuperType == null).zipWithIndex.map {
+      else IR.filter(_.superType == null).zipWithIndex.map {
         case (t, i) ⇒ s"""
             case $i: return new ${access(t)}(idx);"""
       }.mkString("""switch (id) {""", "", """
@@ -147,7 +142,7 @@ ${
       if (enums.isEmpty) "return null;"
       else enums.zipWithIndex.map {
         case (t, i) ⇒ s"""
-            case $i: return "${t.getName.getOgss}";"""
+            case $i: return "${t.name.ogss}";"""
       }.mkString("switch (id) {", "", """
             default: return null;
             }""")
@@ -174,15 +169,15 @@ ${
 
     for (t ← IR) {
       val realT = projected(ogssname(t))
-      if (null == realT.getSuperType || !realT.getFields.isEmpty()) {
+      if (null == realT.superType || !realT.fields.isEmpty) {
 
         val nameT = name(t)
         val typeT = mapType(t)
 
         // find all fields that belong to the projected version, but use the unprojected variant
-        val flatIRFieldNames = flatIR.find(_.getName == t.getName).get.getFields.asScala.map(ogssname).toSet
+        val flatIRFieldNames = flatIR.find(_.name == t.name).get.fields.map(ogssname).toSet
         val fields = allFields(t).filter(f ⇒ flatIRFieldNames.contains(ogssname(f)))
-        val projectedField = flatIR.find(_.getName == t.getName).get.getFields.asScala.map {
+        val projectedField = flatIR.find(_.name == t.name).get.fields.map {
           case f ⇒ fields.find(ogssname(_).equals(ogssname(f))).get -> f
         }.toMap
 
@@ -193,8 +188,8 @@ ${
      * @author Timm Felden
      */
     public static class ${builder(t)}<T extends $typeT, B extends ${builder(t)}<T, B>> extends ${
-          if (null == t.getSuperType) s"ogss.common.java.internal.Builder<T>"
-          else s"${builder(t.getSuperType)}<T, B>"
+          if (null == t.superType) s"ogss.common.java.internal.Builder<T>"
+          else s"${builder(t.superType)}<T, B>"
         } {
 
         protected ${builder(t)}(Pool<T> pool, T self) {
@@ -203,7 +198,7 @@ ${
           (for (f ← fields)
             yield s"""
 
-        public final B ${name(f)}(${mapType(f.getType)} ${name(f)}) {
+        public final B ${name(f)}(${mapType(f.`type`)} ${name(f)}) {
             self.${name(f)} = ${name(f)};
             return (B)this;
         }""").mkString

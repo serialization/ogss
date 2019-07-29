@@ -15,7 +15,7 @@
  ******************************************************************************/
 package ogss.backend.cpp
 
-import scala.collection.JavaConverters._
+import scala.collection.JavaConverters.asScalaSetConverter
 
 /**
  * Create a file containing file names belonging to generated sources.

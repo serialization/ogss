@@ -15,18 +15,9 @@
  ******************************************************************************/
 package ogss.backend.common
 
-import ogss.oil.OGFile
-import ogss.io.PrintingService
-import ogss.util.HeaderInfo
 import ogss.oil.FieldLike
-import ogss.oil.Identifier
-import ogss.oil.Type
 import ogss.oil.UserDefinedType
-import ogss.oil.Comment
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.JavaConverters._
-import ogss.util.IRUtils
-import scala.collection.mutable.HashSet
+import ogss.util.HeaderInfo
 
 /**
  * Base class for non-code-generating back-ends. Provides default

@@ -15,9 +15,6 @@
  ******************************************************************************/
 package ogss.backend.java
 
-import scala.collection.JavaConversions.asScalaBuffer
-import scala.collection.JavaConversions.mapAsScalaMap
-
 trait EnumMaker extends AbstractBackEnd {
   abstract override def make {
     super.make
@@ -31,7 +28,7 @@ trait EnumMaker extends AbstractBackEnd {
 public enum ${name(t)} {
   ${
         // TODO comments!
-        t.getValues.map(id ⇒ escaped(capital(id.getName))).sortWith(
+        t.values.map(id ⇒ escaped(capital(id.name))).sortWith(
           (l, r) ⇒ l.length() < r.length() || (l.length() == r.length() && l.compareTo(r) < 0)
         ).mkString("", ",\n  ", ";")
       }

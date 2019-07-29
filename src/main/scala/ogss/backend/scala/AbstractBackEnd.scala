@@ -1,20 +1,19 @@
 package ogss.backend.scala
 
-import ogss.oil.OGFile
-import ogss.oil.TypeContext
-import ogss.backend.common.BackEnd
-import ogss.oil.FieldLike
-import ogss.oil.EnumDef
-import ogss.oil.InterfaceDef
-import ogss.oil.UserDefinedType
 import scala.collection.mutable.HashMap
-import ogss.oil.ClassDef
 
-import scala.collection.JavaConverters._
-import ogss.oil.Type
-import ogss.oil.Identifier
-import ogss.oil.Field
+import ogss.backend.common.BackEnd
+import ogss.oil.ClassDef
 import ogss.oil.EnumConstant
+import ogss.oil.EnumDef
+import ogss.oil.Field
+import ogss.oil.FieldLike
+import ogss.oil.Identifier
+import ogss.oil.InterfaceDef
+import ogss.oil.OGFile
+import ogss.oil.Type
+import ogss.oil.TypeContext
+import ogss.oil.UserDefinedType
 import ogss.oil.WithInheritance
 
 /**
@@ -25,15 +24,15 @@ import ogss.oil.WithInheritance
 abstract class AbstractBackEnd extends BackEnd {
 
   final def setIR(TC : OGFile) {
-    types = asScalaIterator(TC.TypeContexts.iterator()).find { tc ⇒ tc.getProjectedTypeDefinitions && !tc.getProjectedInterfaces }.get
-    flatTC = asScalaIterator(TC.TypeContexts.iterator()).find { tc ⇒ tc.getProjectedTypeDefinitions && tc.getProjectedInterfaces }.get
-    IR = types.getClasses.asScala.to
-    flatIR = flatTC.getClasses.asScala.to
+    types = TC.TypeContext.find { tc ⇒ tc.projectedTypeDefinitions && !tc.projectedInterfaces }.get
+    flatTC = TC.TypeContext.find { tc ⇒ tc.projectedTypeDefinitions && tc.projectedInterfaces }.get
+    IR = types.classes.to
+    flatIR = flatTC.classes.to
     projected = flatIR.foldLeft(new HashMap[String, ClassDef])(
       (m, t) ⇒ { m(ogssname(t)) = t; m }
     )
-    interfaces = types.getInterfaces.asScala.to
-    enums = types.getEnums.asScala.to
+    interfaces = types.interfaces.to
+    enums = types.enums.to
   }
 
   var types : TypeContext = _
@@ -46,14 +45,14 @@ abstract class AbstractBackEnd extends BackEnd {
   var projected : HashMap[String, ClassDef] = _
 
   lineLength = 120
-  override def comment(d : UserDefinedType) : String = format(d.getComment, "/**\n", " * ", " */\n")
-  override def comment(f : FieldLike) : String = format(f.getComment, "/**\n", "   * ", "     */\n  ")
-  def comment(v : EnumConstant) : String = format(v.getComment, "/**\n", "   * ", "     */\n  ")
-  def name(v : EnumConstant) : String = escaped(capital(v.getName))
+  override def comment(d : UserDefinedType) : String = format(d.comment, "/**\n", " * ", " */\n")
+  override def comment(f : FieldLike) : String = format(f.comment, "/**\n", "   * ", "     */\n  ")
+  def comment(v : EnumConstant) : String = format(v.comment, "/**\n", "   * ", "     */\n  ")
+  def name(v : EnumConstant) : String = escaped(capital(v.name))
 
-  protected def subtype(t : WithInheritance) = escaped("sub " + capital(t.getName))
+  protected def subtype(t : WithInheritance) = escaped("sub " + capital(t.name))
 
-  protected def localFieldName(f : Field) = escaped("_" + camel(f.getName))
+  protected def localFieldName(f : Field) = escaped("_" + camel(f.name))
 
   val ArrayTypeName = "scala.collection.mutable.ArrayBuffer"
   val ListTypeName = "scala.collection.mutable.ListBuffer"
@@ -80,8 +79,8 @@ abstract class AbstractBackEnd extends BackEnd {
    */
   protected def builder(target : ClassDef) : String = {
     val t = projected(ogssname(target))
-    if (null != t.getSuperType && t.getFields.isEmpty) {
-      builder(t.getSuperType)
+    if (null != t.superType && t.fields.isEmpty) {
+      builder(t.superType)
     } else {
       this.synchronized {
         s"B${poolNameStore.getOrElseUpdate(ogssname(t), poolNameStore.size)}"
@@ -103,7 +102,7 @@ abstract class AbstractBackEnd extends BackEnd {
    * Class name of the representation of a known field
    */
   protected def knownField(f : FieldLike) : String = this.synchronized {
-    "f" + fieldNameStore.getOrElseUpdate((ogssname(f.getOwner), ogssname(f)), fieldNameStore.size).toString
+    "f" + fieldNameStore.getOrElseUpdate((ogssname(f.owner), ogssname(f)), fieldNameStore.size).toString
   }
 
   /**
@@ -122,25 +121,25 @@ abstract class AbstractBackEnd extends BackEnd {
   /**
    * all string literals used in type and field names
    */
-  protected lazy val allStrings : Array[Identifier] = (flatIR.map(_.getName).toSet ++
-    flatIR.flatMap(_.getFields.asScala).map(_.getName).toSet ++
-    flatTC.getEnums.asScala.map(_.getName).toSet ++
-    flatTC.getEnums.asScala.flatMap(_.getValues.asScala).map(_.getName).toSet).toArray.sortBy(_.getOgss)
+  protected lazy val allStrings : Array[Identifier] = (flatIR.map(_.name).toSet ++
+    flatIR.flatMap(_.fields).map(_.name).toSet ++
+    flatTC.enums.map(_.name).toSet ++
+    flatTC.enums.flatMap(_.values).map(_.name).toSet).toArray.sortBy(_.ogss)
 
   /**
    * getter name
    */
-  protected[scala] def getter(f : FieldLike) : String = escaped(camel(f.getName))
+  protected[scala] def getter(f : FieldLike) : String = escaped(camel(f.name))
   /**
    * setter name
    */
-  protected[scala] def setter(f : FieldLike) : String = escaped(s"${camel(f.getName)}_=")
+  protected[scala] def setter(f : FieldLike) : String = escaped(s"${camel(f.name)}_=")
 
   override protected def defaultValue(f : Field) : String = {
-    f.getType match {
-      case t : EnumDef ⇒ s"$packagePrefix${name(t)}.${name(t.getValues.get(0))}"
+    f.`type` match {
+      case t : EnumDef ⇒ s"$packagePrefix${name(t)}.${name(t.values(0))}"
       case t ⇒
-        val stid = t.getStid
+        val stid = t.stid
         if (stid < 0 | 8 <= stid)
           "null"
         else if (0 == stid)

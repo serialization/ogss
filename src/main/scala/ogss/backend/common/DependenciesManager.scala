@@ -19,11 +19,11 @@ import java.io.File
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.NoSuchFileException
-import java.nio.file.Path
 import java.security.MessageDigest
-import scala.collection.mutable.HashMap
 import java.util.jar.JarFile
+
 import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.HashMap
 
 /**
  * creates copies of required dependencies in $outPath

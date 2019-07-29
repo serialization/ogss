@@ -5,9 +5,6 @@
 \*                                                                            */
 package ogss.backend.skill
 
-import scala.collection.JavaConverters.asScalaBufferConverter
-import scala.collection.JavaConverters.iterableAsScalaIterableConverter
-
 import ogss.oil.CustomField
 import ogss.oil.Field
 import ogss.oil.TypeContext
@@ -23,19 +20,19 @@ trait SpecificationMaker extends AbstractBackEnd {
     super.make
 
     makeFile(
-      oil.TypeContexts.asScala.find { tc ⇒ !tc.getProjectedTypeDefinitions && !tc.getProjectedInterfaces }.get,
+      oil.TypeContext.find { tc ⇒ !tc.projectedTypeDefinitions && !tc.projectedInterfaces }.get,
       "specification.skill"
     )
     makeFile(
-      oil.TypeContexts.asScala.find { tc ⇒ tc.getProjectedTypeDefinitions && !tc.getProjectedInterfaces }.get,
+      oil.TypeContext.find { tc ⇒ tc.projectedTypeDefinitions && !tc.projectedInterfaces }.get,
       "noAlias.skill"
     )
     makeFile(
-      oil.TypeContexts.asScala.find { tc ⇒ !tc.getProjectedTypeDefinitions && tc.getProjectedInterfaces }.get,
+      oil.TypeContext.find { tc ⇒ !tc.projectedTypeDefinitions && tc.projectedInterfaces }.get,
       "noInterface.skill"
     )
     makeFile(
-      oil.TypeContexts.asScala.find { tc ⇒ tc.getProjectedTypeDefinitions && tc.getProjectedInterfaces }.get,
+      oil.TypeContext.find { tc ⇒ tc.projectedTypeDefinitions && tc.projectedInterfaces }.get,
       "noSpecial.skill"
     )
   }
@@ -45,33 +42,33 @@ trait SpecificationMaker extends AbstractBackEnd {
     // write specification
     val out = files.open(name)
 
-    out.write(IR.getEnums.asScala.map(t ⇒ s"""${comment(t)}enum ${capital(t.getName)} {
-  ${t.getValues.asScala.map(v ⇒ capital(v.getName)).mkString("", ",\n  ", ";")}
+    out.write(IR.enums.map(t ⇒ s"""${comment(t)}enum ${capital(t.name)} {
+  ${t.values.map(v ⇒ capital(v.name)).mkString("", ",\n  ", ";")}
 }
 
 """).mkString)
 
-    out.write(IR.getAliases.asScala.map(t ⇒ s"""${comment(t)}typedef ${capital(t.getName)}
-  ${mapType(t.getTarget)};
+    out.write(IR.aliases.map(t ⇒ s"""${comment(t)}typedef ${capital(t.name)}
+  ${mapType(t.target)};
 
 """).mkString)
 
-    out.write(IR.getClasses.asScala.map(t ⇒ s"""${prefix(t)}${capital(t.getName)} ${
-      if (null == t.getSuperType) ""
-      else s"extends ${capital(t.getSuperType.getName)} "
+    out.write(IR.classes.map(t ⇒ s"""${prefix(t)}${capital(t.name)} ${
+      if (null == t.superType) ""
+      else s"extends ${capital(t.superType.name)} "
     }${
-      t.getSuperInterfaces.asScala.map(s ⇒ s"with ${capital(s.getName)} ").mkString
-    }{${mkFields(t.getFields.asScala.to)}${mkCustom(t.getCustoms.asScala.to)}
+      t.superInterfaces.map(s ⇒ s"with ${capital(s.name)} ").mkString
+    }{${mkFields(t.fields.to)}${mkCustom(t.customs.to)}
 }
 
 """).mkString)
 
-    out.write(IR.getInterfaces.asScala.map(t ⇒ s"""${prefix(t)}interface ${capital(t.getName)} ${
-      if (null == t.getSuperType) ""
-      else s"extends ${capital(t.getSuperType.getName)} "
+    out.write(IR.interfaces.map(t ⇒ s"""${prefix(t)}interface ${capital(t.name)} ${
+      if (null == t.superType) ""
+      else s"extends ${capital(t.superType.name)} "
     }${
-      t.getSuperInterfaces.asScala.map(s ⇒ s"with ${capital(s.getName)} ").mkString
-    }{${mkFields(t.getFields.asScala.to)}${mkCustom(t.getCustoms.asScala.to)}
+      t.superInterfaces.map(s ⇒ s"with ${capital(s.name)} ").mkString
+    }{${mkFields(t.fields.to)}${mkCustom(t.customs.to)}
 }
 
 """).mkString)
@@ -81,22 +78,22 @@ trait SpecificationMaker extends AbstractBackEnd {
 
   private def mkFields(fs : Array[Field]) : String = fs.map(f ⇒ s"""
   ${prefix(f)}${
-    if (f.getIsTransient) "auto "
+    if (f.isTransient) "auto "
     else ""
-  }${mapType(f.getType)} ${camel(f.getName)};""").mkString("\n")
+  }${mapType(f.`type`)} ${camel(f.name)};""").mkString("\n")
 
   private def mkCustom(fs : List[CustomField]) : String = (for (f ← fs)
     yield s"""
-  ${comment(f)}custom ${f.getLanguage}${
-    (for (opt ← f.getOptions.asScala)
+  ${comment(f)}custom ${f.language}${
+    (for (opt ← f.options)
       yield s"""
-  !${opt.getName} ${
-      val vs = opt.getArguments.asScala.map(s ⇒ s""""$s"""")
+  !${opt.name} ${
+      val vs = opt.arguments.map(s ⇒ s""""$s"""")
       if (vs.size == 1) vs.head
       else vs.mkString("(", " ", ")")
     }""").mkString
   }
-  "${f.getTypename}" ${camel(f.getName)};""").mkString("\n")
+  "${f.typename}" ${camel(f.name)};""").mkString("\n")
 
   private def prefix(t : UserDefinedType) : String = {
     var prefix = comment(t) // TODO + (t.getHints.asScala ++ t.getRestrictions.asScala).map(s ⇒ s"$s\n").mkString

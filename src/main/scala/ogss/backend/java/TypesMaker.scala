@@ -15,9 +15,8 @@
  ******************************************************************************/
 package ogss.backend.java
 
-import scala.collection.JavaConverters._
-import ogss.oil.InterfaceDef
 import ogss.oil.EnumDef
+import ogss.oil.InterfaceDef
 
 trait TypesMaker extends AbstractBackEnd {
   abstract override def make {
@@ -26,7 +25,7 @@ trait TypesMaker extends AbstractBackEnd {
     for (t ← IR) {
       val out = files.open(s"${name(t)}.java")
 
-      val customizations = t.getCustoms.asScala.filter(_.getLanguage.equals("java")).toArray
+      val customizations = t.customs.filter(_.language.equals("java")).toArray
 
       // package
       out.write(s"""package ${this.packageName};
@@ -34,7 +33,7 @@ trait TypesMaker extends AbstractBackEnd {
 import ogss.common.java.internal.EnumProxy;
 ${
         customizations.flatMap(
-          _.getOptions.asScala.find(_.getName.equals("import")).toSeq.flatMap(_.getArguments.asScala)
+          _.options.find(_.name.equals("import")).toSeq.flatMap(_.arguments)
         ).map(i ⇒ s"import $i;\n").mkString
       }
 """)
@@ -47,12 +46,12 @@ ${
       }${
         suppressWarnings
       }public class ${name(t)} extends ${
-        if (null != t.getSuperType()) { name(t.getSuperType) }
+        if (null != t.superType) { name(t.superType) }
         else { "ogss.common.java.internal.Obj" }
       }${
-        if (t.getSuperInterfaces.isEmpty) ""
+        if (t.superInterfaces.isEmpty) ""
         else
-          t.getSuperInterfaces.asScala.map(name(_)).mkString(" implements ", ", ", "")
+          t.superInterfaces.map(name(_)).mkString(" implements ", ", ", "")
       } {
 
     /**
@@ -72,11 +71,11 @@ ${
 
     @Override
     public int stid() {
-        return ${t.getStid};
+        return ${t.stid};
     }
 """)
 
-      if (visited.contains(t.getName)) {
+      if (visited.contains(t.name)) {
         out.write(s"""
     public <_R, _A, _E extends Exception> _R accept(Visitor<_R, _A, _E> v, _A arg) throws _E {
         return v.visit(this, arg);
@@ -84,13 +83,13 @@ ${
 """)
       }
 
-      var implementedFields = t.getFields.asScala
+      var implementedFields = t.fields
       def addFields(i : InterfaceDef) {
-        implementedFields ++= i.getFields.asScala
-        for (t ← i.getSuperInterfaces.asScala)
+        implementedFields ++= i.fields
+        for (t ← i.superInterfaces)
           addFields(t)
       }
-      t.getSuperInterfaces.asScala.foreach(addFields)
+      t.superInterfaces.foreach(addFields)
 
       ///////////////////////
       // getters & setters //
@@ -98,23 +97,23 @@ ${
       for (f ← implementedFields) {
         def makeField : String = s"""
     protected ${
-          if (f.getIsTransient) "transient "
+          if (f.isTransient) "transient "
           else ""
         }${
-          if (f.getType.isInstanceOf[EnumDef]) s"Object ${name(f)};// = $packagePrefix${name(f.getType)}.${
-            capital(f.getType.asInstanceOf[EnumDef].getValues.get(0).getName)
+          if (f.`type`.isInstanceOf[EnumDef]) s"Object ${name(f)};// = $packagePrefix${name(f.`type`)}.${
+            capital(f.`type`.asInstanceOf[EnumDef].values.head.name)
           };"
-          else s"${mapType(f.getType())} ${name(f)};"
+          else s"${mapType(f.`type`)} ${name(f)};"
         }
 """
 
         def makeGetterImplementation : String = s"return ${name(f)};"
         def makeSetterImplementation : String = s"this.${name(f)} = ${name(f)};"
 
-        if (f.getType.isInstanceOf[EnumDef]) {
+        if (f.`type`.isInstanceOf[EnumDef]) {
           val nameF = name(f)
-          val enumF = packagePrefix + name(f.getType)
-          val typeF = mapType(f.getType())
+          val enumF = packagePrefix + name(f.`type`)
+          val typeF = mapType(f.`type`)
           out.write(s"""$makeField
     ${comment(f)}final public $typeF ${getter(f)}() {
         if ($nameF instanceof EnumProxy<?>)
@@ -123,7 +122,7 @@ ${
     }
     ${comment(f)}final public $enumF ${getter(f)}AsEnum() {
         if (null == $nameF)
-            return ($enumF) ($nameF = $enumF.${capital(f.getType.asInstanceOf[EnumDef].getValues.get(0).getName)});
+            return ($enumF) ($nameF = $enumF.${capital(f.`type`.asInstanceOf[EnumDef].values.head.name)});
         if ($nameF instanceof EnumProxy<?>)
             return (($typeF) $nameF).target;
         return ($enumF) $nameF;
@@ -132,7 +131,7 @@ ${
     ${comment(f)}final public void ${setter(f)}($typeF $nameF) {
         this.$nameF = $nameF;
     }
-    ${comment(f)}final public void ${setter(f)}($packagePrefix${name(f.getType)} $nameF) {
+    ${comment(f)}final public void ${setter(f)}($packagePrefix${name(f.`type`)} $nameF) {
         if (null != this.$nameF && this.$nameF instanceof EnumProxy<?>)
             this.$nameF = (($typeF) this.$nameF).owner.proxy($nameF);
         else
@@ -141,11 +140,11 @@ ${
 """)
         } else
           out.write(s"""$makeField
-    ${comment(f)}final public ${mapType(f.getType())} ${getter(f)}() {
+    ${comment(f)}final public ${mapType(f.`type`)} ${getter(f)}() {
         $makeGetterImplementation
     }
 
-    ${comment(f)}final public void ${setter(f)}(${mapType(f.getType())} ${name(f)}) {
+    ${comment(f)}final public void ${setter(f)}(${mapType(f.`type`)} ${name(f)}) {
         $makeSetterImplementation
     }
 """)
@@ -153,15 +152,15 @@ ${
 
       // custom fields
       for (c ← customizations) {
-        val mod = c.getOptions.asScala.find(_.getName.equals("modifier")).map(_.getArguments.get(0)).getOrElse("public")
+        val mod = c.options.find(_.name.equals("modifier")).map(_.arguments.head).getOrElse("public")
 
         out.write(s"""
-    ${comment(c)}$mod ${c.getTypename} ${name(c)}; 
+    ${comment(c)}$mod ${c.typename} ${name(c)}; 
 """)
       }
 
       // fix toAnnotation
-      if (!t.getSuperInterfaces.isEmpty())
+      if (!t.superInterfaces.isEmpty)
         out.write(s"""
     @Override
     public ${name(t)} self() {

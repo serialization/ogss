@@ -1,16 +1,16 @@
 package ogss.backend.scala
 
+import scala.collection.mutable.HashMap
+
+import ogss.oil.ArrayType
+import ogss.oil.BuiltinType
+import ogss.oil.EnumDef
+import ogss.oil.ListType
+import ogss.oil.MapType
 import ogss.oil.SetType
 import ogss.oil.Type
-import ogss.oil.MapType
-import ogss.oil.ListType
-import ogss.oil.ArrayType
 import ogss.oil.WithInheritance
-import ogss.oil.EnumDef
 import ogss.util.HeaderInfo
-import ogss.oil.Field
-import scala.collection.mutable.HashMap
-import ogss.oil.BuiltinType
 
 /**
  * @author Timm Felden
@@ -30,7 +30,7 @@ final class Main extends AbstractBackEnd
    * Translates types into scala type names.
    */
   override def mapType(t : Type) : String = t match {
-    case t : BuiltinType ⇒ t.getName.getOgss match {
+    case t : BuiltinType ⇒ t.name.ogss match {
       case "AnyRef" ⇒ "ogss.common.scala.internal.Obj"
 
       case "Bool"   ⇒ "scala.Boolean"
@@ -47,10 +47,10 @@ final class Main extends AbstractBackEnd
       case "String" ⇒ "java.lang.String"
     }
 
-    case t : ArrayType       ⇒ s"$ArrayTypeName[${mapType(t.getBaseType())}]"
-    case t : ListType        ⇒ s"$ListTypeName[${mapType(t.getBaseType())}]"
-    case t : SetType         ⇒ s"$SetTypeName[${mapType(t.getBaseType())}]"
-    case t : MapType         ⇒ s"$MapTypeName[${mapType(t.getKeyType)}, ${mapType(t.getValueType)}]"
+    case t : ArrayType       ⇒ s"$ArrayTypeName[${mapType(t.baseType)}]"
+    case t : ListType        ⇒ s"$ListTypeName[${mapType(t.baseType)}]"
+    case t : SetType         ⇒ s"$SetTypeName[${mapType(t.baseType)}]"
+    case t : MapType         ⇒ s"$MapTypeName[${mapType(t.keyType)}, ${mapType(t.valueType)}]"
 
     case t : EnumDef         ⇒ s"EnumProxy[$packagePrefix${name(t)}.type]"
 

@@ -15,12 +15,11 @@
  ******************************************************************************/
 package ogss.backend.cpp
 
-import scala.collection.JavaConverters._
-
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.HashSet
-import ogss.oil.Field
+
 import ogss.oil.ClassDef
+import ogss.oil.Field
 
 /**
  * creates header and implementation for all type definitions
@@ -41,10 +40,10 @@ trait TypesMaker extends AbstractBackEnd {
   private final def makeHeader {
 
     // one header per base type
-    for (base ← IR.par if null == base.getSuperType) {
+    for (base ← IR.par if null == base.superType) {
       val out = files.open(s"TypesOf${name(base)}.h")
 
-      base.getSubTypes
+      base.subTypes
 
       // get all customizations in types below base, so that we can generate includes for them
       val customIncludes = gatherCustomIncludes(base).toSet.toArray.sorted
@@ -92,10 +91,10 @@ ${
       }
     // type predef known fields for friend declarations
     namespace internal {${
-        (for (t ← IR if base == t.getBaseType; f ← t.getFields.asScala) yield s"""
+        (for (t ← IR if base == t.baseType; f ← t.fields) yield s"""
         class ${knownField(f)};""").mkString
       }${
-        (for (t ← IR if base == t.getBaseType if !t.getFields.isEmpty()) yield s"""
+        (for (t ← IR if base == t.baseType if !t.fields.isEmpty) yield s"""
         template<class T, class B>
         struct ${builder(t)};""").mkString
       }
@@ -103,10 +102,10 @@ ${
     // begin actual type defs
 """)
 
-      for (t ← IR if base == t.getBaseType) {
+      for (t ← IR if base == t.baseType) {
         val fields = allFields(t)
         val Name = name(t)
-        val SuperName = if (null != t.getSuperType()) name(t.getSuperType)
+        val SuperName = if (null != t.superType) name(t.superType)
         else "::ogss::api::Object"
 
         //class declaration
@@ -116,10 +115,10 @@ ${
         }class $Name : public $SuperName {
         friend class ::ogss::internal::Book<${name(t)}>;
         friend class ::ogss::internal::Pool<${name(t)}>;${
-          (for (f ← t.getFields.asScala) yield s"""
+          (for (f ← t.fields) yield s"""
         friend class internal::${knownField(f)};""").mkString
         }${
-          if (t.getFields.isEmpty()) ""
+          if (t.fields.isEmpty) ""
           else s"""
         template<class T, class B>
         friend struct internal::${builder(t)};"""
@@ -128,8 +127,8 @@ ${
     protected:
 """)
         // fields
-        out.write((for (f ← t.getFields.asScala)
-          yield s"""    ${mapType(f.getType())} ${localFieldName(f)};
+        out.write((for (f ← t.fields)
+          yield s"""    ${mapType(f.`type`)} ${localFieldName(f)};
 """).mkString)
 
         // constructor
@@ -140,21 +139,21 @@ ${
 """)
 
         // accept visitor
-        if (visited.contains(t.getName)) {
+        if (visited.contains(t.name)) {
           out.write(s"""
         virtual void accept(api::Visitor *v);
 """)
         }
 
         // reveal skill id
-        if (revealObjectID && null == t.getSuperType)
+        if (revealObjectID && null == t.superType)
           out.write("""
         inline ::ogss::ObjectID ID() const { return this->id; }
 """)
 
         if (interfaceChecks) {
-          val subs = interfaceCheckMethods.getOrElse(t.getName, HashSet())
-          val supers = interfaceCheckImplementations.getOrElse(t.getName, HashSet())
+          val subs = interfaceCheckMethods.getOrElse(t.name, HashSet())
+          val supers = interfaceCheckImplementations.getOrElse(t.name, HashSet())
           val both = subs.intersect(supers)
           subs --= both
           supers --= both
@@ -170,19 +169,19 @@ ${
         }
 
         // custom fields
-        val customizations = t.getCustoms.asScala.filter(_.getLanguage.equals("cpp")).toArray
+        val customizations = t.customs.filter(_.language.equals("cpp")).toArray
         for (c ← customizations) {
-          val opts = c.getOptions.asScala
-          val default = opts.find(_.getName.toLowerCase.equals("default")).map(s ⇒ s" = ${s.getArguments.get(0)}").getOrElse("")
+          val opts = c.options
+          val default = opts.find(_.name.toLowerCase.equals("default")).map(s ⇒ s" = ${s.arguments.head}").getOrElse("")
           out.write(s"""
-        ${comment(c)}${c.getTypename} ${name(c)}$default; 
+        ${comment(c)}${c.typename} ${name(c)}$default; 
 """)
         }
 
         ///////////////////////
         // getters & setters //
         ///////////////////////
-        for (f ← t.getFields.asScala) {
+        for (f ← t.fields) {
           implicit val thisF = f;
 
           def makeSetterImplementation : String = {
@@ -197,7 +196,7 @@ ${
               case (false, true)  ⇒ s"assert(${r.getLow}L <= ${name(f)});"
               case (false, false) ⇒ s"assert(${r.getLow}L <= ${name(f)} && ${name(f)} <= ${r.getHigh}L);"
             }
-            case r:FloatRangeRestriction if("f32".equals(f.getType.getName)) ⇒
+            case r:FloatRangeRestriction if("f32".equals(f.`type`.name)) ⇒
               s"assert(${r.getLowFloat}f <= ${name(f)} && ${name(f)} <= ${r.getHighFloat}f);"
             case r:FloatRangeRestriction ⇒
               s"assert(${r.getLowDouble} <= ${name(f)} && ${name(f)} <= ${r.getHighDouble});"
@@ -211,14 +210,14 @@ ${
           }
 
           out.write(s"""
-        ${comment(f)}inline ${mapType(f.getType)} ${getter(f)}() const { return ${name(f)}; }
-        ${comment(f)}inline void ${setter(f)}(${mapType(f.getType)} ${name(f)}) {$makeSetterImplementation}
+        ${comment(f)}inline ${mapType(f.`type`)} ${getter(f)}() const { return ${name(f)}; }
+        ${comment(f)}inline void ${setter(f)}(${mapType(f.`type`)} ${name(f)}) {$makeSetterImplementation}
 """)
         }
 
         out.write(s"""
 
-        ::ogss::TypeID stid() const override { return ${t.getStid}; }
+        ::ogss::TypeID stid() const override { return ${t.stid}; }
     };
 
     class ${name(t)}_UnknownSubType : public ${name(t)}, public ::ogss::api::NamedObj {
@@ -250,13 +249,13 @@ $endGuard""")
   private final def makeSource {
 
     // one file per base type
-    for (base ← IR if null == base.getSuperType) {
+    for (base ← IR if null == base.superType) {
       // create cpp-Files only if we have to implement a visitor to speed-up compilation
-      if (IR.exists(t ⇒ base == t.getBaseType && visited.contains(t.getName))) {
+      if (IR.exists(t ⇒ base == t.baseType && visited.contains(t.name))) {
         val out = files.open(s"TypesOf${name(base)}.cpp")
         out.write(s"""#include "File.h"
 #include "TypesOf${name(base)}.h"${
-          (for (t ← IR if base == t.getBaseType && visited.contains(t.getName)) yield s"""
+          (for (t ← IR if base == t.baseType && visited.contains(t.name)) yield s"""
 void $packageName::${name(t)}::accept($packageName::api::Visitor *v) {
     v->visit(this);
 }""").mkString
@@ -268,12 +267,12 @@ void $packageName::${name(t)}::accept($packageName::api::Visitor *v) {
   }
 
   private def gatherCustomIncludes(t : ClassDef) : Seq[String] = {
-    val x = t.getCustoms.asScala.filter(_.getLanguage.equals("cpp")).flatMap {
+    val x = t.customs.filter(_.language.equals("cpp")).flatMap {
       case null ⇒ ArrayBuffer[String]()
-      case c ⇒ c.getOptions.asScala.find(
-        _.getName.toLowerCase().equals("include")
-      ).map(_.getArguments.asScala).getOrElse(ArrayBuffer[String]())
+      case c ⇒ c.options.find(
+        _.name.toLowerCase().equals("include")
+      ).map(_.arguments).getOrElse(ArrayBuffer[String]())
     }
-    x ++ t.getSubTypes.asScala.collect { case c : ClassDef ⇒ c }.flatMap(gatherCustomIncludes)
+    x ++ t.subTypes.collect { case c : ClassDef ⇒ c }.flatMap(gatherCustomIncludes)
   }
 }

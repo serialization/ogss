@@ -15,7 +15,6 @@
  ******************************************************************************/
 package ogss.backend.java.internal
 
-import scala.collection.JavaConverters._
 import ogss.backend.java.AbstractBackEnd
 import ogss.io.PrintWriter
 import ogss.oil.ClassDef
@@ -24,14 +23,14 @@ trait AccessMaker extends AbstractBackEnd {
   final def makePools(out : PrintWriter) {
 
     for (t ← flatIR) {
-      val isBasePool = (null == t.getSuperType)
+      val isBasePool = (null == t.superType)
       val nameT = name(t)
       val subT = s"${this.packageName}.Sub$$$nameT"
       val typeT = mapType(t)
       val accessT = access(t)
 
       // find all fields that belong to the projected version, but use the unprojected variant
-      val fields = t.getFields.asScala
+      val fields = t.fields
 
       out.write(s"""
 ${
@@ -43,12 +42,12 @@ ${
      */
     $accessT(int idx${
         if (isBasePool) ""
-        else s", ${access(t.getSuperType)} sup"
+        else s", ${access(t.superType)} sup"
       }) {
         super(idx, "${ogssname(t)}", ${
         if (isBasePool) "null"
         else "sup"
-      }, ${fields.count(_.getIsTransient)});
+      }, ${fields.count(_.isTransient)});
     }${
         // export data for sub pools
         if (isBasePool) s"""
@@ -78,8 +77,8 @@ ${
         switch (id) {${
           fields.zipWithIndex.map {
             case (f, i) ⇒ s"""
-        case $i: return new ${knownField(f)}((FieldType)SIFA[${f.getType.getStid}], ${
-              if (f.getIsTransient) ""
+        case $i: return new ${knownField(f)}((FieldType)SIFA[${f.`type`.stid}], ${
+              if (f.isTransient) ""
               else "nextFID, "
             }this);"""
           }.mkString
@@ -112,12 +111,12 @@ ${
     public ${builder(t)}<$typeT, ?> build() {
         return new ${builder(t)}<>(this, new $typeT(0));
     }${
-        if (t.getSubTypes.isEmpty) ""
+        if (t.subTypes.isEmpty) ""
         else s"""
     @Override
     protected String nameSub(int id) {
         switch (id) {${
-          t.getSubTypes.asScala.zipWithIndex.map {
+          t.subTypes.zipWithIndex.map {
             case (s, i) ⇒ s"""
         case $i: return "${ogssname(s)}";"""
           }.mkString
@@ -129,7 +128,7 @@ ${
     @Override
     protected Pool<? extends ${mapType(t)}> makeSub(int id, int idx) {
         switch (id) {${
-          t.getSubTypes.asScala.collect { case t : ClassDef ⇒ t }.zipWithIndex.map {
+          t.subTypes.collect { case t : ClassDef ⇒ t }.zipWithIndex.map {
             case (s, i) ⇒ s"""
         case $i: return new ${access(s)}(idx, this);"""
           }.mkString

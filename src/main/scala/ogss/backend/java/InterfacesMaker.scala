@@ -13,16 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  ******************************************************************************/
-/*  ___ _  ___ _ _                                                            *\
-** / __| |/ (_) | |       The SKilL Generator                                 **
-** \__ \ ' <| | | |__     (c) 2013-18 University of Stuttgart                 **
-** |___/_|\_\_|_|____|    see LICENSE                                         **
-\*                                                                            */
 package ogss.backend.java
-
-import java.io.PrintWriter
-import scala.collection.JavaConversions._
-import scala.collection.mutable.HashSet
 
 trait InterfacesMaker extends AbstractBackEnd {
   abstract override def make {
@@ -50,25 +41,25 @@ ${
       }${
         suppressWarnings
       }public interface ${name(t)} ${
-        if (t.getSuperInterfaces.isEmpty) ""
+        if (t.superInterfaces.isEmpty) ""
         else
-          t.getSuperInterfaces.map(name(_)).mkString("extends ", ", ", "")
+          t.superInterfaces.map(name(_)).mkString("extends ", ", ", "")
       } {
 
     /**
      * cast to concrete type
      */${
-        if (!t.getSuperInterfaces.isEmpty()) """
+        if (!t.superInterfaces.isEmpty) """
     @Override"""
         else ""
       }
     public default ${
-        if (null == t.getSuperType) "Object"
-        else mapType(t.getSuperType)
+        if (null == t.superType) "Object"
+        else mapType(t.superType)
       } self() {
         return ${
-        if (null == t.getSuperType) ""
-        else s"(${mapType(t.getSuperType)})"
+        if (null == t.superType) ""
+        else s"(${mapType(t.superType)})"
       } this;
     }
 ${
@@ -78,9 +69,9 @@ ${
         (
           for (f ← fields)
             yield s"""
-    ${comment(f)}public ${mapType(f.getType())} ${getter(f)}();
+    ${comment(f)}public ${mapType(f.`type`)} ${getter(f)}();
 
-    ${comment(f)}public void ${setter(f)}(${mapType(f.getType())} ${name(f)});
+    ${comment(f)}public void ${setter(f)}(${mapType(f.`type`)} ${name(f)});
 """
 
         ).mkString

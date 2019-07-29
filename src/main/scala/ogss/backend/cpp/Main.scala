@@ -15,7 +15,6 @@
  ******************************************************************************/
 package ogss.backend.cpp
 
-import scala.collection.JavaConverters.asScalaBufferConverter
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.HashSet
 
@@ -62,7 +61,7 @@ final class Main extends AbstractBackEnd
    * Translates types into scala type names.
    */
   override def mapType(t : Type) : String = t match {
-    case t : BuiltinType ⇒ t.getName.getOgss match {
+    case t : BuiltinType ⇒ t.name.ogss match {
       case "AnyRef" ⇒ "::ogss::api::Object*"
 
       case "Bool"   ⇒ "bool"
@@ -79,10 +78,10 @@ final class Main extends AbstractBackEnd
       case "String" ⇒ "::ogss::api::String"
     }
 
-    case t : ArrayType ⇒ s"::ogss::api::Array<${mapType(t.getBaseType())}>*"
-    case t : ListType  ⇒ s"::ogss::api::Array<${mapType(t.getBaseType())}>*"
-    case t : SetType   ⇒ s"::ogss::api::Set<${mapType(t.getBaseType())}>*"
-    case t : MapType   ⇒ s"::ogss::api::Map<${mapType(t.getKeyType)}, ${mapType(t.getValueType)}>*"
+    case t : ArrayType ⇒ s"::ogss::api::Array<${mapType(t.baseType)}>*"
+    case t : ListType  ⇒ s"::ogss::api::Array<${mapType(t.baseType)}>*"
+    case t : SetType   ⇒ s"::ogss::api::Set<${mapType(t.baseType)}>*"
+    case t : MapType   ⇒ s"::ogss::api::Map<${mapType(t.keyType)}, ${mapType(t.valueType)}>*"
 
     case t : EnumDef   ⇒ s"::ogss::api::EnumProxy<$packageName::${name(t)}>*"
 
@@ -93,7 +92,7 @@ final class Main extends AbstractBackEnd
 
   override protected def unbox(t : Type) : String = t match {
 
-    case t : BuiltinType ⇒ t.getName.getOgss match {
+    case t : BuiltinType ⇒ t.name.ogss match {
       case "AnyRef" ⇒ "anyRef"
       case "Bool"   ⇒ "boolean"
       case "V64"    ⇒ "i64"
@@ -156,29 +155,29 @@ final class Main extends AbstractBackEnd
 
   protected def filterIntarfacesFromIR(TS : TypeContext) {
     // find implementers
-    for (t ← TS.getClasses.asScala) {
+    for (t ← TS.classes) {
       val is = allSuperTypes(t).collect { case i : InterfaceDef ⇒ i }
-      interfaceCheckImplementations(t.getName) = is.map(insertInterface(_, t))
+      interfaceCheckImplementations(t.name) = is.map(insertInterface(_, t))
     }
   }
   private def insertInterface(i : InterfaceDef, target : ClassDef) : Identifier = {
     // register a potential implementation for the target type and interface
-    i.getBaseType match {
+    i.baseType match {
       case null ⇒
-        interfaceCheckMethods.getOrElseUpdate(target.getBaseType.getName, new HashSet) += i.getName
+        interfaceCheckMethods.getOrElseUpdate(target.baseType.name, new HashSet) += i.name
       case b ⇒
-        interfaceCheckMethods.getOrElseUpdate(b.getName, new HashSet) += i.getName
+        interfaceCheckMethods.getOrElseUpdate(b.name, new HashSet) += i.name
     }
     // return the name to be used
-    i.getName
+    i.name
   }
 
   protected def writeField(d : ClassDef, f : Field) : String = {
     val fName = name(f)
-    f.getType match {
+    f.`type` match {
       case t : BuiltinType ⇒
-        if (8 <= t.getStid) s"for(i ← outData) ${lowercase(f.getType.getName)}(i.$fName, dataChunk)"
-        else s"for(i ← outData) dataChunk.${lowercase(f.getType.getName)}(i.$fName)"
+        if (8 <= t.stid) s"for(i ← outData) ${lowercase(f.`type`.name)}(i.$fName, dataChunk)"
+        else s"for(i ← outData) dataChunk.${lowercase(f.`type`.name)}(i.$fName)"
 
       case _ ⇒ s"""for(i ← outData) userRef(i.$fName, dataChunk)"""
     }

@@ -15,30 +15,26 @@
  ******************************************************************************/
 package ogss.util
 
-import java.util.ArrayList
-
-import scala.collection.JavaConverters._
-
-import ogss.oil.EnumDef
-import ogss.oil.OGFile
-import ogss.oil.TypeContext
-import scala.collection.mutable.HashMap
-import ogss.oil.InterfaceDef
-import ogss.oil.Type
 import scala.collection.mutable.ArrayBuffer
-import ogss.oil.ClassDef
-import ogss.oil.WithInheritance
-import ogss.oil.ArrayType
-import ogss.oil.Identifier
-import ogss.oil.ListType
-import ogss.oil.SetType
-import ogss.oil.MapType
-import ogss.oil.Field
-import ogss.oil.CustomField
-import ogss.oil.View
-import ogss.oil.TypeAlias
-import ogss.oil.ContainerType
+import scala.collection.mutable.HashMap
+
 import ogss.main.CommandLine
+import ogss.oil.ArrayType
+import ogss.oil.ClassDef
+import ogss.oil.ContainerType
+import ogss.oil.CustomField
+import ogss.oil.Field
+import ogss.oil.Identifier
+import ogss.oil.InterfaceDef
+import ogss.oil.ListType
+import ogss.oil.MapType
+import ogss.oil.OGFile
+import ogss.oil.SetType
+import ogss.oil.Type
+import ogss.oil.TypeAlias
+import ogss.oil.TypeContext
+import ogss.oil.View
+import ogss.oil.WithInheritance
 
 /**
  * Takes an unprojected .oil-file and creates interface and typedef
@@ -47,14 +43,14 @@ import ogss.main.CommandLine
 class Projections(sg : OGFile) {
 
   private def run {
-    if (sg.TypeContexts.size() != 1)
-      throw new IllegalStateException(s"expected exactly one type context, but found ${sg.TypeContexts.size()}")
+    if (sg.TypeContext.size != 1)
+      throw new IllegalStateException(s"expected exactly one type context, but found ${sg.TypeContext.size}")
 
-    val tc = sg.TypeContexts.iterator().next();
-    if (tc.getProjectedInterfaces || tc.getProjectedTypeDefinitions)
-      throw new IllegalStateException(s"""expected an unprojected type context, but found ${sg.TypeContexts.size()}
-  interfaces: ${tc.getProjectedInterfaces}
-  typedefs: ${tc.getProjectedTypeDefinitions}""")
+    val tc = sg.TypeContext.head
+    if (tc.projectedInterfaces || tc.projectedTypeDefinitions)
+      throw new IllegalStateException(s"""expected an unprojected type context, but found ${sg.TypeContext.size}
+  interfaces: ${tc.projectedInterfaces}
+  typedefs: ${tc.projectedTypeDefinitions}""")
 
     substituteInterfaces(substituteAliases(tc))
     substituteInterfaces(tc)
@@ -64,86 +60,93 @@ class Projections(sg : OGFile) {
     // note we cannot fast exit if no interfaces are available, because we are not allowed to reuse the same types
 
     // set trivial properties
-    val r = sg.TypeContexts.make()
-    r.setProjectedInterfaces(tc.getProjectedInterfaces)
-    r.setProjectedTypeDefinitions(true)
-    r.setAliases(new ArrayList)
-    r.setEnums(tc.getEnums)
-    r.setClasses(copyClasses(tc.getClasses))
-    r.setInterfaces(copyInterfaces(tc.getInterfaces))
-    r.setContainers(new ArrayList)
+    val r =
+      sg.TypeContext
+        .build
+        .projectedInterfaces(tc.projectedInterfaces)
+        .projectedTypeDefinitions(true)
+        .aliases(new ArrayBuffer)
+        .enums(tc.enums)
+        .classes(copyClasses(tc.classes))
+        .interfaces(copyInterfaces(tc.interfaces))
+        .containers(new ArrayBuffer)
+        .make
 
     // calculate type map
     val typeMap = new HashMap[Type, Type]
     makeTBN(r)
-    val tbn = r.getByName
+    val tbn = r.byName
 
     def ensure(t : Type) : Type = {
       typeMap.getOrElseUpdate(t, t match {
         case t : ArrayType ⇒ {
-          val r = sg.ArrayTypes.make()
-          val b = ensure(t.getBaseType)
-          r.setBaseType(b)
-          r.setName(toIdentifier(s"${b.getName.getOgss}[]"))
-          r
+          val b = ensure(t.baseType)
+          sg.ArrayType
+            .build
+            .baseType(b)
+            .name(toIdentifier(s"${b.name.ogss}[]"))
+            .make
         }
         case t : ListType ⇒ {
-          val r = sg.ListTypes.make()
-          val b = ensure(t.getBaseType)
-          r.setBaseType(b)
-          r.setName(toIdentifier(s"list<${b.getName.getOgss}>"))
-          r
+          val b = ensure(t.baseType)
+          sg.ListType
+            .build
+            .baseType(b)
+            .name(toIdentifier(s"list<${b.name.ogss}>"))
+            .make
         }
         case t : SetType ⇒ {
-          val r = sg.SetTypes.make()
-          val b = ensure(t.getBaseType)
-          r.setBaseType(b)
-          r.setName(toIdentifier(s"set<${b.getName.getOgss}>"))
-          r
+          val b = ensure(t.baseType)
+          sg.SetType
+            .build
+            .baseType(b)
+            .name(toIdentifier(s"set<${b.name.ogss}>"))
+            .make
         }
         case t : MapType ⇒ {
-          val r = sg.MapTypes.make()
-          val k = ensure(t.getKeyType)
-          val v = ensure(t.getValueType)
-          r.setKeyType(k)
-          r.setValueType(v)
-          r.setName(toIdentifier(s"map<${k.getName.getOgss},${v.getName.getOgss}>"))
-          r
+          val k = ensure(t.keyType)
+          val v = ensure(t.valueType)
+          sg.MapType
+            .build
+            .keyType(k)
+            .valueType(v)
+            .name(toIdentifier(s"map<${k.name.ogss},${v.name.ogss}>"))
+            .make
         }
-        case t : TypeAlias ⇒ ensure(t.getTarget)
+        case t : TypeAlias ⇒ ensure(t.target)
 
-        case _             ⇒ tbn.get(t.getName.getOgss)
+        case _             ⇒ tbn(t.name.ogss)
       })
     }
 
-    for (c ← tc.getAliases.asScala) {
-      typeMap(c) = ensure(c.getTarget)
+    for (c ← tc.aliases) {
+      typeMap(c) = ensure(c.target)
     }
     completeTypeMap(tc, r, typeMap)
 
     // fix type hierarchy
-    for (c ← (r.getClasses.asScala ++ r.getInterfaces.asScala)) {
+    for (c ← (r.classes ++ r.interfaces)) {
       // move super to this tc
-      val sis = new ArrayList[InterfaceDef]
-      for (s ← c.getSuperInterfaces.asScala) {
+      val sis = new ArrayBuffer[InterfaceDef]
+      for (s ← c.superInterfaces) {
         val n = typeMap(s).asInstanceOf[InterfaceDef]
-        sis.add(n)
-        n.getSubTypes.add(c)
+        sis += n
+        n.subTypes += c
       }
-      c.setSuperInterfaces(sis)
+      c.superInterfaces = sis
 
-      if (null != c.getSuperType) {
-        c.setSuperType(typeMap(c.getSuperType).asInstanceOf[ClassDef])
-        c.getSuperType.getSubTypes.add(c)
+      if (null != c.superType) {
+        c.superType = typeMap(c.superType).asInstanceOf[ClassDef]
+        c.superType.subTypes += c
       }
-      if (null != c.getBaseType)
-        c.setBaseType(typeMap(c.getBaseType) match {
+      if (null != c.baseType)
+        c.baseType = (typeMap(c.baseType) match {
           case null         ⇒ throw new Error("internal error")
           case c : ClassDef ⇒ c
         })
 
       // calculate new fields
-      copyFields(typeMap, tc.getByName.get(c.getName.getOgss).asInstanceOf[WithInheritance], c)
+      copyFields(typeMap, tc.byName(c.name.ogss).asInstanceOf[WithInheritance], c)
     }
 
     // we may have changed types, so we need to recalculate STIDs and KCCs
@@ -156,43 +159,45 @@ class Projections(sg : OGFile) {
     // note we cannot fast exit if no interfaces are available, because we are not allowed to reuse the same types
 
     // set trivial properties
-    val r = sg.TypeContexts.make()
-    r.setProjectedInterfaces(true)
-    r.setProjectedTypeDefinitions(tc.getProjectedTypeDefinitions)
-    r.setAliases(copyAliases(tc.getAliases))
-    r.setEnums(tc.getEnums)
-    r.setClasses(copyClasses(tc.getClasses))
-    r.setInterfaces(new ArrayList)
-    r.setContainers(new ArrayList)
+    val r = sg.TypeContext
+      .build
+      .projectedInterfaces(true)
+      .projectedTypeDefinitions(tc.projectedTypeDefinitions)
+      .aliases(copyAliases(tc.aliases))
+      .enums(tc.enums)
+      .classes(copyClasses(tc.classes))
+      .interfaces(new ArrayBuffer)
+      .containers(new ArrayBuffer)
+      .make
 
     // calculate type map
     val typeMap = new HashMap[Type, Type]
-    for (c ← tc.getInterfaces.asScala) {
+    for (c ← tc.interfaces) {
       typeMap(c) =
-        if (null == c.getSuperType) tc.getByName.get("AnyRef")
-        else c.getSuperType
+        if (null == c.superType) tc.byName("AnyRef")
+        else c.superType
     }
     makeTBN(r)
     completeTypeMap(tc, r, typeMap)
 
     // fix type hierarchy
-    for (c ← r.getClasses.asScala) {
+    for (c ← r.classes) {
       // remove interfaces from the type hierarchy
-      c.setSuperInterfaces(r.getInterfaces)
-      if (null != c.getSuperType) {
-        c.setSuperType(typeMap(c.getSuperType).asInstanceOf[ClassDef])
-        c.getSuperType.getSubTypes.add(c)
+      c.superInterfaces = r.interfaces
+      if (null != c.superType) {
+        c.superType = typeMap(c.superType).asInstanceOf[ClassDef]
+        c.superType.subTypes += c
       }
-      if (null != c.getBaseType)
-        c.setBaseType(typeMap(c.getBaseType).asInstanceOf[ClassDef])
+      if (null != c.baseType)
+        c.baseType = typeMap(c.baseType).asInstanceOf[ClassDef]
 
       // calculate new fields
-      collectFields(typeMap, tc.getByName.get(c.getName.getOgss).asInstanceOf[ClassDef], c)
+      collectFields(typeMap, tc.byName(c.name.ogss).asInstanceOf[ClassDef], c)
     }
 
     // update type alias targets
-    for (c ← tc.getAliases.asScala) {
-      c.setTarget(typeMap(c.getTarget))
+    for (c ← tc.aliases) {
+      c.target = typeMap(c.target)
     }
 
     // we may have changed types, so we need to recalculate STIDs and KCCs
@@ -205,109 +210,113 @@ class Projections(sg : OGFile) {
    */
   private def collectFields(typeMap : HashMap[Type, Type], from : ClassDef, target : ClassDef) {
     val cs = IRUtils.allCustoms(from)
-    if (null != from.getSuperType)
-      cs --= IRUtils.allCustoms(from.getSuperType)
+    if (null != from.superType)
+      cs --= IRUtils.allCustoms(from.superType)
 
-    val tcs = new ArrayList[CustomField]
-    target.setCustoms(tcs)
-    for (f ← cs.toArray.sortBy(f ⇒ (f.getName.getOgss.length(), f.getName.getOgss))) {
+    val tcs = new ArrayBuffer[CustomField]
+    target.customs = tcs
+    for (f ← cs.toArray.sortBy(f ⇒ (f.name.ogss.length(), f.name.ogss))) {
       val r = copy(f)
-      r.setOwner(target)
-      tcs.add(r)
+      r.owner = target
+      tcs += r
     }
 
     val fs = IRUtils.allFields(from)
-    if (null != from.getSuperType)
-      fs --= IRUtils.allFields(from.getSuperType)
+    if (null != from.superType)
+      fs --= IRUtils.allFields(from.superType)
 
-    val tfs = new ArrayList[Field]
-    target.setFields(tfs)
-    for (f ← fs.toArray.sortBy(f ⇒ (f.getName.getOgss.length(), f.getName.getOgss))) {
+    val tfs = new ArrayBuffer[Field]
+    target.fields = tfs
+    for (f ← fs.toArray.sortBy(f ⇒ (f.name.ogss.length(), f.name.ogss))) {
       val r = copy(f, typeMap)
-      r.setOwner(target)
-      tfs.add(r)
+      r.owner = target
+      tfs += r
     }
 
     val vs = IRUtils.allViews(from)
-    if (null != from.getSuperType)
-      vs --= IRUtils.allViews(from.getSuperType)
+    if (null != from.superType)
+      vs --= IRUtils.allViews(from.superType)
 
-    val tvs = new ArrayList[View]
-    target.setViews(tvs)
-    for (f ← vs.toArray.sortBy(f ⇒ (f.getName.getOgss.length(), f.getName.getOgss))) {
+    val tvs = new ArrayBuffer[View]
+    target.views = tvs
+    for (f ← vs.toArray.sortBy(f ⇒ (f.name.ogss.length(), f.name.ogss))) {
       val r = copy(f, typeMap)
       if (null != r) {
         // add views which have not been projected away
-        r.setOwner(target)
-        tvs.add(r)
+        r.owner = target
+        tvs += r
       }
     }
   }
 
   private def copyFields(typeMap : HashMap[Type, Type], from : WithInheritance, target : WithInheritance) {
-    val tcs = new ArrayList[CustomField]
-    target.setCustoms(tcs)
-    for (f ← from.getCustoms.asScala) {
+    val tcs = new ArrayBuffer[CustomField]
+    target.customs = tcs
+    for (f ← from.customs) {
       val r = copy(f)
-      r.setOwner(target)
-      tcs.add(r)
+      r.owner = target
+      tcs += r
     }
 
-    val tfs = new ArrayList[Field]
-    target.setFields(tfs)
-    for (f ← from.getFields.asScala) {
+    val tfs = new ArrayBuffer[Field]
+    target.fields = tfs
+    for (f ← from.fields) {
       val r = copy(f, typeMap)
-      r.setOwner(target)
-      tfs.add(r)
+      r.owner = target
+      tfs += r
     }
 
-    val tvs = new ArrayList[View]
-    target.setViews(tvs)
-    for (f ← from.getViews.asScala) {
+    val tvs = new ArrayBuffer[View]
+    target.views = tvs
+    for (f ← from.views) {
       val r = copy(f, typeMap)
       if (null != r) {
-        r.setOwner(target)
-        tvs.add(r)
+        r.owner = target
+        tvs += r
       }
     }
   }
 
   private def copy(f : CustomField) : CustomField = {
-    val r = sg.CustomFields.make()
-    r.setComment(f.getComment)
-    r.setName(f.getName)
-    r.setLanguage(f.getLanguage)
-    r.setOptions(f.getOptions)
-    r.setTypename(f.getTypename)
-    r
+    sg.CustomField
+      .build
+      .comment(f.comment)
+      .name(f.name)
+      .language(f.language)
+      .options(f.options)
+      .typename(f.typename)
+      .make
   }
   /**
    * Copy a field but will not set owner to simplify moves in interface
    * projection!
    */
   private def copy(f : Field, typeMap : HashMap[Type, Type]) : Field = {
-    val r = sg.Fields.make()
-    r.setIsTransient(f.getIsTransient)
-    r.setType(typeMap.getOrElseUpdate(f.getType, CommandLine.error("internal error")))
-    r.setComment(f.getComment)
-    r.setName(f.getName)
-    r
+    sg.Field
+      .build
+      .isTransient(f.isTransient)
+      .`type`(typeMap.getOrElseUpdate(f.`type`, CommandLine.error("internal error")))
+      .comment(f.comment)
+      .name(f.name)
+      .make
   }
   private def copy(f : View, typeMap : HashMap[Type, Type]) : View = {
-    val r = sg.Views.make()
-    r.setName(f.getName)
-    r.setComment(f.getComment)
-    r.setType(typeMap(f.getType))
+    val r = sg.View
+      .build
+      .name(f.name)
+      .comment(f.comment)
+      .`type`(typeMap(f.`type`))
+      .make
 
     // find target; if it is no longer there, we discard the view
-    val target = typeMap(f.getTarget.getOwner) match {
+    val target = typeMap(f.target.owner) match {
       case null                ⇒ null
-      case t : WithInheritance ⇒ t.getFields.asScala.find(_.getName == f.getTarget.getName).getOrElse(null)
+      case t : WithInheritance ⇒ t.fields.find(_.name == f.target.name).getOrElse(null)
       case _                   ⇒ null
     }
 
     if (null != target) {
-      r.setTarget(target)
+      r.target = target
     } else {
       sg.delete(r);
       return null;
@@ -316,15 +325,16 @@ class Projections(sg : OGFile) {
     r
   }
 
-  private def copyAliases(aliases : ArrayList[TypeAlias]) : ArrayList[TypeAlias] = {
-    val r = new ArrayList[TypeAlias]
-    for (c ← aliases.asScala) {
-      val n = sg.TypeAliass.make()
-      n.setPos(c.getPos)
-      n.setComment(c.getComment)
-      n.setName(c.getName)
-      n.setTarget(c.getTarget)
-      r.add(n)
+  private def copyAliases(aliases : ArrayBuffer[TypeAlias]) : ArrayBuffer[TypeAlias] = {
+    val r = new ArrayBuffer[TypeAlias]
+    for (c ← aliases) {
+      r += sg.TypeAlias
+        .build
+        .pos(c.pos)
+        .comment(c.comment)
+        .name(c.name)
+        .target(c.target)
+        .make
     }
     r
   }
@@ -333,21 +343,22 @@ class Projections(sg : OGFile) {
    * note: does not copy subtypes, fields, custom and views, as those require a deep
    * copy; they are all initialized with empty arrays
    */
-  private def copyClasses(classes : ArrayList[ClassDef]) : ArrayList[ClassDef] = {
-    val r = new ArrayList[ClassDef]
-    for (c ← asScalaBuffer(classes)) {
-      val n = sg.ClassDefs.make()
-      n.setPos(c.getPos)
-      n.setName(c.getName)
-      n.setComment(c.getComment)
-      n.setBaseType(c.getBaseType)
-      n.setSuperType(c.getSuperType)
-      n.setSuperInterfaces(c.getSuperInterfaces)
-      n.setSubTypes(new ArrayList)
-      n.setCustoms(new ArrayList)
-      n.setFields(new ArrayList)
-      n.setViews(new ArrayList)
-      r.add(n)
+  private def copyClasses(classes : ArrayBuffer[ClassDef]) : ArrayBuffer[ClassDef] = {
+    val r = new ArrayBuffer[ClassDef]
+    for (c ← classes) {
+      r += sg.ClassDef
+        .build
+        .pos(c.pos)
+        .name(c.name)
+        .comment(c.comment)
+        .baseType(c.baseType)
+        .superType(c.superType)
+        .superInterfaces(c.superInterfaces)
+        .subTypes(new ArrayBuffer)
+        .customs(new ArrayBuffer)
+        .fields(new ArrayBuffer)
+        .views(new ArrayBuffer)
+        .make
     }
     r
   }
@@ -356,38 +367,39 @@ class Projections(sg : OGFile) {
    * note: does not copy subtypes, fields, custom and views, as those require a deep
    * copy; they are all initialized with empty arrays
    */
-  private def copyInterfaces(interfaces : ArrayList[InterfaceDef]) : ArrayList[InterfaceDef] = {
-    val r = new ArrayList[InterfaceDef]
-    for (c ← asScalaBuffer(interfaces)) {
-      val n = sg.InterfaceDefs.make()
-      n.setPos(c.getPos)
-      n.setName(c.getName)
-      n.setComment(c.getComment)
-      n.setBaseType(c.getBaseType)
-      n.setSuperType(c.getSuperType)
-      n.setSuperInterfaces(c.getSuperInterfaces)
-      n.setSubTypes(new ArrayList)
-      n.setCustoms(new ArrayList)
-      n.setFields(new ArrayList)
-      n.setViews(new ArrayList)
-      r.add(n)
+  private def copyInterfaces(interfaces : ArrayBuffer[InterfaceDef]) : ArrayBuffer[InterfaceDef] = {
+    val r = new ArrayBuffer[InterfaceDef]
+    for (c ← interfaces) {
+      r += sg.InterfaceDef
+        .build
+        .pos(c.pos)
+        .name(c.name)
+        .comment(c.comment)
+        .baseType(c.baseType)
+        .superType(c.superType)
+        .superInterfaces(c.superInterfaces)
+        .subTypes(new ArrayBuffer)
+        .customs(new ArrayBuffer)
+        .fields(new ArrayBuffer)
+        .views(new ArrayBuffer)
+        .make
     }
     r
   }
 
   private def makeTBN(to : TypeContext) {
-    val tbn = new java.util.HashMap[String, Type]
-    to.setByName(tbn)
-    for (c ← sg.BuiltinTypes.asScala)
-      tbn.put(c.getName.getOgss, c)
-    for (c ← to.getAliases.asScala)
-      tbn.put(c.getName.getOgss, c)
-    for (c ← to.getEnums.asScala)
-      tbn.put(c.getName.getOgss, c)
-    for (c ← to.getClasses.asScala)
-      tbn.put(c.getName.getOgss, c)
-    for (c ← to.getInterfaces.asScala)
-      tbn.put(c.getName.getOgss, c)
+    val tbn = new HashMap[String, Type]
+    to.byName = tbn
+    for (c ← sg.BuiltinType)
+      tbn.put(c.name.ogss, c)
+    for (c ← to.aliases)
+      tbn.put(c.name.ogss, c)
+    for (c ← to.enums)
+      tbn.put(c.name.ogss, c)
+    for (c ← to.classes)
+      tbn.put(c.name.ogss, c)
+    for (c ← to.interfaces)
+      tbn.put(c.name.ogss, c)
   }
 
   /**
@@ -398,64 +410,64 @@ class Projections(sg : OGFile) {
    * @note will recalculate to.byName
    */
   private def completeTypeMap(from : TypeContext, to : TypeContext, typeMap : HashMap[Type, Type]) {
-    val tbn = to.getByName
+    val tbn = to.byName
 
     def ensure(t : Type) : Type = {
       typeMap.getOrElseUpdate(t, t match {
         case t : ArrayType ⇒ {
-          val r = sg.ArrayTypes.make()
-          val b = ensure(t.getBaseType)
-          r.setBaseType(b)
-          r.setName(toIdentifier(s"${b.getName.getOgss}[]"))
-          r
+          val b = ensure(t.baseType)
+          sg.ArrayType
+            .build
+            .baseType(b)
+            .name(toIdentifier(s"${b.name.ogss}[]"))
+            .make
         }
         case t : ListType ⇒ {
-          val r = sg.ListTypes.make()
-          val b = ensure(t.getBaseType)
-          r.setBaseType(b)
-          r.setName(toIdentifier(s"list<${b.getName.getOgss}>"))
-          r
+          val b = ensure(t.baseType)
+          sg.ListType
+            .build
+            .baseType(b)
+            .name(toIdentifier(s"list<${b.name.ogss}>"))
+            .make
         }
         case t : SetType ⇒ {
-          val r = sg.SetTypes.make()
-          val b = ensure(t.getBaseType)
-          r.setBaseType(b)
-          r.setName(toIdentifier(s"set<${b.getName.getOgss}>"))
-          r
+          val b = ensure(t.baseType)
+          sg.SetType
+            .build
+            .baseType(b)
+            .name(toIdentifier(s"set<${b.name.ogss}>"))
+            .make
         }
         case t : MapType ⇒ {
-          val r = sg.MapTypes.make()
-          val k = ensure(t.getKeyType)
-          val v = ensure(t.getValueType)
-          r.setKeyType(k)
-          r.setValueType(v)
-          r.setName(toIdentifier(s"map<${k.getName.getOgss},${v.getName.getOgss}>"))
-          r
+          val k = ensure(t.keyType)
+          val v = ensure(t.valueType)
+          sg.MapType
+            .build
+            .keyType(k)
+            .valueType(v)
+            .name(toIdentifier(s"map<${k.name.ogss},${v.name.ogss}>"))
+            .make
         }
-        case _ ⇒ tbn.get(t.getName.getOgss)
+        case _ ⇒ tbn(t.name.ogss)
       })
     }
 
-    for (f ← from.getByName.values().asScala) {
+    for (f ← from.byName.values) {
       ensure(f) match {
         case t : ContainerType ⇒
-          to.getContainers.add(t)
-          tbn.put(t.getName.getOgss, t)
+          to.containers += t
+          tbn.put(t.name.ogss, t)
         case _ ⇒
       }
     }
 
-    to.getContainers.sort { (l, r) ⇒
-      val cmp = Integer.compare(l.getName.getOgss.length(), r.getName.getOgss.length())
-      if (0 != cmp) cmp
-      else l.getName.getOgss.compareTo(r.getName.getOgss)
-    }
+    to.containers.sortWith(IRUtils.ogssLess)
   }
 
   // ogssname -> identifier
   private val idCache = new HashMap[String, Identifier]
-  for (id ← sg.Identifiers.asScala)
-    idCache(id.getOgss) = id
+  for (id ← sg.Identifier)
+    idCache(id.ogss) = id
 
   /**
    * Create an identifier from string
@@ -490,12 +502,11 @@ class Projections(sg : OGFile) {
 
     idCache.getOrElseUpdate(
       ogssName,
-      {
-        val r = sg.Identifiers.make
-        r.setOgss(ogssName)
-        r.setParts(new ArrayList(asJavaCollection(parts)))
-        r
-      }
+      sg.Identifier
+        .build
+        .ogss(ogssName)
+        .parts(parts)
+        .make
     )
   }
 

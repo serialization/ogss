@@ -15,9 +15,6 @@
  ******************************************************************************/
 package ogss.backend.scala
 
-import scala.collection.JavaConversions.asScalaBuffer
-import scala.collection.JavaConversions.mapAsScalaMap
-
 trait EnumMaker extends AbstractBackEnd {
   abstract override def make {
     super.make
@@ -36,7 +33,7 @@ object ${name(t)} extends Enumeration {
   type ${name(t)} = Value
   ${
         (
-          for (v ← t.getValues) yield s"""
+          for (v ← t.values) yield s"""
   ${comment(v)}val ${name(v)} = Value"""
         ).mkString
       }

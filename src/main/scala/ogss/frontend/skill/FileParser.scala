@@ -16,8 +16,8 @@
 package ogss.frontend.skill
 
 import java.io.File
-import java.util.ArrayList
 
+import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.HashSet
 
 import ogss.frontend.common.FrontEnd
@@ -78,16 +78,16 @@ class FileParser(self : FrontEnd) extends DefinitionPostProcessing(self) {
     case name ⇒
       ensureUnique(name)
 
-      val curr = self.out.ClassDefs.make()
-      curr.setComment(c)
-      curr.setName(name.image)
-      curr.setPos(self.makeSPos(name))
+      currentType = self.out.ClassDef
+        .build
+        .comment(c)
+        .name(name.image)
+        .pos(self.makeSPos(name))
+        .fields(new ArrayBuffer)
+        .views(new ArrayBuffer)
+        .customs(new ArrayBuffer)
+        .make
 
-      curr.setFields(new ArrayList)
-      curr.setViews(new ArrayList)
-      curr.setCustoms(new ArrayList)
-
-      currentType = curr
       definitions(name.image) = currentType
   }) ~> withInheritance
 
@@ -98,16 +98,16 @@ class FileParser(self : FrontEnd) extends DefinitionPostProcessing(self) {
     case keyword ~ name ⇒
       ensureUnique(name)
 
-      val curr = self.out.InterfaceDefs.make()
-      curr.setComment(c)
-      curr.setName(name.image)
-      curr.setPos(self.makeSPos(name))
+      currentType = self.out.InterfaceDef
+        .build
+        .comment(c)
+        .name(name.image)
+        .pos(self.makeSPos(name))
+        .fields(new ArrayBuffer)
+        .views(new ArrayBuffer)
+        .customs(new ArrayBuffer)
+        .make
 
-      curr.setFields(new ArrayList)
-      curr.setViews(new ArrayList)
-      curr.setCustoms(new ArrayList)
-
-      currentType = curr
       definitions(name.image) = currentType
   }) ~> withInheritance
 
@@ -120,10 +120,12 @@ class FileParser(self : FrontEnd) extends DefinitionPostProcessing(self) {
 
       val pos = self.makeSPos(name)
 
-      val r = self.out.TypeAliass.make()
-      r.setName(name.image)
-      r.setPos(pos)
-      r.setComment(c)
+      val r = self.out.TypeAlias
+        .build
+        .name(name.image)
+        .pos(pos)
+        .comment(c)
+        .make
       typedefImages(r) = t
   }
 
@@ -139,32 +141,35 @@ class FileParser(self : FrontEnd) extends DefinitionPostProcessing(self) {
         val pos = self.makeSPos(name)
         if (i.isEmpty)
           self.reportError(s"""${self.printPosition(pos)}
-Enum ${name.image.getOgss} requires a non-empty list of instances!""")
+Enum ${name.image.ogss} requires a non-empty list of instances!""")
 
         if (!f.isEmpty)
           self.reportWarning(s"""${self.printPosition(pos)}
-Enum ${name.image.getOgss} has fields. Enum fields are not supported in OGSS.""")
+Enum ${name.image.ogss} has fields. Enum fields are not supported in OGSS.""")
 
-        val r = self.out.EnumDefs.make
-        r.setName(name.image)
-        r.setPos(pos)
-        r.setComment(c)
-        val vs = new ArrayList[EnumConstant]
-        r.setValues(vs)
+        val vs = new ArrayBuffer[EnumConstant]
+        self.out.EnumDef
+          .build
+          .name(name.image)
+          .pos(pos)
+          .comment(c)
+          .values(vs)
+          .make
         for (c ~ n ← i) {
-          val v = self.out.EnumConstants.make
-          v.setName(n.image)
-          v.setPos(self.makeSPos(n))
-          v.setComment(c.getOrElse(null))
-          vs.add(v)
+          vs += self.out.EnumConstant
+            .build
+            .name(n.image)
+            .pos(self.makeSPos(n))
+            .comment(c.getOrElse(null))
+            .make
         }
     }
 
   private def withInheritance : Parser[Unit] = rep((":" | "with" | "extends") ~> id) ~! definitionBody ^^ {
     case sup ~ body ⇒
       val target = currentType.asInstanceOf[WithInheritance]
-      target.setSuperInterfaces(new ArrayList)
-      target.setSubTypes(new ArrayList)
+      target.superInterfaces = new ArrayBuffer
+      target.subTypes = new ArrayBuffer
 
       val ss = superTypes.getOrElseUpdate(target, new HashSet)
       for (s ← sup) {
@@ -174,7 +179,7 @@ Enum ${name.image.getOgss} has fields. Enum fields are not supported in OGSS."""
   }
 
   private def definitionBody : Parser[Unit] = (";" | ("{" ~> rep(field) <~ ("}" | ("\\z".r ^^ {
-    self.reportError("unexpected EOF while parsing " + currentType.getName.getOgss)
+    self.reportError("unexpected EOF while parsing " + currentType.name.ogss)
   })))) ^^ { _ ⇒ () }
 
   /**
@@ -192,28 +197,29 @@ Enum ${name.image.getOgss} has fields. Enum fields are not supported in OGSS."""
       val target = currentType.asInstanceOf[WithInheritance]
       // ensure field parsing works even in fallback mode
       if (null != target) {
-        val f = self.out.CustomFields.make()
-        f.setComment(c)
-        f.setLanguage(lowercase(lang))
-        f.setName(n.image)
-        f.setPos(self.makeSPos(n))
-        f.setTypename(t)
-        f.setOptions(opts)
-        target.getCustoms.add(f)
-        f.setOwner(target)
+        target.customs += self.out.CustomField
+          .build
+          .comment(c)
+          .language(lowercase(lang))
+          .name(n.image)
+          .pos(self.makeSPos(n))
+          .typename(t)
+          .options(opts)
+          .owner(target)
+          .make
       }
   }
-  protected def customFiledOptions : Parser[ArrayList[CustomFieldOption]] = (
+  protected def customFiledOptions : Parser[ArrayBuffer[CustomFieldOption]] = (
     rep("!" ~> id ~!
       (("(" ~> rep(string) <~ ")") | opt(string) ^^ { s ⇒ s.toList })) ^^ {
       s ⇒
-        val r = new ArrayList[CustomFieldOption]
+        val r = new ArrayBuffer[CustomFieldOption]
         for (n ~ args ← s) {
-          val opt = self.out.CustomFieldOptions.make()
-          opt.setName(lowercase(n))
-          val jargs = new ArrayList[String]
-          args.foreach(jargs.add)
-          opt.setArguments(jargs)
+          r += self.out.CustomFieldOption
+            .build
+            .name(lowercase(n))
+            .arguments(args.to)
+            .make
         }
         r
     }
@@ -228,14 +234,17 @@ Enum ${name.image.getOgss} has fields. Enum fields are not supported in OGSS."""
 
       // ensure field parsing works even in fallback mode
       if (null != target) {
-        val f = self.out.Views.make()
-        f.setComment(c)
+        val f = self.out.View
+          .build
+          .comment(c)
+          .name(newName.image)
+          .pos(self.makeSPos(newName))
+          .owner(target)
+          .make
+
+        target.views += f
         fieldTypeImages(f) = newType
         superViews(f) = (targetType.getOrElse(null), targetField)
-        f.setName(newName.image)
-        f.setPos(self.makeSPos(newName))
-        target.getViews.add(f)
-        f.setOwner(target)
       }
   }
 
@@ -243,7 +252,7 @@ Enum ${name.image.getOgss} has fields. Enum fields are not supported in OGSS."""
    * Constants a recognized by the keyword "const" and are required to have a value.
    */
   private def constant = "const" ~> fieldTypeImage ~! positioned(id ^^ PositionedID) ~! ("=" ~> int) ^^ {
-    case t ~ n ~ v ⇒ self.reportWarning(s"ignored constant ${n.image.getOgss} at ${self.printPosition(self.makeSPos(n))}")
+    case t ~ n ~ v ⇒ self.reportWarning(s"ignored constant ${n.image.ogss} at ${self.printPosition(self.makeSPos(n))}")
   }
 
   /**
@@ -255,14 +264,17 @@ Enum ${name.image.getOgss} has fields. Enum fields are not supported in OGSS."""
 
       // ensure field parsing works even in fallback mode
       if (null != target) {
-        val f = self.out.Fields.make()
-        f.setComment(c)
-        f.setIsTransient(!a.isEmpty)
+        val f = self.out.Field
+          .build
+          .comment(c)
+          .isTransient(!a.isEmpty)
+          .name(n.image)
+          .pos(self.makeSPos(n))
+          .owner(target)
+          .make
+
+        target.fields += f
         fieldTypeImages(f) = t
-        f.setName(n.image)
-        f.setPos(self.makeSPos(n))
-        target.getFields.add(f)
-        f.setOwner(target)
       }
   }
 
@@ -278,7 +290,7 @@ Enum ${name.image.getOgss} has fields. Enum fields are not supported in OGSS."""
     }
     // these choices have to happen in that order to get recursion right
     | "annotation" ^^ { _ ⇒ "anyRef" }
-    | id ^^ { _.getOgss }
+    | id ^^ { _.ogss }
   ) ~ rep("[" ~> "]") ^^ {
       case t ~ as ⇒ as.foldLeft(t)((l, r) ⇒ l + "[]")
     }
@@ -307,9 +319,9 @@ Enum ${name.image.getOgss} has fields. Enum fields are not supported in OGSS."""
     if (definitions.contains(name.image)) {
       val first = definitions(name.image)
       val dpos = self.makeSPos(name)
-      self.reportError(s"""duplicate definition: ${name.image.getOgss}
+      self.reportError(s"""duplicate definition: ${name.image.ogss}
 first:
-${self.printPosition(first.getPos)}
+${self.printPosition(first.pos)}
 
 second:
 ${self.printPosition(dpos)}

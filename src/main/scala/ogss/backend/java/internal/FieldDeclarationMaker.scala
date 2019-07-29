@@ -15,72 +15,72 @@
  ******************************************************************************/
 package ogss.backend.java.internal
 
-import scala.collection.JavaConverters.asScalaBufferConverter
 import scala.collection.mutable.ArrayBuffer
+
 import ogss.backend.java.AbstractBackEnd
 import ogss.io.PrintWriter
-import ogss.oil.Field
-import ogss.oil.SetType
-import ogss.oil.ClassDef
-import ogss.oil.ListType
-import ogss.oil.Type
-import ogss.oil.MapType
-import ogss.oil.InterfaceDef
-import ogss.oil.EnumDef
-import ogss.oil.BuiltinType
 import ogss.oil.ArrayType
+import ogss.oil.BuiltinType
+import ogss.oil.ClassDef
+import ogss.oil.EnumDef
+import ogss.oil.Field
+import ogss.oil.InterfaceDef
+import ogss.oil.ListType
+import ogss.oil.MapType
+import ogss.oil.SetType
+import ogss.oil.Type
 
 trait FieldDeclarationMaker extends AbstractBackEnd {
   final def makeFields(out : PrintWriter) {
 
     for (t ← flatIR) {
-      val autoFieldIndex : Map[Field, Int] = t.getFields.asScala.filter(_.getIsTransient).zipWithIndex.toMap
+      val autoFieldIndex : Map[Field, Int] = t.fields.filter(_.isTransient).zipWithIndex.toMap
 
-      for (f ← t.getFields.asScala) {
+      for (f ← t.fields) {
         // the field before interface projection
-        val originalF = allFields(this.types.getByName.get(ogssname(t)).asInstanceOf[ClassDef])
-          .find(_.getName == f.getName).get
+        val originalF = allFields(this.types.byName(ogssname(t)).asInstanceOf[ClassDef])
+          .find(_.name == f.name).get
 
         // the type before the interface projection
-        val fieldActualType = mapType(originalF.getType, true)
-        val fieldActualTypeUnboxed = mapType(originalF.getType, false)
+        val fieldActualType = mapType(originalF.`type`, true)
+        val fieldActualTypeUnboxed = mapType(originalF.`type`, false)
 
-        val tIsBaseType = t.getSuperType == null
+        val tIsBaseType = t.superType == null
 
         val nameT = mapType(t)
         val nameF = knownField(f)
 
         // casting access to data array using index i
-        val declareD = s"final ${mapType(t.getBaseType)}[] d = ((${access(t.getBaseType)}) owner.basePool()).data();"
+        val declareD = s"final ${mapType(t.baseType)}[] d = ((${access(t.baseType)}) owner.basePool()).data();"
         val fieldAccess = (
-          if (null == t.getSuperType) "d[i]"
+          if (null == t.superType) "d[i]"
           else s"((${mapType(t)})d[i])"
         ) + s".${name(f)}"
 
         out.write(s"""
 /**
- * ${ogssname(f.getType)} ${ogssname(t)}.${ogssname(f)}
+ * ${ogssname(f.`type`)} ${ogssname(t)}.${ogssname(f)}
  */
 public static final class $nameF extends ${
-          if (f.getIsTransient) "AutoField"
+          if (f.isTransient) "AutoField"
           else "FieldDeclaration"
         }<$fieldActualType, ${mapType(t)}>${
           var interfaces = new ArrayBuffer[String]()
 
           // mark data fields as known
-          if (!f.getIsTransient) interfaces += "KnownField"
+          if (!f.isTransient) interfaces += "KnownField"
 
           // mark ignored fields as ignored; read function is inherited
           // TODO remove? if (f.isIgnored()) interfaces += "IgnoredField"
 
           // mark interface fields
-          if (f.getType.isInstanceOf[InterfaceDef]) interfaces += "InterfaceField"
+          if (f.`type`.isInstanceOf[InterfaceDef]) interfaces += "InterfaceField"
 
           if (interfaces.isEmpty) ""
           else interfaces.mkString(" implements ", ", ", "")
         } {
 ${
-          if (f.getIsTransient) s"""
+          if (f.isTransient) s"""
     $nameF(FieldType<$fieldActualType> type, ${access(t)} owner) {
         super(type, "${ogssname(f)}", ${-1 - autoFieldIndex(f)}, owner);
     }"""
@@ -91,7 +91,7 @@ ${
     }"""
         }
 ${
-          if (f.getIsTransient) ""
+          if (f.isTransient) ""
           else s"""
     @Override
     protected final void read(int i, final int h, MappedInStream in) {
@@ -108,7 +108,7 @@ ${
     @Override
     public $fieldActualType get(Obj ref) {
         return ${
-          if (f.getType.isInstanceOf[EnumDef]) s"(${mapType(f.getType)})"
+          if (f.`type`.isInstanceOf[EnumDef]) s"(${mapType(f.`type`)})"
           else ""
         }((${mapType(t)}) ref).${name(f)};
     }
@@ -138,23 +138,23 @@ ${
     }
 
     case t : ArrayType ⇒ s"""
-        final ogss.common.java.internal.fieldTypes.ArrayType<${mapType(t.getBaseType, true)}> type = (ogss.common.java.internal.fieldTypes.ArrayType<${mapType(t.getBaseType, true)}>) this.type;"""
+        final ogss.common.java.internal.fieldTypes.ArrayType<${mapType(t.baseType, true)}> type = (ogss.common.java.internal.fieldTypes.ArrayType<${mapType(t.baseType, true)}>) this.type;"""
     case t : ListType ⇒ s"""
-        final ogss.common.java.internal.fieldTypes.ListType<${mapType(t.getBaseType, true)}> type = (ogss.common.java.internal.fieldTypes.ListType<${mapType(t.getBaseType, true)}>) this.type;"""
+        final ogss.common.java.internal.fieldTypes.ListType<${mapType(t.baseType, true)}> type = (ogss.common.java.internal.fieldTypes.ListType<${mapType(t.baseType, true)}>) this.type;"""
     case t : SetType ⇒ s"""
-        final ogss.common.java.internal.fieldTypes.SetType<${mapType(t.getBaseType, true)}> type = (ogss.common.java.internal.fieldTypes.SetType<${mapType(t.getBaseType, true)}>) this.type;"""
+        final ogss.common.java.internal.fieldTypes.SetType<${mapType(t.baseType, true)}> type = (ogss.common.java.internal.fieldTypes.SetType<${mapType(t.baseType, true)}>) this.type;"""
     case t : MapType ⇒
       locally {
-        val mt = s"ogss.common.java.internal.fieldTypes.MapType<${mapType(t.getKeyType, true)}, ${mapType(t.getValueType, true)}>"
+        val mt = s"ogss.common.java.internal.fieldTypes.MapType<${mapType(t.keyType, true)}, ${mapType(t.valueType, true)}>"
         s"""
         final $mt type = ($mt) this.type;
         final FieldType keyType = type.keyType;
         final FieldType valueType = type.valueType;"""
       }
 
-    case t : InterfaceDef if t.getSuperType != null ⇒ s"""
-        final ${access(t.getSuperType)} t = (${access(t.getSuperType)})
-                FieldDeclaration.<${mapType(t.getSuperType)},${mapType(t)}>cast(type);"""
+    case t : InterfaceDef if t.superType != null ⇒ s"""
+        final ${access(t.superType)} t = (${access(t.superType)})
+                FieldDeclaration.<${mapType(t.superType)},${mapType(t)}>cast(type);"""
 
     case t : InterfaceDef ⇒ s"""
         final AnyRefType t = (AnyRefType) FieldDeclaration.<Obj,${mapType(t)}>cast(type);"""
@@ -171,22 +171,22 @@ ${
    * creates code to read all field elements
    */
   private final def readCode(t : ClassDef, f : Field) : String = {
-    val declareD = s"final Obj[] d = ((${access(t.getBaseType)}) owner${
-      if (null == t.getSuperType) ""
+    val declareD = s"final Obj[] d = ((${access(t.baseType)}) owner${
+      if (null == t.superType) ""
       else ".basePool"
     }).data();"
     val fieldAccess = s"((${mapType(t)})d[i]).${name(f)}"
 
-    val pre = prelude(f.getType)
+    val pre = prelude(f.`type`)
 
-    val code = f.getType match {
+    val code = f.`type` match {
       case t : BuiltinType ⇒ ogssname(t) match {
         case "AnyRef" ⇒ "t.r(in)"
         case "String" ⇒ "t.get(in.v32())"
         case s        ⇒ s"""in.${s.toLowerCase}()"""
       }
 
-      case t : InterfaceDef if t.getSuperType != null ⇒ s"(${mapType(t)}) t.get(in.v32())"
+      case t : InterfaceDef if t.superType != null ⇒ s"(${mapType(t)}) t.get(in.v32())"
       case t : InterfaceDef ⇒ s"(${mapType(t)}) t.r(in)"
 
       case t : ClassDef ⇒ "t.get(in.v32())"
@@ -204,13 +204,13 @@ ${
    * creates code to write exactly one field element
    */
   private final def writeCode(t : ClassDef, f : Field) : String = {
-    val declareD = s"final Obj[] d = ((${access(t.getBaseType)}) owner${
-      if (null == t.getSuperType) ""
+    val declareD = s"final Obj[] d = ((${access(t.baseType)}) owner${
+      if (null == t.superType) ""
       else ".basePool"
     }).data();"
     val fieldAccess = s"((${mapType(t)})d[i]).${name(f)}"
 
-    f.getType.getStid match {
+    f.`type`.stid match {
       case 0 ⇒ s"""$declareD
         final ogss.common.streams.BoolOutWrapper wrap = new ogss.common.streams.BoolOutWrapper(out);
         for (; i != h; i++) {
@@ -222,9 +222,9 @@ ${
 """
       case _ ⇒ {
 
-        val pre = prelude(f.getType)
+        val pre = prelude(f.`type`)
 
-        val code = writeCode(f.getType, fieldAccess)
+        val code = writeCode(f.`type`, fieldAccess)
 
         s"""$declareD$pre
         for (; i != h; i++) {
@@ -243,7 +243,7 @@ ${
       case s        ⇒ s"""${mapType(t)} v=$fieldAccess;drop&=0==v;out.${s.toLowerCase}(v)"""
     }
 
-    case t : InterfaceDef if t.getSuperType != null ⇒ s"""Obj v = (Obj)$fieldAccess;
+    case t : InterfaceDef if t.superType != null ⇒ s"""Obj v = (Obj)$fieldAccess;
             final int id = (null == v ? 0 : v.ID());
             if(0 == id)
                 out.i8((byte)0);

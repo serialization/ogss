@@ -15,15 +15,14 @@
  ******************************************************************************/
 package ogss.backend.cpp
 
-import scala.collection.JavaConverters._
-import ogss.oil.SetType
-import ogss.oil.Field
-import ogss.oil.ListType
-import ogss.oil.Type
-import ogss.oil.MapType
+import ogss.oil.ArrayType
 import ogss.oil.BuiltinType
 import ogss.oil.ClassDef
-import ogss.oil.ArrayType
+import ogss.oil.Field
+import ogss.oil.ListType
+import ogss.oil.MapType
+import ogss.oil.SetType
+import ogss.oil.Type
 
 trait PoolsMaker extends AbstractBackEnd {
   abstract override def make {
@@ -38,7 +37,7 @@ trait PoolsMaker extends AbstractBackEnd {
 #include <ogss/internal/Pool.h>
 #include <ogss/internal/SubPool.h>
 ${
-      IR.filter(_.getSuperType == null).map(base ⇒ s"""
+      IR.filter(_.superType == null).map(base ⇒ s"""
 #include "TypesOf${name(base)}.h"
 #include "${name(base)}FieldDeclarations.h"""").mkString
     }
@@ -53,27 +52,27 @@ namespace internal {
       val typeName = packageName + "::" + name(t)
       val typeT = mapType(t)
       val isSingleton = false //!t.getRestrictions.collect { case r : SingletonRestriction ⇒ r }.isEmpty
-      val fields = t.getFields.asScala
+      val fields = t.fields
 
       // create the builder, if required
-      if (null == t.getSuperType || !fields.isEmpty)
+      if (null == t.superType || !fields.isEmpty)
         out.write(s"""
     struct ${access(t)};
 
     template<class T, class B>
     struct ${builder(t)} : public ${
-          if (null == t.getSuperType) s"::ogss::api::Builder"
-          else s"${builder(t.getSuperType)}<T, B>"
+          if (null == t.superType) s"::ogss::api::Builder"
+          else s"${builder(t.superType)}<T, B>"
         } {${
           (for (f ← fields)
             yield s"""
 
-        B* ${name(f)}(${mapType(f.getType)} ${name(f)}) {
+        B* ${name(f)}(${mapType(f.`type`)} ${name(f)}) {
             ((T)this->self)->${name(f)} = ${name(f)};
             return (B*)this;
         }""").mkString
         }${
-          if (null == t.getSuperType) """
+          if (null == t.superType) """
             /**
              * destroy the builder
              */
@@ -86,8 +85,8 @@ namespace internal {
         }
     protected:
         ${builder(t)}(::ogss::api::Object* self) : ${
-          if (null == t.getSuperType) s"::ogss::api::Builder"
-          else s"${builder(t.getSuperType)}<T, B>"
+          if (null == t.superType) s"::ogss::api::Builder"
+          else s"${builder(t.superType)}<T, B>"
         } (self) {}
     };
     template<class T>
@@ -100,13 +99,13 @@ namespace internal {
       out.write(s"""
     struct ${access(t)} final : public ::ogss::internal::Pool<$typeName> {
         ${access(t)}(::ogss::TypeID typeID${
-        if (t.getSuperType == null) ""
+        if (t.superType == null) ""
         else s", AbstractPool *superPool"
       }, ::std::unordered_set<::ogss::restrictions::TypeRestriction *> *restrictions)
                 : ::ogss::internal::Pool<$typeName>(typeID, ${
-        if (t.getSuperType == null) "nullptr"
+        if (t.superType == null) "nullptr"
         else s"superPool"
-      }, ${skName(t.getName)}, restrictions, ${fields.count(_.getIsTransient)}) { }
+      }, ${skName(t.name)}, restrictions, ${fields.count(_.isTransient)}) { }
 
         ${builder(t)}_IMPL<$typeT>* build() final {
             return new ${builder(t)}_IMPL<$typeT>(make());
@@ -119,7 +118,7 @@ ${
         ::ogss::api::String KFN(uint32_t id) const override;
         ::ogss::internal::FieldDeclaration *KFC(uint32_t id, FieldType **SIFA, ::ogss::TypeID nextFID) override;"""
       }${
-        if (t.getSubTypes.isEmpty) ""
+        if (t.subTypes.isEmpty) ""
         else s"""
         ::ogss::api::String nameSub(uint32_t id) const override;
         ::ogss::internal::AbstractPool* makeSub(uint32_t id, ::ogss::TypeID index,
@@ -144,7 +143,7 @@ $endGuard""")
 
   private def makeSource {
     // we only need a source file, if there is a field or a subtype
-    if (IR.forall(_.getFields.isEmpty()) && IR.forall(_.getSuperType == null))
+    if (IR.forall(_.fields.isEmpty) && IR.forall(_.superType == null))
       return ;
 
     val out = files.open(s"Pools.cpp")
@@ -156,7 +155,7 @@ ${
       (for (t ← IR) yield {
         val poolName = packageName + "::internal::" + access(t)
         val typeT = mapType(t)
-        val fields = t.getFields.asScala
+        val fields = t.fields
 
         s"""${
           if (fields.isEmpty) ""
@@ -166,7 +165,7 @@ ${
     switch (id) {${
             fields.zipWithIndex.map {
               case (f, i) ⇒ s"""
-        case $i: r = $packageName::${skName(f.getName)}; break;"""
+        case $i: r = $packageName::${skName(f.name)}; break;"""
             }.mkString
           }
         default: r = nullptr;
@@ -179,8 +178,8 @@ ${
     switch (id) {${
             fields.zipWithIndex.map {
               case (f, i) ⇒ s"""
-        case $i: r = new $packageName::internal::${knownField(f)}(SIFA[${f.getType.getStid}], ${
-                if (f.getIsTransient) ""
+        case $i: r = new $packageName::internal::${knownField(f)}(SIFA[${f.`type`.stid}], ${
+                if (f.isTransient) ""
                 else "nextFID, "
               }this); break;"""
             }.mkString
@@ -190,15 +189,15 @@ ${
     return r;
 }"""
         }${
-          if (t.getSubTypes.isEmpty) ""
+          if (t.subTypes.isEmpty) ""
           else s"""
 
 ::ogss::api::String ($poolName::nameSub)(uint32_t id) const {
     ::ogss::api::String r;
     switch (id) {${
-            t.getSubTypes.asScala.zipWithIndex.map {
+            t.subTypes.zipWithIndex.map {
               case (s, i) ⇒ s"""
-        case $i: r = $packageName::${skName(s.getName)}; break;"""
+        case $i: r = $packageName::${skName(s.name)}; break;"""
             }.mkString
           }
         default: r = nullptr;
@@ -209,7 +208,7 @@ ${
                                           std::unordered_set<::ogss::restrictions::TypeRestriction *> *restrictions) {
     ::ogss::internal::AbstractPool *r;
     switch (id) {${
-            t.getSubTypes.asScala.collect { case t : ClassDef ⇒ t }.zipWithIndex.map {
+            t.subTypes.collect { case t : ClassDef ⇒ t }.zipWithIndex.map {
               case (s, i) ⇒ s"""
         case $i: r = new $packageName::internal::${access(s)}(index, this, restrictions); break;"""
             }.mkString
@@ -229,10 +228,10 @@ ${
   /**
    * escaped name for field classes
    */
-  private final def clsName(f : Field) : String = escaped("Cls" + camel(f.getName))
+  private final def clsName(f : Field) : String = escaped("Cls" + camel(f.name))
 
   protected def mapFieldDefinition(t : Type) : String = t match {
-    case t : BuiltinType ⇒ t.getName.getOgss match {
+    case t : BuiltinType ⇒ t.name.ogss match {
       case "String" ⇒ "state->strings"
       case "AnyRef" ⇒ "state->getAnnotationType()"
       case "Bool"   ⇒ "&::skill::fieldTypes::BoolType"
@@ -240,10 +239,10 @@ ${
     }
     case t : ClassDef  ⇒ s"state->${name(t)}"
 
-    case t : ArrayType ⇒ s"new ::skill::fieldTypes::ArrayType(${mapFieldDefinition(t.getBaseType)})"
-    case t : ListType  ⇒ s"new ::skill::fieldTypes::ListType(${mapFieldDefinition(t.getBaseType)})"
-    case t : SetType   ⇒ s"new ::skill::fieldTypes::SetType(${mapFieldDefinition(t.getBaseType)})"
-    case t : MapType   ⇒ s"new ::skill::fieldTypes::MapType(${mapFieldDefinition(t.getKeyType)}, ${mapFieldDefinition(t.getValueType)})"
+    case t : ArrayType ⇒ s"new ::skill::fieldTypes::ArrayType(${mapFieldDefinition(t.baseType)})"
+    case t : ListType  ⇒ s"new ::skill::fieldTypes::ListType(${mapFieldDefinition(t.baseType)})"
+    case t : SetType   ⇒ s"new ::skill::fieldTypes::SetType(${mapFieldDefinition(t.baseType)})"
+    case t : MapType   ⇒ s"new ::skill::fieldTypes::MapType(${mapFieldDefinition(t.keyType)}, ${mapFieldDefinition(t.valueType)})"
 
     case _             ⇒ "???"
   }

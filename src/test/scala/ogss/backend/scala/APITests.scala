@@ -11,25 +11,24 @@ import java.io.FileOutputStream
 import java.io.OutputStreamWriter
 import java.io.PrintWriter
 
-import scala.collection.JavaConverters._
-import scala.io.Source
+import scala.collection.JavaConverters.asScalaIteratorConverter
 
 import org.json.JSONArray
 import org.json.JSONObject
-import org.json.JSONTokener
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
+
 import ogss.backend.common.GenericAPITests
-import ogss.util.IRUtils
 import ogss.main.CommandLine
-import ogss.oil.TypeContext
-import ogss.oil.SetType
+import ogss.oil.BuiltinType
 import ogss.oil.Field
 import ogss.oil.ListType
-import ogss.oil.Type
 import ogss.oil.MapType
-import ogss.oil.BuiltinType
 import ogss.oil.SeqType
+import ogss.oil.SetType
+import ogss.oil.Type
+import ogss.oil.TypeContext
+import ogss.util.IRUtils
 
 /**
  * Generic API tests built for Scala
@@ -133,7 +132,7 @@ class GenericAPITest extends CommonTest {
   private def typ(tc : TypeContext, name : String) : String = {
     val n = name.toLowerCase()
     try {
-      escaped(capital((tc.getClasses.asScala ++ tc.getInterfaces.asScala).filter(d ⇒ lowercase(d.getName).equals(n)).head.getName))
+      escaped(capital((tc.classes ++ tc.interfaces).filter(d ⇒ lowercase(d.name).equals(n)).head.name))
     } catch {
       case e : NoSuchElementException ⇒ fail(s"Type '$n' does not exist, fix your test description!")
     }
@@ -141,20 +140,20 @@ class GenericAPITest extends CommonTest {
 
   private def field(tc : TypeContext, typ : String, field : String) = {
     val tn = typ.toLowerCase()
-    val t = tc.getClasses.asScala.find(d ⇒ lowercase(d.getName).equals(tn)).get
+    val t = tc.classes.find(d ⇒ lowercase(d.name).equals(tn)).get
     val fn = field.toLowerCase()
 
     val fs = allFields(t)
-    fs.find(d ⇒ lowercase(d.getName).equals(fn)).getOrElse(
+    fs.find(d ⇒ lowercase(d.name).equals(fn)).getOrElse(
       fail(s"Field '$fn' does not exist, fix your test description!")
     )
   }
 
-  private def value(v : Any, f : Field) : String = value(v, f.getType)
+  private def value(v : Any, f : Field) : String = value(v, f.`type`)
 
   private def value(v : Any, t : Type) : String = t match {
     case t : BuiltinType ⇒
-      lowercase(t.getName) match {
+      lowercase(t.name) match {
         case "string"      ⇒ s""""${v.toString()}""""
         case "i8"          ⇒ v.toString() + ".toByte"
         case "i16"         ⇒ v.toString() + ".toShort"
@@ -166,14 +165,14 @@ class GenericAPITest extends CommonTest {
 
     case t : SeqType ⇒ v match {
       case null | JSONObject.NULL ⇒ "null"
-      case v : JSONArray ⇒ v.iterator().asScala.toArray.map(value(_, t.getBaseType)).mkString(t match {
+      case v : JSONArray ⇒ v.iterator().asScala.toArray.map(value(_, t.baseType)).mkString(t match {
         case t : ListType ⇒ "list("
         case t : SetType  ⇒ "set("
         case _            ⇒ "array("
       }, ", ", ")").replace("java.util.", "")
     }
 
-    case t : MapType if v != null ⇒ valueMap(v.asInstanceOf[JSONObject], t.getKeyType, t.getValueType)
+    case t : MapType if v != null ⇒ valueMap(v.asInstanceOf[JSONObject], t.keyType, t.valueType)
 
     case _                        ⇒ v.toString()
   }

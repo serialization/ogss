@@ -21,24 +21,22 @@ import java.io.FileOutputStream
 import java.io.OutputStreamWriter
 import java.io.PrintWriter
 
-import scala.collection.JavaConverters._
-import scala.io.Source
+import scala.collection.JavaConverters.asScalaIteratorConverter
 
 import org.json.JSONArray
 import org.json.JSONObject
-import org.json.JSONTokener
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 
-import ogss.oil.TypeContext
-import ogss.oil.SetType
-import ogss.oil.Field
-import ogss.main.CommandLine
-import ogss.oil.Type
-import ogss.oil.MapType
 import ogss.backend.common.GenericAPITests
+import ogss.main.CommandLine
 import ogss.oil.BuiltinType
+import ogss.oil.Field
+import ogss.oil.MapType
 import ogss.oil.SeqType
+import ogss.oil.SetType
+import ogss.oil.Type
+import ogss.oil.TypeContext
 
 /**
  * Generic API tests built for C++.
@@ -52,7 +50,7 @@ class APITests extends GenericAPITests {
 
   var gen = new Main
 
-  override def preferredTypeContext : TypeContext = IR.TypeContexts.asScala.find(tc ⇒ tc.getProjectedTypeDefinitions && tc.getProjectedInterfaces).get
+  override def preferredTypeContext : TypeContext = IR.TypeContext.find(tc ⇒ tc.projectedTypeDefinitions && tc.projectedInterfaces).get
 
   override def deleteOutDir(out : String) {
   }
@@ -142,7 +140,7 @@ TEST(${gen.escaped(name.capitalize)}_API_Test, ${if (accept) "Acc" else "Fail"}_
   private def typ(tc : TypeContext, name : String) : String = {
     val n = name.toLowerCase()
     try {
-      gen.name((tc.getClasses.asScala ++ tc.getInterfaces.asScala).filter(c ⇒ lowercase(c.getName).equals(n)).head)
+      gen.name((tc.classes ++ tc.interfaces).filter(c ⇒ lowercase(c.name).equals(n)).head)
     } catch {
       case e : NoSuchElementException ⇒ fail(s"Type '$n' does not exist, fix your test description!")
     }
@@ -150,19 +148,19 @@ TEST(${gen.escaped(name.capitalize)}_API_Test, ${if (accept) "Acc" else "Fail"}_
 
   private def field(tc : TypeContext, typ : String, field : String) = {
     val tn = typ.toLowerCase()
-    val t = tc.getClasses.asScala.find(c ⇒ lowercase(c.getName).equals(tn)).get
+    val t = tc.classes.find(c ⇒ lowercase(c.name).equals(tn)).get
     val fn = field.toLowerCase()
     try {
-      allFields(t).find(f ⇒ lowercase(f.getName).equals(fn)).get
+      allFields(t).find(f ⇒ lowercase(f.name).equals(fn)).get
     } catch {
       case e : NoSuchElementException ⇒ fail(s"Field '$fn' does not exist, fix your test description!")
     }
   }
 
-  private def value(v : Any, f : Field) : String = value(v, f.getType)
+  private def value(v : Any, f : Field) : String = value(v, f.`type`)
 
   private def value(v : Any, t : Type) : String = t match {
-    case t : BuiltinType ⇒ t.getName.getOgss match {
+    case t : BuiltinType ⇒ t.name.ogss match {
       case "String" if null != v ⇒ s"""sf->strings->add(u8"${v.toString()}")"""
       case "I8"                  ⇒ "(int8_t)" + v.toString()
       case "I16"                 ⇒ "(short)" + v.toString()
@@ -180,17 +178,17 @@ TEST(${gen.escaped(name.capitalize)}_API_Test, ${if (accept) "Acc" else "Fail"}_
       locally {
         var rval = t match {
           case JSONObject.NULL ⇒ "nullptr"
-          case t : SetType     ⇒ s"set<${gen.mapType(t.getBaseType)}>()"
-          case _               ⇒ s"array<${gen.mapType(t.getBaseType)}>()"
+          case t : SetType     ⇒ s"set<${gen.mapType(t.baseType)}>()"
+          case _               ⇒ s"array<${gen.mapType(t.baseType)}>()"
         }
         if (v.isInstanceOf[JSONArray])
           for (x ← v.asInstanceOf[JSONArray].iterator().asScala) {
-            rval = s"put<${gen.mapType(t.getBaseType)}>($rval, ${value(x, t.getBaseType)})"
+            rval = s"put<${gen.mapType(t.baseType)}>($rval, ${value(x, t.baseType)})"
           }
         rval
       }
 
-    case t : MapType if v != null ⇒ valueMap(v.asInstanceOf[JSONObject], t.getKeyType, t.getValueType)
+    case t : MapType if v != null ⇒ valueMap(v.asInstanceOf[JSONObject], t.keyType, t.valueType)
 
     case _ ⇒
       if (null == v || v.toString().equals("null"))

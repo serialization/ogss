@@ -15,20 +15,21 @@
  ******************************************************************************/
 package ogss.main
 
-import ogss.oil.TypeContext
-import scala.collection.mutable.HashMap
 import java.io.File
-import ogss.BuildInfo
+
 import scala.collection.mutable.ArrayBuffer
-import ogss.oil.OGFile
-import ogss.common.java.api.Mode
+import scala.collection.mutable.HashMap
+
+import ogss.BuildInfo
+import ogss.common.scala.api.Create
+import ogss.common.scala.api.Read
+import ogss.common.scala.api.ReadOnly
+import ogss.common.scala.api.Write
 import ogss.io.PrintingService
+import ogss.oil.OGFile
 import ogss.util.HeaderInfo
-import scala.collection.JavaConverters.asScalaIterator
-import ogss.util.IRUtils
-import ogss.util.Projections
-import scopt.OptionDef
 import ogss.util.IRChecks
+import ogss.util.IRUtils
 
 object CommandLine {
 
@@ -106,7 +107,7 @@ object CommandLine {
       val tmpPath = File.createTempFile("ogss", ".oil")
       tmpPath.deleteOnExit()
 
-      frontEnd.out = OGFile.open(tmpPath, Mode.Create, Mode.Write)
+      frontEnd.out = OGFile.open(tmpPath, Create, Write)
       frontEnd.run(target)
       val IR = frontEnd.out
 
@@ -117,14 +118,14 @@ object CommandLine {
       }
 
       // ensure that we do not modify an existing file accidentally
-      if (IR.currentPath() != tmpPath.toPath()) {
+      if (IR.currentPath != tmpPath.toPath()) {
         IR.changePath(tmpPath.toPath())
         IR.close()
       }
 
       val failures = HashMap[String, Exception]()
       for (lang ← languages.par) {
-        val outIR = OGFile.open(IR.currentPath(), Mode.Read, Mode.ReadOnly)
+        val outIR = OGFile.open(IR.currentPath, Read, ReadOnly)
         val backEnd = KnownBackEnds.forLanguage(lang)
 
         val pathPostfix =
@@ -158,7 +159,7 @@ ${
         backEnd.depsPath = new File(depsdir, pathPostfix)
         backEnd.skipDependencies = skipDeps
 
-        for (id ← asScalaIterator(outIR.Identifiers.iterator()))
+        for (id ← outIR.Identifier)
           if (visitors.contains(IRUtils.lowercase(id)))
             backEnd.visited += id
 

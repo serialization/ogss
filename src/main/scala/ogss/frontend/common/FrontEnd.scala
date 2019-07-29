@@ -17,28 +17,25 @@ package ogss.frontend.common
 
 import java.io.File
 
-import ogss.oil.OGFile;
-import ogss.oil.Comment
-import ogss.oil.Identifier
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.JavaConverters._
-import scala.collection.mutable.HashMap
-import java.util.ArrayList
-import scala.collection.mutable.ListBuffer
 import scala.annotation.tailrec
-import ogss.oil.Type
-import ogss.oil.ArrayType
-import ogss.oil.ListType
-import ogss.oil.SetType
-import ogss.oil.MapType
-import ogss.oil.CustomFieldOption
-import ogss.oil.View
-import ogss.oil.InterfaceDef
-import ogss.oil.ClassDef
-import ogss.util.IRUtils
+import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.HashMap
 import scala.collection.mutable.HashSet
+import scala.collection.mutable.ListBuffer
+
+import ogss.oil.ArrayType
+import ogss.oil.ClassDef
+import ogss.oil.Comment
+import ogss.oil.CustomFieldOption
+import ogss.oil.Identifier
+import ogss.oil.InterfaceDef
+import ogss.oil.ListType
+import ogss.oil.MapType
+import ogss.oil.OGFile
+import ogss.oil.SetType
 import ogss.oil.SourcePosition
-import scala.util.parsing.input.Positional
+import ogss.oil.Type
+import ogss.util.IRUtils
 
 /**
  * Provides common functionalities to be used by all front-ends.
@@ -127,24 +124,26 @@ abstract class FrontEnd {
 
     val ws = scan(text.size - 2)
 
-    val r = out.Comments.make()
-    r.setTags(new ArrayList)
+    val r = out.Comment.make
+    r.tags = new ArrayBuffer
 
-    @inline def ammend(text : ListBuffer[String]) = {
-      if (null == r.getText)
-        r.setText(new ArrayList(asJavaCollection(text)))
+    @inline def ammend(text : ListBuffer[String]) {
+      if (null == r.text)
+        r.text = text.to
       else
-        r.getTags.get(r.getTags.size() - 1).setText(new ArrayList(asJavaCollection(text)))
+        r.tags.last.text = text.to
     }
 
-    @inline def ammendTag(text : ListBuffer[String], tag : String) = {
-      if (null == r.getText)
-        r.setText(new ArrayList(asJavaCollection(text)))
+    @inline def ammendTag(text : ListBuffer[String], tag : String) {
+      if (null == r.text)
+        r.text = text.to
       else
-        r.getTags.get(r.getTags.size() - 1).setText(new ArrayList(asJavaCollection(text)))
-      val t = out.CommentTags.make()
-      r.getTags.add(t)
-      t.setName(tag)
+        r.tags.last.text = text.to
+
+      r.tags += out.CommentTag
+        .build
+        .name(tag)
+        .make
     }
 
     @tailrec def parse(ws : ListBuffer[String], text : ListBuffer[String]) : Unit =
@@ -200,130 +199,79 @@ abstract class FrontEnd {
 
     idCache.getOrElseUpdate(
       ogssName,
-      {
-        val r = out.Identifiers.make
-        r.setOgss(ogssName)
-        r.setParts(new ArrayList(asJavaCollection(parts)))
-        r
-      }
+      out.Identifier
+        .build
+        .ogss(ogssName)
+        .parts(parts.to)
+        .make
     )
   }
 
   private val SPosCache = new HashMap[(String, Int, Int), SourcePosition]
   final def makeSPos(from : Positioned) : SourcePosition = SPosCache.getOrElseUpdate(
-    (from.declaredInFile, from.pos.line, from.pos.column), {
-      val r = out.SourcePositions.make()
-      r.setFile(from.declaredInFile)
-      r.setColumn(from.pos.column)
-      r.setLine(from.pos.line)
-      r
-    }
+    (from.declaredInFile, from.pos.line, from.pos.column),
+    out.SourcePosition
+      .build
+      .file(from.declaredInFile)
+      .column(from.pos.column)
+      .line(from.pos.line)
+      .make
   )
 
-  final def printPosition(pos : SourcePosition) = s"${pos.getFile} ${pos.getLine}:${pos.getColumn}"
+  final def printPosition(pos : SourcePosition) = s"${pos.file} ${pos.line}:${pos.column}"
 
   private val arrayTypes = new HashMap[Type, ArrayType]
   final def makeArray(t : Type) : ArrayType = arrayTypes.getOrElseUpdate(
     t,
-    {
-      val r = out.ArrayTypes.make()
-      r.setBaseType(t)
-      r
-    }
+    out.ArrayType
+      .build
+      .baseType(t)
+      .make
   )
   private val listTypes = new HashMap[Type, ListType]
   final def makeList(t : Type) : ListType = listTypes.getOrElseUpdate(
     t,
-    {
-      val r = out.ListTypes.make()
-      r.setBaseType(t)
-      r
-    }
+    out.ListType
+      .build
+      .baseType(t)
+      .make
   )
   private val setTypes = new HashMap[Type, SetType]
   final def makeSet(t : Type) : SetType = setTypes.getOrElseUpdate(
     t,
-    {
-      val r = out.SetTypes.make()
-      r.setBaseType(t)
-      r
-    }
+    out.SetType
+      .build
+      .baseType(t)
+      .make
   )
   private val mapTypes = new HashMap[(Type, Type), MapType]
   final def makeMap(k : Type, v : Type) : MapType = mapTypes.getOrElseUpdate(
     (k, v),
-    {
-      val r = out.MapTypes.make()
-      r.setKeyType(k)
-      r.setValueType(v)
-      r
-    }
+    out.MapType
+      .build
+      .keyType(k)
+      .valueType(v)
+      .make
   )
 
   private val namedTypes = new HashMap[Identifier, Type]
   final def makeNamedType(name : Identifier) : Type = namedTypes.getOrElseUpdate(
     name,
-    name.getOgss match {
-      case "Bool" ⇒
-        val r = out.BuiltinTypes.make()
-        r.setStid(0)
-        r.setName(name)
-        r
-      case "I8" ⇒
-        val r = out.BuiltinTypes.make()
-        r.setStid(1)
-        r.setName(name)
-        r
-      case "I16" ⇒
-        val r = out.BuiltinTypes.make()
-        r.setStid(2)
-        r.setName(name)
-        r
-      case "I32" ⇒
-        val r = out.BuiltinTypes.make()
-        r.setStid(3)
-        r.setName(name)
-        r
-      case "I64" ⇒
-        val r = out.BuiltinTypes.make()
-        r.setStid(4)
-        r.setName(name)
-        r
-      case "V64" ⇒
-        val r = out.BuiltinTypes.make()
-        r.setStid(5)
-        r.setName(name)
-        r
-      case "F32" ⇒
-        val r = out.BuiltinTypes.make()
-        r.setStid(6)
-        r.setName(name)
-        r
-      case "F64" ⇒
-        val r = out.BuiltinTypes.make()
-        r.setStid(7)
-        r.setName(name)
-        r
-      case "AnyRef" ⇒
-        val r = out.BuiltinTypes.make()
-        r.setStid(8)
-        r.setName(name)
-        r
-      case "String" ⇒
-        val r = out.BuiltinTypes.make()
-        r.setStid(9)
-        r.setName(name)
-        r
+    name.ogss match {
+      case "Bool"   ⇒ out.BuiltinType.build.stid(0).name(name).make
+      case "I8"     ⇒ out.BuiltinType.build.stid(1).name(name).make
+      case "I16"    ⇒ out.BuiltinType.build.stid(2).name(name).make
+      case "I32"    ⇒ out.BuiltinType.build.stid(3).name(name).make
+      case "I64"    ⇒ out.BuiltinType.build.stid(4).name(name).make
+      case "V64"    ⇒ out.BuiltinType.build.stid(5).name(name).make
+      case "F32"    ⇒ out.BuiltinType.build.stid(6).name(name).make
+      case "F64"    ⇒ out.BuiltinType.build.stid(7).name(name).make
+      case "AnyRef" ⇒ out.BuiltinType.build.stid(8).name(name).make
+      case "String" ⇒ out.BuiltinType.build.stid(9).name(name).make
 
-      case _ ⇒
-        val ts = out.UserDefinedTypes.iterator()
-        while (ts.hasNext()) {
-          val r = ts.next
-          if (name == r.getName)
-            return r
-        }
-
-        reportError(s"Undeclared type ${name.getOgss}")
+      case _ ⇒ out.UserDefinedType.find(_.name == name).getOrElse(
+        reportError(s"Undeclared type ${name.ogss}")
+      )
     }
   )
 
@@ -343,7 +291,7 @@ abstract class FrontEnd {
   protected def normalize {
     // ensure existence of builtin types
     {
-      var builtins = out.BuiltinTypes.asScala.map(_.getStid).toSet
+      var builtins = out.BuiltinType.map(_.stid).toSet
       for (i ← 0 until 10)
         if (!builtins(i))
           i match {
@@ -362,26 +310,26 @@ abstract class FrontEnd {
 
     // normalize custom fields
     {
-      val noArgs = new ArrayList[String]
-      for (c ← asScalaIterator(out.CustomFieldOptions.iterator()))
-        if (null == c.getArguments)
-          c.setArguments(noArgs)
+      val noArgs = new ArrayBuffer[String]
+      for (c ← out.CustomFieldOption)
+        if (null == c.arguments)
+          c.arguments = noArgs
     }
     {
-      val noOpts = new ArrayList[CustomFieldOption]
-      for (c ← asScalaIterator(out.CustomFields.iterator()))
-        if (null == c.getOptions)
-          c.setOptions(noOpts)
+      val noOpts = new ArrayBuffer[CustomFieldOption]
+      for (c ← out.CustomField)
+        if (null == c.options)
+          c.options = noOpts
     }
 
-    val tc = out.TypeContexts.make()
+    val tc = out.TypeContext.make
 
     // normalize inheritance hierarchies
     {
       // calculate all super types to perform type hierarchy normalization as set opertions
-      val allSuperOf = out.WithInheritances.asScala.map(t ⇒ (t, IRUtils.allSuperTypes(t))).toMap
+      val allSuperOf = out.WithInheritance.map(t ⇒ (t, IRUtils.allSuperTypes(t))).toMap
 
-      for (c ← out.WithInheritances.asScala) {
+      for (c ← out.WithInheritance) {
         // calculate super frontier
         val superCS : HashSet[ClassDef] = allSuperOf(c).collect { case c : ClassDef ⇒ c }
         for (x ← superCS.flatMap(allSuperOf)) {
@@ -400,120 +348,104 @@ abstract class FrontEnd {
         }
 
         if (superCS.size > 1) {
-          reportError(c.getPos, s"Type ${c.getName.getOgss} has multiple distinct super classes: ${superCS.map(_.getName.getOgss).mkString(", ")}")
+          reportError(c.pos, s"Type ${c.name.ogss} has multiple distinct super classes: ${superCS.map(_.name.ogss).mkString(", ")}")
         }
         superCS.foreach { sup ⇒
           if (sup == c)
-            reportError(c.getPos, s"Type ${c.getName.getOgss} is its own super class")
+            reportError(c.pos, s"Type ${c.name.ogss} is its own super class")
 
-          if (sup != c.getSuperType) {
-            if (null != c.getSuperType) {
-              reportWarning(c.getPos, s"Type ${c.getName.getOgss} has super classes ${c.getSuperType.getName.getOgss}, but should have ${sup.getName.getOgss} instead")
+          if (sup != c.superType) {
+            if (null != c.superType) {
+              reportWarning(c.pos, s"Type ${c.name.ogss} has super classes ${c.superType.name.ogss}, but should have ${sup.name.ogss} instead")
             }
-            c.setSuperType(sup)
+            c.superType = sup
           }
         }
         // set correct base type
-        if (null != c.getSuperType) {
-          c.setBaseType(allSuperOf(c).collect { case c : ClassDef if c.getSuperType == null ⇒ c }.head)
+        if (null != c.superType) {
+          c.baseType = allSuperOf(c).collect { case c : ClassDef if c.superType == null ⇒ c }.head
         } else {
           c match {
-            case c : ClassDef ⇒ c.setBaseType(c)
+            case c : ClassDef ⇒ c.baseType = c
             case _            ⇒
           }
         }
 
-        for (sup ← c.getSuperInterfaces.asScala -- superIS) {
-          reportWarning(c.getPos, s"Type ${c.getName.getOgss} has an unneeded super interface ${sup.getSuperType.getName.getOgss}.")
+        for (sup ← c.superInterfaces -- superIS) {
+          reportWarning(c.pos, s"Type ${c.name.ogss} has an unneeded super interface ${sup.superType.name.ogss}.")
         }
         // reorder super interfaces
-        c.setSuperInterfaces(new ArrayList(superIS.toSeq.sortBy(_.getName.getOgss).asJava))
+        c.superInterfaces = superIS.toSeq.sortBy(_.name.ogss).to
 
         // Also, ensure FieldLikes
-        if (null == c.getCustoms)
-          c.setCustoms(new ArrayList)
+        if (null == c.customs)
+          c.customs = new ArrayBuffer
 
-        if (null == c.getFields)
-          c.setFields(new ArrayList)
+        if (null == c.fields)
+          c.fields = new ArrayBuffer
 
-        if (null == c.getViews)
-          c.setViews(new ArrayList)
+        if (null == c.views)
+          c.views = new ArrayBuffer
       }
 
       // reorder TC interfaces
-      tc.setInterfaces(new ArrayList(asScalaIterator(out.InterfaceDefs.iterator()).toSeq.sortBy(
-        t ⇒ (allSuperOf(t).size, t.getName.getOgss)
-      ).asJava))
+      tc.interfaces = out.InterfaceDef.toSeq.sortBy(
+        t ⇒ (allSuperOf(t).size, t.name.ogss)
+      ).to
     }
 
     // normalize fieldLike orders
     {
-      for (c ← out.WithInheritances.asScala) {
-        c.getCustoms.sort { (l, r) ⇒
-          val cmp = Integer.compare(l.getName.getOgss.length(), r.getName.getOgss.length())
-          if (0 != cmp) cmp
-          else l.getName.getOgss.compareTo(r.getName.getOgss)
-        }
-        c.getFields.sort { (l, r) ⇒
-          val cmp = Integer.compare(l.getName.getOgss.length(), r.getName.getOgss.length())
-          if (0 != cmp) cmp
-          else l.getName.getOgss.compareTo(r.getName.getOgss)
-        }
-        c.getViews.sort { (l, r) ⇒
-          val cmp = Integer.compare(l.getName.getOgss.length(), r.getName.getOgss.length())
-          if (0 != cmp) cmp
-          else l.getName.getOgss.compareTo(r.getName.getOgss)
-        }
+      for (c ← out.WithInheritance) {
+        c.customs.sortWith(IRUtils.ogssLess)
+        c.fields.sortWith(IRUtils.ogssLess)
+        c.views.sortWith(IRUtils.ogssLess)
       }
     }
 
     // aliases require no further action
-    tc.setAliases(new ArrayList(out.TypeAliass.asScala.toSeq.sortBy(_.getName.getOgss).asJavaCollection))
+    tc.aliases = out.TypeAlias.toSeq.sortBy(_.name.ogss).to
 
     // normalize enums
-    tc.setEnums(new ArrayList(
-      (for (c ← asScalaIterator(out.EnumDefs.iterator())) yield {
-        c.setValues(new ArrayList(c.getValues.asScala.sortBy(v ⇒ (v.getName.getOgss.size, v.getName.getOgss)).asJavaCollection))
+    tc.enums =
+      (for (c ← out.EnumDef) yield {
+        c.values.sortBy(v ⇒ (v.name.ogss.size, v.name.ogss))
         c
-      }).toSeq.sortBy(_.getName.getOgss).asJavaCollection
-    ))
+      }).toSeq.sortBy(_.name.ogss).to
 
     // classes require complex sorting
     val pathNameCache = new HashMap[ClassDef, String]
     def pathName(cls : ClassDef) : String = {
-      if (null == cls.getSuperType)
-        cls.getName.getOgss
+      if (null == cls.superType)
+        cls.name.ogss
       else {
-        pathNameCache.getOrElseUpdate(cls, pathName(cls.getSuperType) + "\0" + cls.getName.getOgss)
+        pathNameCache.getOrElseUpdate(cls, pathName(cls.superType) + "\u0000" + cls.name.ogss)
       }
     }
 
-    val classes = asScalaIterator(out.ClassDefs.iterator()).toSeq.map(c ⇒ (pathName(c), c)).sortBy(p ⇒ p._1).map(_._2)
-    tc.setClasses(new ArrayList(classes.asJavaCollection))
+    tc.classes = out.ClassDef.toSeq.map(c ⇒ (pathName(c), c)).sortBy(p ⇒ p._1).map(_._2).to
 
     // sort containers by name and create names
     def ensureName(c : Type) : String = {
-      if (null == c.getName)
-        c.setName(c match {
-          case c : ArrayType ⇒ toIdentifier(s"${ensureName(c.getBaseType)}[]")
-          case c : ListType  ⇒ toIdentifier(s"list<${ensureName(c.getBaseType)}>")
-          case c : SetType   ⇒ toIdentifier(s"set<${ensureName(c.getBaseType)}>")
-          case c : MapType   ⇒ toIdentifier(s"map<${ensureName(c.getKeyType)},${ensureName(c.getValueType)}>")
+      if (null == c.name)
+        c.name = (c match {
+          case c : ArrayType ⇒ toIdentifier(s"${ensureName(c.baseType)}[]")
+          case c : ListType  ⇒ toIdentifier(s"list<${ensureName(c.baseType)}>")
+          case c : SetType   ⇒ toIdentifier(s"set<${ensureName(c.baseType)}>")
+          case c : MapType   ⇒ toIdentifier(s"map<${ensureName(c.keyType)},${ensureName(c.valueType)}>")
         })
-      c.getName.getOgss
+      c.name.ogss
     }
-    out.ContainerTypes.asScala.foreach(ensureName)
-    tc.setContainers(new ArrayList(
-      out.ContainerTypes.asScala.toSeq.sortBy(c ⇒ (c.getName.getOgss.length(), c.getName.getOgss)).asJavaCollection
-    ))
+    out.ContainerType.foreach(ensureName)
+    tc.containers = out.ContainerType.toSeq.sortWith(IRUtils.ogssLess).to
 
     // calculate variable STIDs
     IRUtils.recalculateSTIDs(tc)
 
     // create byName
-    val tbn = new java.util.HashMap[String, Type]
-    tc.setByName(tbn)
-    for (c ← out.Types.asScala)
-      tbn.put(c.getName.getOgss, c)
+    val tbn = new HashMap[String, Type]
+    tc.byName = tbn
+    for (c ← out.Type)
+      tbn.put(c.name.ogss, c)
   }
 }

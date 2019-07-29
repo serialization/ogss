@@ -15,12 +15,11 @@
  ******************************************************************************/
 package ogss.backend.oil
 
-import ogss.backend.common.DefaultBackEnd
-import ogss.oil.OGFile
-import ogss.util.HeaderInfo
-import java.nio.file.Path
 import java.io.File
+
+import ogss.backend.common.DefaultBackEnd
 import ogss.oil.Field
+import ogss.oil.OGFile
 
 /**
  * A back-end that produces an .oil-file, i.e. the oil-file created to communicate between back-end and front-end is

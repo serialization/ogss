@@ -106,13 +106,20 @@ Identifier {
 }
 
 /**
- * The root of the type hierarchy.
+ * A named entity. Either a Type or a FieldLike.
  */
-Type {
+WithName {
+	
   /**
-   * the name of this type
+   * the name of this entity
    */
   Identifier name;
+}
+
+/**
+ * The root of the type hierarchy.
+ */
+Type : WithName {
 
   /**
    * Static type ID of this type.
@@ -282,16 +289,11 @@ InterfaceDef extends WithInheritance {
 /**
  * Common properties of field-like definitions.
  */
-FieldLike {
+FieldLike : WithName {
   /**
    * The type defining this field.
    */
   WithInheritance owner;
-
-  /**
-   * The name of this field.
-   */
-  Identifier name;
 
   /**
    * Any field-like definition may have a comment.

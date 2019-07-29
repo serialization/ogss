@@ -15,19 +15,17 @@
  ******************************************************************************/
 package ogss.backend.scala
 
-import scala.collection.JavaConverters._
-import ogss.oil.InterfaceDef
-import ogss.oil.EnumDef
-import ogss.oil.WithInheritance
 import ogss.io.PrintWriter
 import ogss.oil.ClassDef
+import ogss.oil.EnumDef
 import ogss.oil.Field
-import ogss.oil.BuiltinType
+import ogss.oil.InterfaceDef
+import ogss.oil.WithInheritance
 
 trait TypesMaker extends AbstractBackEnd {
 
   @inline def introducesStateRef(t : WithInheritance) : Boolean = hasDistributedField(t) && (
-    null == t.getSuperType() || !hasDistributedField(t.getSuperType)
+    null == t.superType || !hasDistributedField(t.superType)
   )
 
   abstract override def make {
@@ -37,9 +35,9 @@ trait TypesMaker extends AbstractBackEnd {
     createAnnotationInterfaces;
 
     // create one file for each type hierarchy to help parallel builds
-    for (base ← IR if null == base.getSuperType) {
+    for (base ← IR if null == base.superType) {
 
-      val out = files.open(s"TypesOf${base.getName.getOgss}.scala")
+      val out = files.open(s"TypesOf${base.name.ogss}.scala")
 
       //package
       out.write(s"""package ${this.packageName}
@@ -47,17 +45,17 @@ trait TypesMaker extends AbstractBackEnd {
 import ogss.common.scala.internal.EnumProxy;
 ${
         (for (
-          t ← (IR ++ interfaces) if t.getBaseType == base;
-          c ← t.getCustoms.asScala if c.getLanguage.equals("scala");
-          i ← c.getOptions.asScala.find(_.getName.equals("import")).toSeq.flatMap(_.getArguments.asScala)
+          t ← (IR ++ interfaces) if t.baseType == base;
+          c ← t.customs if c.language.equals("scala");
+          i ← c.options.find(_.name.equals("import")).toSeq.flatMap(_.arguments)
         ) yield s"import $i;\n").mkString
       }
 """)
 
-      for (t ← (IR ++ interfaces) if t.getBaseType == base) {
+      for (t ← (IR ++ interfaces) if t.baseType == base) {
         val isInterface = t.isInstanceOf[InterfaceDef]
 
-        val flatType = flatIR.find(_.getName == (if (isInterface) t.getSuperType.getName else t.getName)).get
+        val flatType = flatIR.find(_.name == (if (isInterface) t.superType.name else t.name)).get
 
         val fields = allFields(t)
 
@@ -77,15 +75,15 @@ ${
             else ""
           })"
         } extends ${
-          if (null != t.getSuperType()) name(t.getSuperType) else "ogss.common.scala.internal.Obj"
+          if (null != t.superType) name(t.superType) else "ogss.common.scala.internal.Obj"
         }${
           if (isInterface) ""
           else s"(__ID${
-            if (hasDistributedField(flatType.getSuperType)) ", __state"
+            if (hasDistributedField(flatType.superType)) ", __state"
             else ""
           })"
         }${
-          (for (s ← t.getSuperInterfaces.asScala)
+          (for (s ← t.superInterfaces)
             yield " with " + name(s)).mkString
         } {
 ${
@@ -99,7 +97,7 @@ ${
         this(0);
     }
 
-    override def STID : scala.Int = ${t.getStid};
+    override def STID : scala.Int = ${t.stid};
 """
         }""")
 
@@ -128,7 +126,7 @@ final class ${subtype(t)}(val τp : ogss.common.scala.internal.Pool[_ <: ${name(
    */
   private def createAnnotationInterfaces {
 
-    if (interfaces.forall(_.getSuperType != null))
+    if (interfaces.forall(_.superType != null))
       return ;
 
     val out = files.open(s"TypesOfAnyRef.scala")
@@ -139,18 +137,18 @@ final class ${subtype(t)}(val τp : ogss.common.scala.internal.Pool[_ <: ${name(
 import ogss.common.scala.internal.EnumProxy;
 ${
       (for (
-        t ← interfaces if null == t.getSuperType;
-        c ← t.getCustoms.asScala if c.getLanguage.equals("scala");
-        i ← c.getOptions.asScala.find(_.getName.equals("import")).toSeq.flatMap(_.getArguments.asScala)
+        t ← interfaces if null == t.superType;
+        c ← t.customs if c.language.equals("scala");
+        i ← c.options.find(_.name.equals("import")).toSeq.flatMap(_.arguments)
       ) yield s"import $i;\n").mkString
     }""")
 
-    for (t ← interfaces if null == t.getSuperType) {
+    for (t ← interfaces if null == t.superType) {
       out.write(s"""
 ${
         comment(t)
       }trait ${name(t)} extends ogss.common.scala.internal.Obj${
-        (for (s ← t.getSuperInterfaces.asScala)
+        (for (s ← t.superInterfaces)
           yield " with " + name(s)).mkString
       } {""")
 
@@ -171,48 +169,48 @@ ${
   private def makeGetterAndSetter(out : PrintWriter, t : WithInheritance, flatType : ClassDef) {
     val packageName = packageLastName
 
-    for (f ← t.getFields.asScala) {
+    for (f ← t.fields) {
 
       if (isDistributed(f)) {
         t match {
           case t : InterfaceDef ⇒ out.write(s"""
-  ${comment(f)}def ${getter(f)} : ${mapType(f.getType())};
-  ${comment(f)}def ${setter(f)}(${name(f)} : ${mapType(f.getType())}) : scala.Unit;
+  ${comment(f)}def ${getter(f)} : ${mapType(f.`type`)};
+  ${comment(f)}def ${setter(f)}(${name(f)} : ${mapType(f.`type`)}) : scala.Unit;
 """)
           case t ⇒ out.write(s"""
-  ${comment(f)}def ${getter(f)} : ${mapType(f.getType())} = ${makeGetterImplementation(t, f)}
-  ${comment(f)}def ${setter(f)}(${name(f)} : ${mapType(f.getType())}) : scala.Unit = ${makeSetterImplementation(t, f)}
+  ${comment(f)}def ${getter(f)} : ${mapType(f.`type`)} = ${makeGetterImplementation(t, f)}
+  ${comment(f)}def ${setter(f)}(${name(f)} : ${mapType(f.`type`)}) : scala.Unit = ${makeSetterImplementation(t, f)}
 """)
         }
       } else {
         out.write(s"""
   ${
-          if (f.getIsTransient) "@transient " else ""
+          if (f.isTransient) "@transient " else ""
         }final protected[$packageName] var ${localFieldName(f)} : ${
-          if (f.getType.isInstanceOf[EnumDef]) "AnyRef" else mapType(f.getType())
+          if (f.`type`.isInstanceOf[EnumDef]) "AnyRef" else mapType(f.`type`)
         } = ${defaultValue(f)}${
-          if (f.getType.isInstanceOf[EnumDef]) {
-            val et = s"$packagePrefix${name(f.getType())}.Value"
+          if (f.`type`.isInstanceOf[EnumDef]) {
+            val et = s"$packagePrefix${name(f.`type`)}.Value"
             s"""
-  ${comment(f)}def ${escaped(capital(f.getName) + "Enum")} : $et = ${makeGetterImplementation(t, f)} match {
+  ${comment(f)}def ${escaped(capital(f.name) + "Enum")} : $et = ${makeGetterImplementation(t, f)} match {
     case null ⇒ ${defaultValue(f)}
     case v : $et ⇒ v
-    case v : ${mapType(f.getType)} ⇒ v.target
+    case v : ${mapType(f.`type`)} ⇒ v.target
   }
-  ${comment(f)}def ${getter(f)} : ${mapType(f.getType())} = ${makeGetterImplementation(t, f)} match {
-    case v : ${mapType(f.getType())} ⇒ v
+  ${comment(f)}def ${getter(f)} : ${mapType(f.`type`)} = ${makeGetterImplementation(t, f)} match {
+    case v : ${mapType(f.`type`)} ⇒ v
     case _ ⇒ null
   }
   ${comment(f)}def ${setter(f)}(${name(f)} : $et) : scala.Unit = ${localFieldName(f)} = ${localFieldName(f)} match {
-    case v : ${mapType(f.getType)} ⇒ v.owner.proxy(${name(f)})
+    case v : ${mapType(f.`type`)} ⇒ v.owner.proxy(${name(f)})
     case v ⇒ v
   }
-  ${comment(f)}def ${setter(f)}(${name(f)} : ${mapType(f.getType())}) : scala.Unit = ${makeSetterImplementation(t, f)}
+  ${comment(f)}def ${setter(f)}(${name(f)} : ${mapType(f.`type`)}) : scala.Unit = ${makeSetterImplementation(t, f)}
 """
           } else {
             s"""
-  ${comment(f)}def ${getter(f)} : ${mapType(f.getType())} = ${makeGetterImplementation(t, f)}
-  ${comment(f)}def ${setter(f)}(${name(f)} : ${mapType(f.getType())}) : scala.Unit = ${makeSetterImplementation(t, f)}"""
+  ${comment(f)}def ${getter(f)} : ${mapType(f.`type`)} = ${makeGetterImplementation(t, f)}
+  ${comment(f)}def ${setter(f)}(${name(f)} : ${mapType(f.`type`)}) : scala.Unit = ${makeSetterImplementation(t, f)}"""
           }
         }
 """)
@@ -224,47 +222,47 @@ ${
       // collect distributed fields that are not projected onto the super type but onto us
       val fields = allFields(t).filter {
         f ⇒
-          val name = f.getName
+          val name = f.name
           isDistributed(f) &&
-            (null == t.getSuperType() || !allFields(t.getSuperType).exists(_ == f)) &&
-            !t.getFields.asScala.exists(_.getName.equals(name))
+            (null == t.superType || !allFields(t.superType).exists(_ == f)) &&
+            !t.fields.exists(_.name == name)
       }
 
       for (f ← fields) {
-        val thisF = flatType.getFields.asScala.find(_.getName.equals(f.getName)).get;
+        val thisF = flatType.fields.find(_.name.equals(f.name)).get;
         val thisT = flatType;
-        if (thisF.getType.isInstanceOf[EnumDef]) {
-          val et = s"$packagePrefix${name(f.getType())}.Value"
+        if (thisF.`type`.isInstanceOf[EnumDef]) {
+          val et = s"$packagePrefix${name(f.`type`)}.Value"
           out.write(s"""
-  ${comment(f)}def ${escaped(capital(f.getName) + "Enum")} : $et = ${makeGetterImplementation(thisT, thisF)} match {
+  ${comment(f)}def ${escaped(capital(f.name) + "Enum")} : $et = ${makeGetterImplementation(thisT, thisF)} match {
     case null ⇒ ${defaultValue(f)}
     case v : $et ⇒ v
-    case v : ${mapType(f.getType)} ⇒ v.target
+    case v : ${mapType(f.`type`)} ⇒ v.target
   }
-  ${comment(f)}def ${getter(f)} : ${mapType(f.getType())} = ${makeGetterImplementation(thisT, thisF)} match {
-    case v : ${mapType(f.getType())} ⇒ v
+  ${comment(f)}def ${getter(f)} : ${mapType(f.`type`)} = ${makeGetterImplementation(thisT, thisF)} match {
+    case v : ${mapType(f.`type`)} ⇒ v
     case _ ⇒ null
   }
   ${comment(f)}def ${setter(f)}(${name(f)} : $et) : scala.Unit = ${makeSetterImplementation(thisT, thisF)}
-  ${comment(f)}def ${setter(f)}(${name(f)} : ${mapType(f.getType())}) : scala.Unit = ${makeSetterImplementation(thisT, thisF)}
+  ${comment(f)}def ${setter(f)}(${name(f)} : ${mapType(f.`type`)}) : scala.Unit = ${makeSetterImplementation(thisT, thisF)}
 """)
         } else {
           out.write(s"""
-  ${comment(f)}def ${getter(f)} : ${mapType(f.getType())} = ${makeGetterImplementation(thisT, thisF)}
-  ${comment(f)}def ${setter(f)}(${name(f)} : ${mapType(f.getType())}) : scala.Unit = ${makeSetterImplementation(thisT, thisF)}
+  ${comment(f)}def ${getter(f)} : ${mapType(f.`type`)} = ${makeGetterImplementation(thisT, thisF)}
+  ${comment(f)}def ${setter(f)}(${name(f)} : ${mapType(f.`type`)}) : scala.Unit = ${makeSetterImplementation(thisT, thisF)}
 """)
         }
       }
     }
 
     // custom fields
-    for (c ← t.getCustoms.asScala if c.getLanguage.equals("scala")) {
-      val opts = c.getOptions.asScala
-      val mod = opts.find(_.getName.equals("modifier")).map(_.getArguments.get(0) + " ").getOrElse("")
-      val default = opts.find(_.getName.equals("default")).map(_.getArguments.get(0)).getOrElse("_")
+    for (c ← t.customs if c.language.equals("scala")) {
+      val opts = c.options
+      val mod = opts.find(_.name.equals("modifier")).map(_.arguments(0) + " ").getOrElse("")
+      val default = opts.find(_.name.equals("default")).map(_.arguments(0)).getOrElse("_")
 
       out.write(s"""
-  ${comment(c)}${mod}var ${name(c)} : ${c.getTypename} = $default; 
+  ${comment(c)}${mod}var ${name(c)} : ${c.typename} = $default; 
 """)
     }
   }
@@ -283,12 +281,12 @@ ${
     } else {
       s"{ ${ //@range check
         ""
-        //        if (f.getType().isInstanceOf[BuiltinType]) {
-        //          if (isInteger(f.getType)) {
+        //        if (f.`type`.isInstanceOf[BuiltinType]) {
+        //          if (isInteger(f.`type`)) {
         //            f.getRestrictions.asScala.collect { case r : IntRangeRestriction ⇒ r }.map { r ⇒ s"""require(${r.getLow}L <= ${name(f)} && ${name(f)} <= ${r.getHigh}L, "${name(f)} has to be in range [${r.getLow};${r.getHigh}]"); """ }.mkString("")
-        //          } else if ("F32".equals(f.getType.getName.getOgss)) {
+        //          } else if ("F32".equals(f.`type`.name.ogss)) {
         //            f.getRestrictions.asScala.collect { case r : FloatRangeRestriction ⇒ r }.map { r ⇒ s"""require(${r.getLowFloat}f <= ${name(f)} && ${name(f)} <= ${r.getHighFloat}f, "${name(f)} has to be in range [${r.getLowFloat};${r.getHighFloat}]"); """ }.mkString("")
-        //          } else if ("F64".equals(f.getType.getName.getOgss)) {
+        //          } else if ("F64".equals(f.`type`.name.ogss)) {
         //            f.getRestrictions.asScala.collect { case r : FloatRangeRestriction ⇒ r }.map { r ⇒ s"""require(${r.getLowDouble} <= ${name(f)} && ${name(f)} <= ${r.getHighDouble}, "${name(f)} has to be in range [${r.getLowDouble};${r.getHighDouble}]"); """ }.mkString("")
         //          } else {
         //            ""

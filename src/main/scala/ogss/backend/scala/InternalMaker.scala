@@ -16,12 +16,7 @@
 
 package ogss.backend.scala
 
-import scala.collection.JavaConverters._
-
-import scala.collection.mutable.ArrayBuffer
-import ogss.backend.java.internal.AccessMaker
 import ogss.io.PrintWriter
-import ogss.oil.Type
 import ogss.oil.ClassDef
 
 /**
@@ -79,18 +74,18 @@ object internal {
 
   private final def makePB(out : PrintWriter) {
     out.write(s"""
-  object PB extends ogss.common.scala.internal.PoolBuilder(${flatTC.getByName.size}) {
+  object PB extends ogss.common.scala.internal.PoolBuilder(${flatTC.byName.size}) {
 
     override def literals : Array[String] = Array(${
-      allStrings.map(n ⇒ s""""${n.getOgss}"""").mkString(", ")
+      allStrings.map(n ⇒ s""""${n.ogss}"""").mkString(", ")
     })
 
     override def kcc(ID : scala.Int) : scala.Int = ID match {${
       // predefine known containers
-      flatTC.getContainers.asScala.zipWithIndex.map {
+      flatTC.containers.zipWithIndex.map {
         case (ct, i) ⇒
           f"""
-      case $i ⇒ 0x${ct.getKcc()}%08x; // ${ogssname(ct)}"""
+      case $i ⇒ 0x${ct.kcc}%08x; // ${ogssname(ct)}"""
       }.mkString
     }
       case _ ⇒ -1
@@ -98,7 +93,7 @@ object internal {
 
     override def name(ID : scala.Int) : String = ${
       if (IR.isEmpty) "null"
-      else IR.filter(_.getSuperType == null).zipWithIndex.map {
+      else IR.filter(_.superType == null).zipWithIndex.map {
         case (t, i) ⇒ s"""
       case $i ⇒ "${ogssname(t)}";"""
       }.mkString("ID match {", "", """
@@ -108,7 +103,7 @@ object internal {
 
     override def make(ID : scala.Int, index : scala.Int) : Pool[_  <: Obj] = ${
       if (IR.isEmpty) "null"
-      else IR.filter(_.getSuperType == null).zipWithIndex.map {
+      else IR.filter(_.superType == null).zipWithIndex.map {
         case (t, i) ⇒ s"""
       case $i ⇒ new ${access(t)}(index);"""
       }.mkString("ID match {", "", """
@@ -120,7 +115,7 @@ object internal {
       if (enums.isEmpty) "null"
       else enums.zipWithIndex.map {
         case (t, i) ⇒ s"""
-      case $i ⇒ "${t.getName.getOgss}""""
+      case $i ⇒ "${t.name.ogss}""""
       }.mkString("ID match {", "", """
       case _ ⇒ null
     }""")
@@ -141,23 +136,23 @@ object internal {
 
   private final def makePools(out : PrintWriter) {
     for (t ← flatIR) {
-      val isBasePool = (null == t.getSuperType)
+      val isBasePool = (null == t.superType)
       val nameT = name(t)
       val subT = s"${this.packageName}.Sub$$$nameT"
       val typeT = mapType(t)
       val accessT = access(t)
 
       // find all fields that belong to the projected version, but use the unprojected variant
-      val fields = t.getFields.asScala
+      val fields = t.fields
 
       out.write(s"""
   final class $accessT (_idx : scala.Int${
         if (isBasePool) ""
-        else s", _sup : ${access(t.getSuperType)}"
+        else s", _sup : ${access(t.superType)}"
       }) extends Pool[$typeT](_idx, "${ogssname(t)}", ${
         if (isBasePool) "null"
         else "_sup"
-      }, ${fields.count(_.getIsTransient)}) {${
+      }, ${fields.count(_.isTransient)}) {${
         // export data for sub pools
         if (isBasePool) s"""
 
@@ -179,8 +174,8 @@ object internal {
     override def KFC(ID : scala.Int, SIFA : Array[FieldType[_]], nextFID : scala.Int) : ogss.common.scala.internal.Field[_, $typeT] = ID match {${
           fields.zipWithIndex.map {
             case (f, i) ⇒ s"""
-      case $i ⇒ new ${knownField(f)}(SIFA(${f.getType.getStid}), ${
-              if (f.getIsTransient) ""
+      case $i ⇒ new ${knownField(f)}(SIFA(${f.`type`.stid}), ${
+              if (f.isTransient) ""
               else "nextFID, "
             }this)"""
           }.mkString
@@ -214,10 +209,10 @@ object internal {
     def build : (${builder(t)}[$typeT, B] forSome { type B <: ${builder(t)}[$typeT, B] }) =
       new ${builder(t)}(this, new $typeT(0))
 ${
-        if (t.getSubTypes.isEmpty) ""
+        if (t.subTypes.isEmpty) ""
         else s"""
     override def nameSub(ID : scala.Int) : String = ID match {${
-          t.getSubTypes.asScala.zipWithIndex.map {
+          t.subTypes.zipWithIndex.map {
             case (s, i) ⇒ s"""
       case $i ⇒ "${ogssname(s)}""""
           }.mkString
@@ -226,7 +221,7 @@ ${
     }
 
     override def makeSub(ID : scala.Int, index : scala.Int) : Pool[_ <: ${mapType(t)}] = ID match {${
-          t.getSubTypes.asScala.collect { case t : ClassDef ⇒ t }.zipWithIndex.map {
+          t.subTypes.collect { case t : ClassDef ⇒ t }.zipWithIndex.map {
             case (s, i) ⇒ s"""
       case $i ⇒ new ${access(s)}(index, this)"""
           }.mkString
@@ -248,15 +243,15 @@ ${
 
     for (t ← IR) {
       val realT = projected(ogssname(t))
-      if (null == realT.getSuperType || !realT.getFields.isEmpty()) {
+      if (null == realT.superType || !realT.fields.isEmpty) {
 
         val nameT = name(t)
         val typeT = mapType(t)
 
         // find all fields that belong to the projected version, but use the unprojected variant
-        val flatIRFieldNames = flatIR.find(_.getName == t.getName).get.getFields.asScala.map(ogssname).toSet
+        val flatIRFieldNames = flatIR.find(_.name == t.name).get.fields.map(ogssname).toSet
         val fields = allFields(t).filter(f ⇒ flatIRFieldNames.contains(ogssname(f)))
-        val projectedField = flatIR.find(_.getName == t.getName).get.getFields.asScala.map {
+        val projectedField = flatIR.find(_.name == t.name).get.fields.map {
           case f ⇒ fields.find(ogssname(_).equals(ogssname(f))).get -> f
         }.toMap
 
@@ -268,13 +263,13 @@ ${
    */
   class ${builder(t)}[T <: $typeT, B <: ${builder(t)}[T, B]] protected[internal] (_pool : Pool[T], _self : T)
     extends ${
-          if (null == t.getSuperType) s"ogss.common.scala.internal.Builder[T]"
-          else s"${builder(t.getSuperType)}[T, B]"
+          if (null == t.superType) s"ogss.common.scala.internal.Builder[T]"
+          else s"${builder(t.superType)}[T, B]"
         }(_pool, _self) {${
           (for (f ← fields)
             yield s"""
 
-    def ${name(f)}(${name(f)} : ${mapType(f.getType)}) : B = {
+    def ${name(f)}(${name(f)} : ${mapType(f.`type`)}) : B = {
       self.${localFieldName(f)} = ${name(f)};
       this.asInstanceOf[B]
     }""").mkString

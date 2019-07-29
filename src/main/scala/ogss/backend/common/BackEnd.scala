@@ -15,20 +15,20 @@
  ******************************************************************************/
 package ogss.backend.common
 
-import ogss.oil.OGFile
+import java.io.File
+
+import scala.collection.mutable.HashSet
+
 import ogss.io.PrintingService
-import ogss.util.HeaderInfo
+import ogss.oil.Comment
+import ogss.oil.Field
 import ogss.oil.FieldLike
 import ogss.oil.Identifier
+import ogss.oil.OGFile
 import ogss.oil.Type
 import ogss.oil.UserDefinedType
-import ogss.oil.Comment
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.JavaConverters._
+import ogss.util.HeaderInfo
 import ogss.util.IRUtils
-import scala.collection.mutable.HashSet
-import java.io.File
-import ogss.oil.Field
 
 /**
  * Base class of all back-ends.
@@ -176,9 +176,9 @@ abstract class BackEnd extends IRUtils {
 
     val sb = new StringBuilder(prefix);
 
-    formatText(c.getText.asScala, linePrefix, sb, null);
-    for (t ← c.getTags.asScala)
-      formatText(t.getText.asScala, linePrefix, sb, t.getName);
+    formatText(c.text, linePrefix, sb, null);
+    for (t ← c.tags)
+      formatText(t.text, linePrefix, sb, t.name);
 
     // finish comment
     sb.append(postfix);
@@ -232,11 +232,11 @@ abstract class BackEnd extends IRUtils {
    * Translation of a type to its representation in the source code
    */
   protected[backend] def name(t : Type) : String = escapedLonely(typeNameConvention match {
-    case "ada"       ⇒ adaStyle(t.getName)
-    case "c"         ⇒ cStyle(t.getName)
-    case "camel"     ⇒ camel(t.getName)
-    case "capital"   ⇒ capital(t.getName)
-    case "lowercase" ⇒ lowercase(t.getName)
+    case "ada"       ⇒ adaStyle(t.name)
+    case "c"         ⇒ cStyle(t.name)
+    case "camel"     ⇒ camel(t.name)
+    case "capital"   ⇒ capital(t.name)
+    case "lowercase" ⇒ lowercase(t.name)
   })
   /**
    * Translation of a field to its representation in the source
@@ -245,11 +245,11 @@ abstract class BackEnd extends IRUtils {
    * TODO default naming convention
    */
   protected def name(f : FieldLike) : String = escapedLonely(fieldNameConvention match {
-    case "ada"       ⇒ adaStyle(f.getName)
-    case "c"         ⇒ cStyle(f.getName)
-    case "camel"     ⇒ camel(f.getName)
-    case "capital"   ⇒ capital(f.getName)
-    case "lowercase" ⇒ lowercase(f.getName)
+    case "ada"       ⇒ adaStyle(f.name)
+    case "c"         ⇒ cStyle(f.name)
+    case "camel"     ⇒ camel(f.name)
+    case "capital"   ⇒ capital(f.name)
+    case "lowercase" ⇒ lowercase(f.name)
   })
 
   /**

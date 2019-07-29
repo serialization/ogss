@@ -35,11 +35,11 @@ trait AbstractBackEnd extends BackEnd {
   var oil : OGFile = _
 
   lineLength = 80
-  override def comment(d : UserDefinedType) : String = format(d.getComment, "/**\n", " *", " */\n")
-  override def comment(f : FieldLike) : String = format(f.getComment, "/**\n", "   *", "   */\n  ")
+  override def comment(d : UserDefinedType) : String = format(d.comment, "/**\n", " *", " */\n")
+  override def comment(f : FieldLike) : String = format(f.comment, "/**\n", "   *", "   */\n  ")
 
   override def defaultValue(f : Field) : String = {
-    val stid = f.getType.getStid
+    val stid = f.`type`.stid
     if (stid < 0 || 8 >= stid)
       "nullptr"
     else if (0 == stid)
@@ -54,7 +54,7 @@ trait AbstractBackEnd extends BackEnd {
    * Assume the existence of a translation function for types.
    */
   protected def mapType(t : Type) : String
- 
+
   /**
    * Assume a package prefix provider.
    */

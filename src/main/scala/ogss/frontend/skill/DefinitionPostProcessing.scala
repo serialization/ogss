@@ -2,19 +2,18 @@ package ogss.frontend.skill
 
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.HashSet
-import scala.collection.JavaConverters._
 
+import ogss.frontend.common.FrontEnd
+import ogss.oil.ClassDef
+import ogss.oil.Field
 import ogss.oil.FieldLike
 import ogss.oil.Identifier
+import ogss.oil.InterfaceDef
+import ogss.oil.Type
 import ogss.oil.TypeAlias
 import ogss.oil.UserDefinedType
 import ogss.oil.View
-import ogss.oil.Type
-import ogss.frontend.common.FrontEnd
-import ogss.oil.Field
 import ogss.oil.WithInheritance
-import ogss.oil.ClassDef
-import ogss.oil.InterfaceDef
 
 /**
  * Post processing transformations that have to performed after parsing all
@@ -83,10 +82,10 @@ abstract class DefinitionPostProcessing(self : FrontEnd) extends CommonParseRule
   }
 
   private def ensureTypeAlias(t : TypeAlias) : Type = {
-    if (null != t.getTarget) t.getTarget
+    if (null != t.target) t.target
     else {
       val r = parseType(typedefImages(t))
-      t.setTarget(r)
+      t.target = r
       r
     }
   }
@@ -99,8 +98,8 @@ abstract class DefinitionPostProcessing(self : FrontEnd) extends CommonParseRule
     // set types
     for ((f, i) ← fieldTypeImages) {
       f match {
-        case f : Field ⇒ f.setType(parseType(i))
-        case f : View  ⇒ f.setType(parseType(i))
+        case f : Field ⇒ f.`type` = parseType(i)
+        case f : View  ⇒ f.`type` = parseType(i)
       }
     }
 
@@ -109,30 +108,28 @@ abstract class DefinitionPostProcessing(self : FrontEnd) extends CommonParseRule
       (t, supers) ← superTypes;
       sup ← supers.map(s ⇒ definitions.getOrElse(
         s,
-        self.reportError(t.getPos, s"type ${t.getName.getOgss} has an undefined super type ${s.getOgss}")
+        self.reportError(t.pos, s"type ${t.name.ogss} has an undefined super type ${s.ogss}")
       )).collect { case t : WithInheritance ⇒ t }
     ) {
       sup match {
-        case sup : ClassDef if (null != t.getSuperType) ⇒ self.reportError(t.getPos, s"$t cannot have two super classes")
-        case sup : ClassDef ⇒ {
-          t.setSuperType(sup)
-        }
-        case sup : InterfaceDef ⇒ var r = t.getSuperInterfaces.add(sup)
+        case sup : ClassDef if (null != t.superType) ⇒ self.reportError(t.pos, s"$t cannot have two super classes")
+        case sup : ClassDef                          ⇒ t.superType = sup
+        case sup : InterfaceDef                      ⇒ t.superInterfaces += sup
       }
-      sup.getSubTypes.add(t)
+      sup.subTypes += t
     }
 
     // create views
     for ((v, (st, sf)) ← superViews) {
       if (null == st) {
         // if there is no explicit super name, take any super field
-        val target = allFields(v.getOwner).find(_.getName == sf).getOrElse(self.reportError(v.getPos, "Could not find super field to be viewed."))
-        v.setTarget(target)
+        val target = allFields(v.owner).find(_.name == sf).getOrElse(self.reportError(v.pos, "Could not find super field to be viewed."))
+        v.target = target
       } else {
         definitions(st) match {
           case t : WithInheritance ⇒
-            val target = t.getFields.asScala.find(_.getName == sf).getOrElse(self.reportError(v.getPos, "Could not find super field to be viewed."))
-            v.setTarget(target)
+            val target = t.fields.find(_.name == sf).getOrElse(self.reportError(v.pos, "Could not find super field to be viewed."))
+            v.target = target
           case _ ⇒ ???
         }
       }
