@@ -31,6 +31,7 @@ object KnownBackEnds {
     classOf[oil.Main],
     classOf[ogss.backend.skill.Main],
     classOf[scala.Main],
+    classOf[sidl.Main],
   )
 
   private[main] val all = allClasses.map(_.newInstance)

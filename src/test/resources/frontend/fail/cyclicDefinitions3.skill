@@ -1,6 +1,0 @@
-/**
-reporter: Timm Felden
-reason: cyclic definitions should be detected by the front-end
-*/
-interface A : A {}
-B : A {}

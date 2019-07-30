@@ -19,6 +19,8 @@ import ogss.oil.CustomField
 import ogss.oil.Field
 import ogss.oil.TypeContext
 import ogss.oil.UserDefinedType
+import ogss.oil.View
+import ogss.oil.FieldLike
 
 /**
  * Creates user type equivalents.
@@ -68,7 +70,7 @@ trait SpecificationMaker extends AbstractBackEnd {
       else s"extends ${capital(t.superType.name)} "
     }${
       t.superInterfaces.map(s ⇒ s"with ${capital(s.name)} ").mkString
-    }{${mkFields(t.fields.to)}${mkCustom(t.customs.to)}
+    }{${mkFields(t.fields)}${mkViews(t.views)}${mkCustom(t.customs)}
 }
 
 """).mkString)
@@ -78,7 +80,7 @@ trait SpecificationMaker extends AbstractBackEnd {
       else s"extends ${capital(t.superType.name)} "
     }${
       t.superInterfaces.map(s ⇒ s"with ${capital(s.name)} ").mkString
-    }{${mkFields(t.fields.to)}${mkCustom(t.customs.to)}
+    }{${mkFields(t.fields)}${mkViews(t.views)}${mkCustom(t.customs)}
 }
 
 """).mkString)
@@ -86,13 +88,17 @@ trait SpecificationMaker extends AbstractBackEnd {
     out.close()
   }
 
-  private def mkFields(fs : Array[Field]) : String = fs.map(f ⇒ s"""
+  private def mkFields(fs : Seq[Field]) : String = fs.map(f ⇒ s"""
   ${prefix(f)}${
     if (f.isTransient) "auto "
     else ""
   }${mapType(f.`type`)} ${camel(f.name)};""").mkString("\n")
 
-  private def mkCustom(fs : List[CustomField]) : String = (for (f ← fs)
+  private def mkViews(fs : Seq[View]) : String = fs.map(f ⇒ s"""
+  ${prefix(f)}view ${capital(f.target.owner.name)}.${camel(f.target.name)}
+  as ${mapType(f.`type`)} ${camel(f.name)};""").mkString("\n")
+
+  private def mkCustom(fs : Seq[CustomField]) : String = (for (f ← fs)
     yield s"""
   ${comment(f)}custom ${f.language}${
     (for (opt ← f.options)
@@ -114,7 +120,7 @@ trait SpecificationMaker extends AbstractBackEnd {
     prefix
   }
 
-  private def prefix(f : Field) : String = {
+  private def prefix(f : FieldLike) : String = {
     var prefix = comment(f) // TODO + (f.getHints.asScala ++ f.getRestrictions.asScala).map(s ⇒ s"$s\n  ").mkString
     if (!prefix.isEmpty()) {
       prefix = "\n  " + prefix

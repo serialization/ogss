@@ -1,4 +1,0 @@
-Fail {
-	/** containers can not be nested directly */
-	map<string, set<i8>> nested;
-}

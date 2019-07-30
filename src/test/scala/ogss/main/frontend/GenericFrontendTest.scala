@@ -25,44 +25,126 @@ import org.scalatest.junit.JUnitRunner
 import ogss.frontend.common.ParseException
 import ogss.main.CommandLine
 import scala.reflect.ClassTag
+import scala.io.Source
 
 /**
  * Contains generic parser tests based on src/test/resources/frontend directory.
+ *
+ * @note it is silently assumed, that files are self-contained and are either
+ * SKilL or SIDL
+ *
  * @author Timm Felden
  */
 @RunWith(classOf[JUnitRunner])
 class GenericFrontendTest extends FunSuite {
+  class CLIError(msg : String) extends Error(msg);
 
   CommandLine.exit = { s ⇒
     // if commandline check fails, thats also fine
-    throw new ParseException(s)
+    throw new CLIError(s)
   }
 
-  private def check(file : File) = CommandLine.main(Array[String](
-    "build",
-    file.getAbsolutePath,
-    "-o", "/tmp/gen"
-  ))
+  private def lang(file : File) = file.getName.split('.').last.toLowerCase
+
+  private def check(file : File, language : String) =
+    CommandLine.main(Array[String](
+      "build",
+      file.getAbsolutePath,
+      "-o", "/tmp/gen",
+      "-L", language
+    ))
 
   def succeedOn(file : File) {
-    test("succeed on " + file.getName()) { check(file) }
+    test("read " + file.getName()) {
+      try {
+        check(file, lang(file))
+
+      } catch {
+        case e : CLIError ⇒ fail(e.getMessage)
+      }
+    }
+
+    test("loop " + file.getName()) {
+      lang(file) match {
+        case "skill" ⇒ try {
+          // path 1
+          CommandLine.main(Array[String](
+            "build",
+            file.getAbsolutePath,
+            "-o", "/tmp/gen",
+            "-L", "skill"
+          ))
+
+          // path 2
+          CommandLine.main(Array[String](
+            "build",
+            file.getAbsolutePath,
+            "-o", "/tmp/gen2",
+            "-L", "sidl"
+          ))
+
+          CommandLine.main(Array[String](
+            "build",
+            "/tmp/gen2/specification.sidl",
+            "-o", "/tmp/gen2",
+            "-L", "skill"
+          ))
+
+          // compare
+          assert(Source.fromFile("/tmp/gen/specification.skill").getLines().mkString
+            === Source.fromFile("/tmp/gen2/specification.skill").getLines().mkString)
+        } catch {
+          case e : CLIError ⇒ fail(e.getMessage)
+        }
+        case "sidl" ⇒ try {
+          // path 1
+          CommandLine.main(Array[String](
+            "build",
+            file.getAbsolutePath,
+            "-o", "/tmp/gen",
+            "-L", "sidl"
+          ))
+
+          // path 2
+          CommandLine.main(Array[String](
+            "build",
+            file.getAbsolutePath,
+            "-o", "/tmp/gen2",
+            "-L", "skill"
+          ))
+
+          CommandLine.main(Array[String](
+            "build",
+            "/tmp/gen2/specification.skill",
+            "-o", "/tmp/gen2",
+            "-L", "sidl"
+          ))
+
+          // compare
+          assert(Source.fromFile("/tmp/gen/specification.sidl").getLines().mkString
+            === Source.fromFile("/tmp/gen2/specification.sidl").getLines().mkString)
+        } catch {
+          case e : CLIError ⇒ fail(e.getMessage)
+        }
+      }
+    }
   }
 
   def failOn(file : File) {
     test("fail on " + file.getName()) {
       try {
-        check(file)
+        check(file, "skill")
         fail("expected an exception to be thrown")
       } catch {
-        case e : ParseException ⇒ // success
+        case e : CLIError ⇒ // success
       }
     }
   }
 
   for (
-    f ← new File("src/test/resources/frontend").listFiles() if f.isFile()
+    f ← new File("src/test/resources/frontend").listFiles().sortBy(_.getName) if f.isFile()
   ) succeedOn(f)
   for (
-    f ← new File("src/test/resources/frontend/fail").listFiles() if f.isFile()
+    f ← new File("src/test/resources/frontend/fail").listFiles().sortBy(_.getName) if f.isFile()
   ) failOn(f)
 }

@@ -285,7 +285,7 @@ Enum ${name.image.ogss} has fields. Enum fields are not supported in OGSS.""")
     (("set" | "list") ~! ("<" ~> fieldTypeImage <~ ">")) ^^ {
       case kind ~ base ⇒ s"$kind<$base>"
     }
-    | ("map" ~! ("<" ~> rep(fieldTypeImage <~ ",")) ~ (fieldTypeImage <~ ">")) ^^ {
+    | ("map" ~! ("<" ~> rep1(fieldTypeImage <~ ",")) ~ (fieldTypeImage <~ ">")) ^^ {
       case kind ~ l ~ r ⇒ l.foldRight(r)((l, r) ⇒ s"map<$l,$r>")
     }
     // these choices have to happen in that order to get recursion right

@@ -1,4 +1,0 @@
-Fail {
-	/** there are only integer constants */
-	const Fail field = 0x0;
-}

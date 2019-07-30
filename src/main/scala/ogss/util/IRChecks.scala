@@ -23,6 +23,11 @@ import ogss.oil.OGFile
 import ogss.oil.SeqType
 import ogss.oil.SetType
 import ogss.oil.TypeContext
+import scala.collection.mutable.HashMap
+import ogss.oil.Field
+import ogss.oil.View
+import ogss.oil.WithInheritance
+import ogss.oil.BuiltinType
 
 /**
  * This object provides some functions to check the well-formedness of
@@ -104,6 +109,94 @@ object IRChecks {
       for (t ← tc.classes ++ tc.interfaces ++ tc.containers ++ tc.enums) {
         expect(!seen(t.name.ogss), s"type ${t.name.ogss} has the same name as another type")
         seen += t.name.ogss
+      }
+    }
+
+    // check that fields are unique per type and name
+    {
+      for (t ← tc.classes ++ tc.interfaces) {
+        val seen = new HashSet[String]
+        for (c ← IRUtils.allFields(t)) {
+          expect(!seen(c.name.ogss), s"type ${t.name.ogss} defines field ${c.name.ogss} twice.")
+          seen += c.name.ogss
+        }
+      }
+    }
+
+    // check that views are unique per type and name and do not collide with fields
+    {
+      for (t ← tc.classes ++ tc.interfaces) {
+        val seen = new HashSet[String]
+        seen ++= t.fields.map(_.name.ogss)
+
+        for (c ← t.views) {
+          expect(!seen(c.name.ogss), s"view ${c.name.ogss} in type ${t.name.ogss} collides with another member.")
+          seen += c.name.ogss
+        }
+      }
+    }
+
+    // check that custom fields are unique per type, name and language
+    {
+      for (t ← tc.classes ++ tc.interfaces) {
+        // lang -> names
+        val seen = new HashMap[String, HashSet[String]]
+        for (c ← IRUtils.allCustoms(t)) {
+          val ns = seen.getOrElseUpdate(c.language, new HashSet)
+          expect(!ns(c.name.ogss), s"type ${t.name.ogss} defines custom field ${c.name.ogss} twice for language ${c.language}.")
+          ns += c.name.ogss
+        }
+      }
+    }
+
+    // check that views reside in super types and have assignable retyping
+    for (t ← tc.classes ++ tc.interfaces; v ← t.views) {
+      expect(
+        IRUtils.allSuperTypes(t).contains(v.target.owner) || t == v.target.owner,
+        s"view ${v.name.ogss} in type ${t.name.ogss} targets a field in unrelated type ${v.target.owner.name.ogss}."
+      )
+
+      expect(
+        (tc.classes ++ tc.interfaces).contains(v.target.owner),
+        s"view ${v.name.ogss} in type ${t.name.ogss} targets a field in unrelated type context."
+      )
+
+      val ft = v.`type`
+      val tt = (v.target match {
+        case f : Field ⇒ f.`type`
+        case f : View  ⇒ f.`type`
+      })
+
+      expect(
+        ft == tt || ((ft, tt) match {
+          case (ft : WithInheritance, tt : WithInheritance) ⇒
+            if (IRUtils.allSuperTypes(ft).contains(tt)) true
+            else {
+              println("view could retype : " + IRUtils.allSuperTypes(ft).map(_.name.ogss).mkString(", "))
+              println("view retypes : " + tt.name.ogss)
+              false
+            }
+          case (ft : WithInheritance, tt : BuiltinType) if tt.name.ogss.equals("AnyRef") ⇒ true
+          case _ ⇒ false
+        }),
+        s"view ${v.name.ogss} in type ${t.name.ogss} of type ${ft.name.ogss} cannot retype ${tt.name.ogss}."
+      )
+    }
+
+    // check that used field types exist in this type context
+    for (t ← tc.classes ++ tc.interfaces) {
+      val allTypes = tc.byName.values.toSet
+      for (f ← t.fields) {
+        expect(
+          allTypes(f.`type`),
+          s"field ${f.name.ogss} in type ${t.name.ogss} uses a type from an unrelated type context."
+        )
+      }
+      for (f ← t.views) {
+        expect(
+          allTypes(f.`type`),
+          s"view ${f.name.ogss} in type ${t.name.ogss} uses a type from an unrelated type context."
+        )
       }
     }
 

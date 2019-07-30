@@ -30,6 +30,7 @@ import ogss.oil.OGFile
 import ogss.util.HeaderInfo
 import ogss.util.IRChecks
 import ogss.util.IRUtils
+import ogss.frontend.common.ParseException
 
 object CommandLine {
 
@@ -37,7 +38,7 @@ object CommandLine {
    * configurable exit method called on error
    * @note the purpose of changing this is to replace it with a failure method in unit tests
    */
-  var exit : String ⇒ Unit = { s ⇒ System.err.println(s); System.exit(0) }
+  var exit : String ⇒ Unit = { s ⇒ System.err.println(s); System.exit(1) }
 
   /**
    * print an error message and quit
@@ -107,8 +108,12 @@ object CommandLine {
       val tmpPath = File.createTempFile("ogss", ".oil")
       tmpPath.deleteOnExit()
 
-      frontEnd.out = OGFile.open(tmpPath, Create, Write)
-      frontEnd.run(target)
+      try {
+        frontEnd.out = OGFile.open(tmpPath, Create, Write)
+        frontEnd.run(target)
+      } catch {
+        case e : ParseException ⇒ error(s"failed to read $target:\n ${e.getMessage}")
+      }
       val IR = frontEnd.out
 
       try {

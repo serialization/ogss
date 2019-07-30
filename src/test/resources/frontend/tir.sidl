@@ -177,7 +177,7 @@ ExtTypeAlias ->
    *  is identical to the instance of its target.
    */
   alias : auto TypeApplication,
-  target : TypeAliasDefinition view ExtType.target
+  target : TypeAliasDefinition view target
 
 /**
  *  Reference to type instances.
@@ -190,7 +190,7 @@ ExtTypeInstance ->
    *  @note  this is auto, as it points to a foreign state
    */
   source : auto TypeApplication,
-  target : StaticTypeInstance view ExtType.target
+  target : StaticTypeInstance view target
 
 /**
  *  Operator or functions that can be used by applies.
@@ -274,7 +274,7 @@ StaticType ->
    *  @note  the string and signature are those of the member
    *  @note  map has to be built from typeMembers
    */
-  overloadedMembers : auto map<string, functiontype, function>,
+  overloadedMembers : auto map<string, functionType, function>,
 
   /**
    *  the super type of this type, null only for tyr.lang.any

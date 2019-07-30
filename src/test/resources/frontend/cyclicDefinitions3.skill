@@ -1,0 +1,8 @@
+/**
+reporter: Timm Felden
+reason: cyclic definitions should be detected by the front-end
+
+@note: This is legal in ogss, because the normalization strategy can deal with it
+*/
+interface A : A {}
+B : A {}

@@ -1,4 +1,4 @@
 Fail {
-	/** maps can not be unary */
+	/** maps cannot be unary */
 	map<string> nested;
 }

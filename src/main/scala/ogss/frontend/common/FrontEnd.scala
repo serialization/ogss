@@ -255,7 +255,7 @@ abstract class FrontEnd {
   )
 
   private val namedTypes = new HashMap[Identifier, Type]
-  final def makeNamedType(name : Identifier) : Type = namedTypes.getOrElseUpdate(
+  final def makeNamedType(name : Identifier, pos : SourcePosition = null) : Type = namedTypes.getOrElseUpdate(
     name,
     name.ogss match {
       case "Bool"   ⇒ out.BuiltinType.build.stid(0).name(name).make
@@ -270,7 +270,10 @@ abstract class FrontEnd {
       case "String" ⇒ out.BuiltinType.build.stid(9).name(name).make
 
       case _ ⇒ out.UserDefinedType.find(_.name == name).getOrElse(
-        reportError(s"Undeclared type ${name.ogss}")
+        if (null != pos)
+          reportError(pos, s"Undeclared type ${name.ogss}")
+        else
+          reportError(s"Undeclared type ${name.ogss}")
       )
     }
   )
@@ -361,9 +364,19 @@ abstract class FrontEnd {
             c.superType = sup
           }
         }
+
+        // fix self cycles
+        if (c == c.superType) {
+          reportError(c.pos, s"Type ${c.name.ogss} is its own super class")
+          c.superType = null
+        }
+
         // set correct base type
         if (null != c.superType) {
-          c.baseType = allSuperOf(c).collect { case c : ClassDef if c.superType == null ⇒ c }.head
+          c.baseType = allSuperOf(c).collect { case c : ClassDef if c.superType == null ⇒ c }.headOption.getOrElse {
+            reportWarning(c.pos, s"Type ${c.name.ogss} has cyclic super classes")
+            null
+          }
         } else {
           c match {
             case c : ClassDef ⇒ c.baseType = c
@@ -372,7 +385,7 @@ abstract class FrontEnd {
         }
 
         for (sup ← c.superInterfaces -- superIS) {
-          reportWarning(c.pos, s"Type ${c.name.ogss} has an unneeded super interface ${sup.superType.name.ogss}.")
+          reportWarning(c.pos, s"Type ${c.name.ogss} has an unneeded super interface ${sup.name.ogss}.")
         }
         // reorder super interfaces
         c.superInterfaces = superIS.toSeq.sortBy(_.name.ogss).to
@@ -415,12 +428,23 @@ abstract class FrontEnd {
 
     // classes require complex sorting
     val pathNameCache = new HashMap[ClassDef, String]
+    val currentPathConstruction = new HashSet[ClassDef]
     def pathName(cls : ClassDef) : String = {
-      if (null == cls.superType)
-        cls.name.ogss
-      else {
-        pathNameCache.getOrElseUpdate(cls, pathName(cls.superType) + "\u0000" + cls.name.ogss)
+      if (currentPathConstruction.contains(cls)) {
+        reportError(cls.pos, s"Type ${cls.name.ogss} has a cyclic path name, i.e. cyclic super classes.")
+        return "☢";
       }
+
+      currentPathConstruction += cls
+      val r =
+        if (null == cls.superType)
+          cls.name.ogss
+        else {
+          pathNameCache.getOrElseUpdate(cls, pathName(cls.superType) + "\u0000" + cls.name.ogss)
+        }
+      currentPathConstruction -= cls
+
+      r
     }
 
     tc.classes = out.ClassDef.toSeq.map(c ⇒ (pathName(c), c)).sortBy(p ⇒ p._1).map(_._2).to

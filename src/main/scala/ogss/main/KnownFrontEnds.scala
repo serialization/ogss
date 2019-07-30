@@ -27,7 +27,8 @@ object KnownFrontEnds {
 
   val allClasses : Array[Class[_ <: common.FrontEnd]] = Array(
     classOf[oil.Main],
-    classOf[ogss.frontend.skill.Main]
+    classOf[ogss.frontend.skill.Main],
+    classOf[sidl.Main]
   )
 
   private[main] val all = allClasses.map(_.newInstance)

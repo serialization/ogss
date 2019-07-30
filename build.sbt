@@ -24,7 +24,7 @@ mainClass := Some("ogss.main.CommandLine")
 unmanagedResourceDirectories in Compile += { baseDirectory.value / "jar-extras" }
 
 
-libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.6"
+libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.2"
 
 libraryDependencies += "com.github.scopt" %% "scopt" % "3.5.0"
 

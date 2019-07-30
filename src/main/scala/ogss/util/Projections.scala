@@ -156,7 +156,7 @@ class Projections(sg : OGFile) {
   }
 
   private def substituteInterfaces(tc : TypeContext) {
-    // note we cannot fast exit if no interfaces are available, because we are not allowed to reuse the same types
+    // @note we cannot fast exit if no interfaces are available, because we are not allowed to reuse the same types
 
     // set trivial properties
     val r = sg.TypeContext
@@ -175,7 +175,7 @@ class Projections(sg : OGFile) {
     for (c ← tc.interfaces) {
       typeMap(c) =
         if (null == c.superType) tc.byName("AnyRef")
-        else c.superType
+        else r.classes.find(_.name == c.superType.name).get
     }
     makeTBN(r)
     completeTypeMap(tc, r, typeMap)
@@ -190,8 +190,10 @@ class Projections(sg : OGFile) {
       }
       if (null != c.baseType)
         c.baseType = typeMap(c.baseType).asInstanceOf[ClassDef]
+    }
 
-      // calculate new fields
+    // calculate new fields
+    for (c ← r.classes) {
       collectFields(typeMap, tc.byName(c.name.ogss).asInstanceOf[ClassDef], c)
     }
 
@@ -242,9 +244,14 @@ class Projections(sg : OGFile) {
     for (f ← vs.toArray.sortBy(f ⇒ (f.name.ogss.length(), f.name.ogss))) {
       val r = copy(f, typeMap)
       if (null != r) {
-        // add views which have not been projected away
-        r.owner = target
-        tvs += r
+        if (target == r.target.owner) {
+          // project away fields which might alias with their targets
+          sg.delete(r)
+        } else {
+          // add views which have not been projected away
+          r.owner = target
+          tvs += r
+        }
       }
     }
   }
@@ -282,6 +289,7 @@ class Projections(sg : OGFile) {
       .build
       .comment(f.comment)
       .name(f.name)
+      .pos(f.pos)
       .language(f.language)
       .options(f.options)
       .typename(f.typename)
@@ -292,37 +300,36 @@ class Projections(sg : OGFile) {
    * projection!
    */
   private def copy(f : Field, typeMap : HashMap[Type, Type]) : Field = {
+    assert(f.`type`.stid < 10 || typeMap(f.`type`) != f.`type`)
     sg.Field
       .build
       .isTransient(f.isTransient)
-      .`type`(typeMap.getOrElseUpdate(f.`type`, CommandLine.error("internal error")))
+      .`type`(typeMap(f.`type`))
       .comment(f.comment)
       .name(f.name)
+      .pos(f.pos)
       .make
   }
   private def copy(f : View, typeMap : HashMap[Type, Type]) : View = {
-    val r = sg.View
-      .build
-      .name(f.name)
-      .comment(f.comment)
-      .`type`(typeMap(f.`type`))
-      .make
-
     // find target; if it is no longer there, we discard the view
-    val target = typeMap(f.target.owner) match {
+    val target = (typeMap(f.target.owner) match {
       case null                ⇒ null
       case t : WithInheritance ⇒ t.fields.find(_.name == f.target.name).getOrElse(null)
       case _                   ⇒ null
-    }
+    })
 
-    if (null != target) {
-      r.target = target
+    if (null == target) {
+      null
     } else {
-      sg.delete(r);
-      return null;
+      sg.View
+        .build
+        .name(f.name)
+        .pos(f.pos)
+        .comment(f.comment)
+        .`type`(typeMap(f.`type`))
+        .target(target)
+        .make
     }
-
-    r
   }
 
   private def copyAliases(aliases : ArrayBuffer[TypeAlias]) : ArrayBuffer[TypeAlias] = {
