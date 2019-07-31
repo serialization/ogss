@@ -195,7 +195,7 @@ object EscapeFunction {
       | "using" | "const_cast" | "inline" | "public" | "throw" | "virtual" | "delete" | "mutable" | "protected"
       | "true" | "wchar_t" | "and" | "bitand" | "compl" | "not_eq" | "or_eq" | "xor_eq" | "and_eq" | "bitor" | "not"
       | "or" | "xor" | "cin" | "endl" | "INT_MIN" | "iomanip" | "main" | "npos" | "std" | "cout" | "include"
-      | "INT_MAX" | "iostream" | "MAX_RAND" | "NULL" | "string" | "stid" ⇒ s"_$target"
+      | "INT_MAX" | "iostream" | "MAX_RAND" | "NULL" | "string" | "stid" | "File" ⇒ s"_$target"
 
     case t if t.forall(c ⇒ '_' == c || Character.isLetterOrDigit(c) && c < 128) ⇒ t
 
