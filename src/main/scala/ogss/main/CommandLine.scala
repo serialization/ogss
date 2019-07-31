@@ -164,9 +164,22 @@ ${
         backEnd.depsPath = new File(depsdir, pathPostfix)
         backEnd.skipDependencies = skipDeps
 
-        for (id ← outIR.Identifier)
-          if (visitors.contains(IRUtils.lowercase(id)))
-            backEnd.visited += id
+        // add visited classes
+        if (visitors.size == 1 && "*".equals(visitors.head)) {
+          // visit all classes
+          backEnd.visited ++= outIR.ClassDef.map(_.name)
+
+        } else {
+          // visit only mentioned types
+          for (id ← outIR.Identifier)
+            if (visitors.contains(IRUtils.lowercase(id)))
+              backEnd.visited += id
+
+          // warn if something ought to be visited that cannot be visited
+          for (v ← visitors.toSet -- backEnd.visited.map(IRUtils.lowercase)) {
+            println(s"""Warning ($lang): cannot visit $v""")
+          }
+        }
 
         if (clean) {
           (if (null == cleanMode) backEnd.defaultCleanMode
