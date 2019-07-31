@@ -41,6 +41,30 @@ object IRChecks {
    * Check a whole file by performing checks on its contents.
    */
   def check(sg : OGFile) {
+
+    // check that there are exactly 10 builtins
+    expect(sg.BuiltinType.size == 10, s"Wrong number of built-in types. Should be 10 but is ${sg.BuiltinType.size}")
+
+    // check that all builtins have unique names and IDs
+    for (t ← sg.BuiltinType) {
+      val names = sg.BuiltinType.map(_.name).toSet
+      val ids = sg.BuiltinType.map(_.stid).toSet
+
+      expect(names.size == 10, s"Built-in types have duplicate names")
+      expect(ids.size == 10, s"Built-in types have duplicate ids")
+    }
+
+    // check that all types have non-zero stids or are bool
+    for (t ← sg.Type) {
+      if (0 == t.stid) {
+        if (!"Bool".equals(t.name.ogss) || !t.isInstanceOf[BuiltinType]) {
+          println(s"Type ${t.name.ogss} has no valid STID!")
+          //          expect(false, s"Type ${t.name.ogss} has no valid STID!")
+        }
+      }
+    }
+
+    // check each type context
     sg.TypeContext.foreach(check)
   }
 
@@ -189,13 +213,13 @@ object IRChecks {
       for (f ← t.fields) {
         expect(
           allTypes(f.`type`),
-          s"field ${f.name.ogss} in type ${t.name.ogss} uses a type from an unrelated type context."
+          s"field ${f.name.ogss} in type ${t.name.ogss} uses type ${f.`type`.name.ogss} from an unrelated type context."
         )
       }
       for (f ← t.views) {
         expect(
           allTypes(f.`type`),
-          s"view ${f.name.ogss} in type ${t.name.ogss} uses a type from an unrelated type context."
+          s"view ${f.name.ogss} in type ${t.name.ogss} uses type ${f.`type`.name.ogss} from an unrelated type context."
         )
       }
     }

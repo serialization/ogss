@@ -1,0 +1,12 @@
+#! incompleteEnum
+
+/**
+ * @author stiesssh
+ */
+enum Farbe {
+	blau, rot;
+}
+
+Typ {
+	Farbe farb;
+}

@@ -71,11 +71,11 @@ abstract class CommonParseRules(self : FrontEnd) extends RegexParsers with IRUti
    * Matches Hints and Restrictions
    */
   protected def attributes : Parser[String] = rep(
-    ("!" ~ "pragma" ~ idText ~ opt(("(" ~ """[^\)]*\)""".r) ^^ { case l ~ r ⇒ l + r })) ^^ {
+    ("!" ~ "pragma" ~! idText ~ opt(("(" ~ """[^\)]*\)""".r) ^^ { case l ~ r ⇒ l + r })) ^^ {
       case h ~ p ~ n ~ a ⇒ s"$h$p $n ${a.getOrElse("")}"
     }
       |
-      (("@" | "!") ~ idText ~ opt(("(" ~ """[^\)]*\)""".r) ^^ { case l ~ r ⇒ l + r })) ^^ {
+      (("@" | "!") ~! idText ~ opt(("(" ~ """[^\)]*\)""".r) ^^ { case l ~ r ⇒ l + r })) ^^ {
         case h ~ n ~ a ⇒ s"$h$n ${a.getOrElse("")}"
       }
   ) ^^ { ts ⇒ ts.mkString("\n") }

@@ -35,6 +35,8 @@ import ogss.oil.TypeAlias
 import ogss.oil.TypeContext
 import ogss.oil.View
 import ogss.oil.WithInheritance
+import ogss.oil.Type
+import scala.collection.mutable.HashSet
 
 /**
  * Takes an unprojected .oil-file and creates interface and typedef
@@ -51,6 +53,10 @@ class Projections(sg : OGFile) {
       throw new IllegalStateException(s"""expected an unprojected type context, but found ${sg.TypeContext.size}
   interfaces: ${tc.projectedInterfaces}
   typedefs: ${tc.projectedTypeDefinitions}""")
+
+    if (!sg.Type.toSet.sameElements(tc.byName.values.toSet)) {
+      throw new IllegalStateException(s"types and byName targets differ")
+    }
 
     substituteInterfaces(substituteAliases(tc))
     substituteInterfaces(tc)
@@ -75,52 +81,9 @@ class Projections(sg : OGFile) {
     // calculate type map
     val typeMap = new HashMap[Type, Type]
     makeTBN(r)
-    val tbn = r.byName
-
-    def ensure(t : Type) : Type = {
-      typeMap.getOrElseUpdate(t, t match {
-        case t : ArrayType ⇒ {
-          val b = ensure(t.baseType)
-          sg.ArrayType
-            .build
-            .baseType(b)
-            .name(toIdentifier(s"${b.name.ogss}[]"))
-            .make
-        }
-        case t : ListType ⇒ {
-          val b = ensure(t.baseType)
-          sg.ListType
-            .build
-            .baseType(b)
-            .name(toIdentifier(s"list<${b.name.ogss}>"))
-            .make
-        }
-        case t : SetType ⇒ {
-          val b = ensure(t.baseType)
-          sg.SetType
-            .build
-            .baseType(b)
-            .name(toIdentifier(s"set<${b.name.ogss}>"))
-            .make
-        }
-        case t : MapType ⇒ {
-          val k = ensure(t.keyType)
-          val v = ensure(t.valueType)
-          sg.MapType
-            .build
-            .keyType(k)
-            .valueType(v)
-            .name(toIdentifier(s"map<${k.name.ogss},${v.name.ogss}>"))
-            .make
-        }
-        case t : TypeAlias ⇒ ensure(t.target)
-
-        case _             ⇒ tbn(t.name.ogss)
-      })
-    }
 
     for (c ← tc.aliases) {
-      typeMap(c) = ensure(c.target)
+      typeMap(c) = ensure(c.target, typeMap, r)
     }
     completeTypeMap(tc, r, typeMap)
 
@@ -300,7 +263,6 @@ class Projections(sg : OGFile) {
    * projection!
    */
   private def copy(f : Field, typeMap : HashMap[Type, Type]) : Field = {
-    assert(f.`type`.stid < 10 || typeMap(f.`type`) != f.`type`)
     sg.Field
       .build
       .isTransient(f.isTransient)
@@ -417,58 +379,82 @@ class Projections(sg : OGFile) {
    * @note will recalculate to.byName
    */
   private def completeTypeMap(from : TypeContext, to : TypeContext, typeMap : HashMap[Type, Type]) {
-    val tbn = to.byName
 
-    def ensure(t : Type) : Type = {
-      typeMap.getOrElseUpdate(t, t match {
-        case t : ArrayType ⇒ {
-          val b = ensure(t.baseType)
-          sg.ArrayType
-            .build
-            .baseType(b)
-            .name(toIdentifier(s"${b.name.ogss}[]"))
-            .make
-        }
-        case t : ListType ⇒ {
-          val b = ensure(t.baseType)
-          sg.ListType
-            .build
-            .baseType(b)
-            .name(toIdentifier(s"list<${b.name.ogss}>"))
-            .make
-        }
-        case t : SetType ⇒ {
-          val b = ensure(t.baseType)
-          sg.SetType
-            .build
-            .baseType(b)
-            .name(toIdentifier(s"set<${b.name.ogss}>"))
-            .make
-        }
-        case t : MapType ⇒ {
-          val k = ensure(t.keyType)
-          val v = ensure(t.valueType)
-          sg.MapType
-            .build
-            .keyType(k)
-            .valueType(v)
-            .name(toIdentifier(s"map<${k.name.ogss},${v.name.ogss}>"))
-            .make
-        }
-        case _ ⇒ tbn(t.name.ogss)
-      })
-    }
-
-    for (f ← from.byName.values) {
-      ensure(f) match {
-        case t : ContainerType ⇒
-          to.containers += t
-          tbn.put(t.name.ogss, t)
-        case _ ⇒
-      }
-    }
+    from.byName.values.foreach(ensure(_, typeMap, to))
 
     to.containers.sortWith(IRUtils.ogssLess)
+  }
+
+  private def ensure(t : Type, typeMap : HashMap[Type, Type], to : TypeContext) : Type = {
+    typeMap.getOrElseUpdate(t, t match {
+      case t : ArrayType ⇒ {
+        val b = ensure(t.baseType, typeMap, to)
+        val name = toIdentifier(s"${b.name.ogss}[]")
+        to.byName.getOrElseUpdate(
+          name.ogss,
+          {
+            val t = sg.ArrayType
+              .build
+              .baseType(b)
+              .name(name)
+              .make
+            to.containers += t
+            t
+          }
+        )
+      }
+      case t : ListType ⇒ {
+        val b = ensure(t.baseType, typeMap, to)
+        val name = toIdentifier(s"list<${b.name.ogss}>")
+        to.byName.getOrElseUpdate(
+          name.ogss,
+          {
+            val t = sg.ListType
+              .build
+              .baseType(b)
+              .name(name)
+              .make
+            to.containers += t
+            t
+          }
+        )
+      }
+      case t : SetType ⇒ {
+        val b = ensure(t.baseType, typeMap, to)
+        val name = toIdentifier(s"set<${b.name.ogss}>")
+        to.byName.getOrElseUpdate(
+          name.ogss,
+          {
+            val t = sg.SetType
+              .build
+              .baseType(b)
+              .name(name)
+              .make
+            to.containers += t
+            t
+          }
+        )
+      }
+      case t : MapType ⇒ {
+        val k = ensure(t.keyType, typeMap, to)
+        val v = ensure(t.valueType, typeMap, to)
+        val name = toIdentifier(s"map<${k.name.ogss},${v.name.ogss}>")
+        to.byName.getOrElseUpdate(
+          name.ogss,
+          {
+            val t = sg.MapType
+              .build
+              .keyType(k)
+              .valueType(v)
+              .name(name)
+              .make
+            to.containers += t
+            t
+          }
+        )
+      }
+      case _ ⇒ to.byName(t.name.ogss)
+    })
   }
 
   // ogssname -> identifier

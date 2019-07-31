@@ -142,9 +142,12 @@ class GenericFrontendTest extends FunSuite {
   }
 
   for (
-    f ← new File("src/test/resources/frontend").listFiles().sortBy(_.getName) if f.isFile()
+    f ← new File("src/test/resources/frontend").listFiles().sortBy(_.getName) if f.isFile() && f.getName.startsWith("complete")
   ) succeedOn(f)
-  for (
-    f ← new File("src/test/resources/frontend/fail").listFiles().sortBy(_.getName) if f.isFile()
-  ) failOn(f)
+//  for (
+//    f ← new File("src/test/resources/frontend").listFiles().sortBy(_.getName) if f.isFile()
+//  ) succeedOn(f)
+//  for (
+//    f ← new File("src/test/resources/frontend/fail").listFiles().sortBy(_.getName) if f.isFile()
+//  ) failOn(f)
 }

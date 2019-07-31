@@ -34,6 +34,7 @@ import ogss.oil.Comment
 import ogss.oil.CustomField
 import ogss.frontend.common.Positioned
 import ogss.oil.SourcePosition
+import ogss.frontend.skill.CommonParseRules
 
 /**
  * Post processing transformations that have to performed after parsing all
@@ -235,7 +236,7 @@ abstract class DefinitionPostProcessing(self : FrontEnd) extends CommonParseRule
   protected def mergeComment(t : UserDefinedType, c : Comment) {
     if (null == t.comment) {
       t.comment = c
-    } else {
+    } else if (null != c) {
       mergeComment(t.comment, c)
     }
   }
@@ -244,8 +245,11 @@ abstract class DefinitionPostProcessing(self : FrontEnd) extends CommonParseRule
    * merge a comment into another comment
    */
   protected def mergeComment(to : Comment, c : Comment) {
-    to.text ++= c.text
-    to.tags ++= c.tags
+    if (null == to.text) to.text = c.text
+    else to.text ++= c.text
+
+    if (null == to.tags) to.tags = c.tags
+    else to.tags ++= c.tags
 
     self.out.delete(c)
   }
