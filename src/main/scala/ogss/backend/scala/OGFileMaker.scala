@@ -31,9 +31,6 @@ trait OGFileMaker extends AbstractBackEnd {
     //package & imports
     out.write(s"""package ${packageName};
 
-import java.io.File;
-import java.nio.file.Path;
-
 import ogss.common.scala.api.Create
 import ogss.common.scala.api.Mode;
 import ogss.common.scala.api.OGSSException;
@@ -92,7 +89,7 @@ object OGFile {
    * Reads a binary OGSS file and turns it into an OGSS state.
    */
   def open(path : String, read : ReadMode = Read, write : WriteMode = Write) : OGFile = {
-    val f = new File(path)
+    val f = new java.io.File(path)
     if (!f.exists())
       f.createNewFile()
     readFile(f.toPath, read, write)
@@ -100,7 +97,7 @@ object OGFile {
   /**
    * Reads a binary OGSS file and turns it into an OGSS state.
    */
-  def open(file : File, read : ReadMode, write : WriteMode) : OGFile = {
+  def open(file : java.io.File, read : ReadMode, write : WriteMode) : OGFile = {
     if (!file.exists())
       file.createNewFile()
     readFile(file.toPath, read, write)
@@ -108,19 +105,19 @@ object OGFile {
   /**
    * Reads a binary OGSS file and turns it into an OGSS state.
    */
-  def open(path : Path, read : ReadMode, write : WriteMode) : OGFile = readFile(path, read, write)
+  def open(path : java.nio.file.Path, read : ReadMode, write : WriteMode) : OGFile = readFile(path, read, write)
 
   /**
    * same as open(create)
    */
-  def create(path : Path, write : WriteMode = Write) : OGFile = readFile(path, Create, write)
+  def create(path : java.nio.file.Path, write : WriteMode = Write) : OGFile = readFile(path, Create, write)
 
   /**
    * same as open(read)
    */
-  def read(path : Path, write : WriteMode = Write) : OGFile = readFile(path, Read, write)
+  def read(path : java.nio.file.Path, write : WriteMode = Write) : OGFile = readFile(path, Read, write)
 
-  private def readFile(path : Path, read : ReadMode, write : WriteMode) : OGFile =
+  private def readFile(path : java.nio.file.Path, read : ReadMode, write : WriteMode) : OGFile =
     new OGFile(StateInitializer(path, internal.PB, Seq(read, write)))
 }
 """)
