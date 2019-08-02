@@ -16,9 +16,11 @@
 package ogss.backend.cpp
 
 import ogss.oil.ArrayType
+import ogss.oil.EnumDef
 import ogss.oil.ListType
 import ogss.oil.MapType
 import ogss.oil.SetType
+import ogss.oil.Type
 
 trait OGFileMaker extends AbstractBackEnd {
   abstract override def make {
@@ -32,8 +34,16 @@ trait OGFileMaker extends AbstractBackEnd {
 
     out.write(s"""${beginGuard("file")}
 #include <ogss/api/File.h>
+#include <ogss/fieldTypes/ArrayType.h>
+#include <ogss/fieldTypes/ListType.h>
+#include <ogss/fieldTypes/SetType.h>
+#include <ogss/fieldTypes/MapType.h>
 
-#include "Pools.h"
+${
+      if (enums.isEmpty) ""
+      else """#include "enums.h"
+"""
+    }#include "Pools.h"
 
 ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}
     namespace api {
@@ -46,6 +56,12 @@ ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}
 ${
       (for (t ← IR) yield s"""
             internal::${access(t)} *const ${name(t)};""").mkString
+    }${
+      (for (t ← types.containers) yield s"""
+            ${containerType(t)} const ${containerName(t)};""").mkString
+    }${
+      (for (t ← types.enums) yield s"""
+            ::ogss::internal::EnumPool<$packageName::${name(t)}>* const ${name(t)};""").mkString
     }
 
             /**
@@ -137,7 +153,7 @@ ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}
             case ct : MapType   ⇒ s"new ogss::fieldTypes::MapType<${mapType(ct.keyType)}, ${mapType(ct.valueType)}>(tid, kcc, kb1, kb2)"
           }
         }; break;"""
-      }.mkString.mkString("""switch (kcc) {""", "", """
+      }.mkString("""switch (kcc) {""", "", """
                     default: r = nullptr;
                 }""")
     }
@@ -150,7 +166,7 @@ ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}
       else IR.filter(_.superType == null).zipWithIndex.map {
         case (t, i) ⇒ s"""
                     case $i: return ${skName(t.name)};"""
-      }.mkString.mkString("""switch (id) {""", "", """
+      }.mkString("""switch (id) {""", "", """
                     default: return nullptr;
                 }""")
     }
@@ -162,7 +178,7 @@ ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}
       else IR.filter(_.superType == null).zipWithIndex.map {
         case (t, i) ⇒ s"""
                     case $i: return new ${access(t)}(index, nullptr);"""
-      }.mkString.mkString("""switch (id) {""", "", """
+      }.mkString("""switch (id) {""", "", """
                     default: return nullptr;
                 }""")
     }
@@ -174,7 +190,7 @@ ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}
       else enums.zipWithIndex.map {
         case (t, i) ⇒ s"""
                     case $i: return ${skName(t.name)};"""
-      }.mkString.mkString("""switch (id) {""", "", """
+      }.mkString("""switch (id) {""", "", """
                     default: return nullptr;
                 }""")
     }
@@ -190,7 +206,7 @@ ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}
                         ogss::api::String names[] = {${t.values.map(v ⇒ skName(v.name)).mkString(", ")}};
                         return new ::ogss::internal::EnumPool<$packageName::${name(t)}>(index, ${skName(t.name)}, foundValues, names, ${t.values.size});
                     }"""
-      }.mkString.mkString("""switch (id) {""", "", """
+      }.mkString("""switch (id) {""", "", """
                     default: return nullptr;
                 }""")
     }
@@ -209,15 +225,47 @@ $packageName::api::File::File(::ogss::internal::StateInitializer *init)
       (for (t ← IR)
         yield s""",
         ${name(t)}((internal::${access(t)} *) init->SIFA[${t.stid}])""").mkString
+    }${
+      (for (t ← types.containers)
+        yield s""",
+        ${containerName(t)}((${containerType(t)}) init->SIFA[${t.stid}])""").mkString
+    }${
+      (for (t ← types.enums)
+        yield s""",
+        ${name(t)}((::ogss::internal::EnumPool<$packageName::${name(t)}> *) init->SIFA[${t.stid}])""").mkString
     } {${
       (for (t ← IR)
         yield s"""
     static_assert(offsetof($packageName::api::File, ${name(t)}) == offsetof(::ogss::api::File, SIFA[${t.stid}-10]), "your compiler chose an ill-formed object layout");""").mkString
     }
-    delete init;
+    delete init;${
+      // initialize enums
+      val enums = IR.flatMap(_.fields.filter(_.`type`.isInstanceOf[EnumDef]))
+      if (enums.isEmpty) ""
+      else enums.map(f ⇒ s"""
+    for (auto &x : ${name(f.owner)}->all()) {
+        if (nullptr == x.${name(f)})
+            x.${name(f)} = ${name(f.`type`)}->get(${defaultValue(f)});
+    }""").mkString
+    }
 }
 """)
 
     out.close()
+  }
+
+  def containerType(t : Type) : String = t match {
+    case t : ArrayType ⇒ s"::ogss::fieldTypes::ArrayType<${mapType(t.baseType)}>*"
+    case t : ListType  ⇒ s"::ogss::fieldTypes::ListType<${mapType(t.baseType)}>*"
+    case t : SetType   ⇒ s"::ogss::fieldTypes::SetType<${mapType(t.baseType)}>*"
+    case t : MapType   ⇒ s"::ogss::fieldTypes::MapType<${mapType(t.keyType)}, ${mapType(t.valueType)}>*"
+  }
+  def containerName(t : Type) : String = t match {
+    case t : ArrayType ⇒ "Array_" + containerName(t.baseType)
+    case t : ListType  ⇒ "List_" + containerName(t.baseType)
+    case t : SetType   ⇒ "Set_" + containerName(t.baseType)
+    case t : MapType   ⇒ s"Map_${containerName(t.keyType)}_${containerName(t.valueType)}"
+
+    case t             ⇒ capital(t.name)
   }
 }

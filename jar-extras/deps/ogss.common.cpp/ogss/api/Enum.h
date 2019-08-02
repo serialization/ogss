@@ -66,7 +66,7 @@ namespace ogss {
             friend class internal::EnumPool<T>;
 
         public:
-            inline T value() {
+            inline T value() const {
                 // add null check to increase robustness slightly
                 return (T) (this ? this->constant : 0);
             }

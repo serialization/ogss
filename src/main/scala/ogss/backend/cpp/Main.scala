@@ -15,8 +15,8 @@
  ******************************************************************************/
 package ogss.backend.cpp
 
-import scala.collection.mutable.HashMap
 import scala.collection.mutable.HashSet
+import scala.collection.mutable.WeakHashMap
 
 import ogss.oil.ArrayType
 import ogss.oil.BuiltinType
@@ -150,8 +150,10 @@ final class Main extends AbstractBackEnd
   /**
    * Tries to escape a string without decreasing the usability of the generated identifier.
    */
-  private val escapeCache = new HashMap[String, String]();
-  final def escapedLonely(target : String) : String = escapeCache.getOrElseUpdate(target, EscapeFunction(target))
+  private val escapeCache = new WeakHashMap[String, String]();
+  final def escapedLonely(target : String) : String = synchronized {
+    escapeCache.getOrElseUpdate(target, EscapeFunction(target))
+  }
 
   protected def filterIntarfacesFromIR(TS : TypeContext) {
     // find implementers

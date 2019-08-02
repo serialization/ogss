@@ -97,9 +97,12 @@ trait AbstractBackEnd extends BackEnd {
 
   override def defaultValue(f : Field) : String = {
     val stid = f.`type`.stid
-    if (stid < 0 || 8 >= stid)
-      "nullptr"
-    else if (0 == stid)
+    if (stid < 0 || 8 <= stid) {
+      f.`type` match {
+        case t : EnumDef ⇒ s"$packageName::${name(t)}::${escaped(camel(t.values.head.name))}"
+        case _           ⇒ "nullptr"
+      }
+    } else if (0 == stid)
       "false"
     else if (stid < 6)
       "0"

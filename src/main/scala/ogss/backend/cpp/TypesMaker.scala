@@ -20,6 +20,7 @@ import scala.collection.mutable.HashSet
 
 import ogss.oil.ClassDef
 import ogss.oil.Field
+import ogss.oil.EnumDef
 
 /**
  * creates header and implementation for all type definitions
@@ -52,6 +53,7 @@ trait TypesMaker extends AbstractBackEnd {
       out.write(s"""${beginGuard(s"types_of_${name(base)}")}
 #include <ogss/api/types.h>
 #include <ogss/api/Exception.h>
+#include <ogss/internal/EnumPool.h>
 #include <cassert>
 #include <vector>
 #include <set>
@@ -76,15 +78,16 @@ namespace ogss{
 }
 
 ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}
-${
-        if (!visited.isEmpty) s"""
-    // predef visitor
+
     namespace api {
-        class Visitor;
-    }
-"""
+        struct File;${
+        if (!visited.isEmpty) s"""
+        // predef visitor
+        class Visitor;"""
         else ""
       }
+    }
+
     // type predef for cyclic dependencies${
         (for (t ← IR) yield s"""
     class ${name(t)};""").mkString
@@ -97,6 +100,9 @@ ${
         (for (t ← IR if base == t.baseType if !t.fields.isEmpty) yield s"""
         template<class T, class B>
         struct ${builder(t)};""").mkString
+      }${
+        (for (t ← IR if base == t.baseType) yield s"""
+        class ${access(t)};""").mkString
       }
     }
     // begin actual type defs
@@ -114,9 +120,13 @@ ${
           comment(t)
         }class $Name : public $SuperName {
         friend class ::ogss::internal::Book<${name(t)}>;
-        friend class ::ogss::internal::Pool<${name(t)}>;${
+        friend class ::ogss::internal::Pool<${name(t)}>;
+        friend struct api::File;${
           (for (f ← t.fields) yield s"""
         friend class internal::${knownField(f)};""").mkString
+        }${
+          (for (t ← IR if base == t.baseType) yield s"""
+        friend class internal::${access(t)};""").mkString
         }${
           if (t.fields.isEmpty) ""
           else s"""
@@ -182,10 +192,26 @@ ${
         // getters & setters //
         ///////////////////////
         for (f ← t.fields) {
-          implicit val thisF = f;
+          f.`type` match {
+            case ft : EnumDef ⇒ out.write(s"""
+        ${comment(f)}inline ${name(ft)} ${getter(f)}() const { return ${name(f)}->value(); }
+        ${comment(f)}inline ${mapType(ft)} ${getter(f)}Proxy() const { return ${name(f)}; }
+        ${comment(f)}inline void ${setter(f)}(${name(ft)} ${name(f)}) {
+            assert(${name(ft)}::UNKNOWN != ${name(f)} && nullptr != this->${name(f)});
+            this->${name(f)} = (${mapType(ft)}) this->${name(f)}->owner->proxy((ogss::EnumBase)${name(f)});
+        }
+        ${comment(f)}inline void ${setter(f)}Proxy(${mapType(ft)} ${name(f)}) {
+            assert(nullptr != this->${name(f)});
+            if(nullptr == ${name(f)}) this->${name(f)} = (${mapType(ft)}) this->${name(f)}->owner->proxy(0);
+            else if(this->${name(f)}->owner == ${name(f)}->owner) this->${name(f)} = ${name(f)};
+            else if(${name(ft)}::UNKNOWN != ${name(f)}->value()) this->${name(f)} = (${mapType(ft)}) this->${name(f)}->owner->proxy((ogss::EnumBase)${name(f)}->value());
+            else throw new std::logic_error("one cannot set an unknown enum value from a different state"); 
+        }
+""")
 
-          def makeSetterImplementation : String = {
-            s"${
+            case ft ⇒ out.write(s"""
+        ${comment(f)}inline ${mapType(ft)} ${getter(f)}() const { return ${name(f)}; }
+        ${comment(f)}inline void ${setter(f)}(${mapType(ft)} ${name(f)}) {${
               "" /*
           f.getRestrictions.asScala.map {
             //@range
@@ -206,13 +232,9 @@ ${
 
             case _ ⇒ ""
           }.mkString*/
-            }this->${name(f)} = ${name(f)};"
-          }
-
-          out.write(s"""
-        ${comment(f)}inline ${mapType(f.`type`)} ${getter(f)}() const { return ${name(f)}; }
-        ${comment(f)}inline void ${setter(f)}(${mapType(f.`type`)} ${name(f)}) {$makeSetterImplementation}
+            }this->${name(f)} = ${name(f)};}
 """)
+          }
         }
 
         out.write(s"""

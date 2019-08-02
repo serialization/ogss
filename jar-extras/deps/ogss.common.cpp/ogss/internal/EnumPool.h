@@ -158,6 +158,13 @@ template <typename T> class EnumPool : public AbstractEnumPool {
             delete[] fileValues;
     }
 
+    //! return proxy for enum constant
+    api::EnumProxy<T> *get(T target) const {
+        assert(target != (T)-1);
+        return staticValues[(EnumBase)target];
+    }
+
+    //! return type-erased proxy for type-erased enum constant
     api::AbstractEnumProxy *proxy(EnumBase target) const final {
         assert(0 <= target && target < svCount);
         return staticValues[target];

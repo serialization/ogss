@@ -23,6 +23,7 @@ import ogss.oil.ListType
 import ogss.oil.MapType
 import ogss.oil.SetType
 import ogss.oil.Type
+import ogss.oil.EnumDef
 
 trait PoolsMaker extends AbstractBackEnd {
   abstract override def make {
@@ -64,11 +65,23 @@ namespace internal {
           if (null == t.superType) s"::ogss::api::Builder"
           else s"${builder(t.superType)}<T, B>"
         } {${
+          // regular fields
           (for (f ← fields)
             yield s"""
 
         B* ${name(f)}(${mapType(f.`type`)} ${name(f)}) {
             ((T)this->self)->${name(f)} = ${name(f)};
+            return (B*)this;
+        }""").mkString
+        }${
+          // enum fields get a initialization by constant in addition
+          (for (
+            f ← fields if f.`type`.isInstanceOf[EnumDef];
+            ft = f.`type`.asInstanceOf[EnumDef]
+          ) yield s"""
+
+        B* ${name(f)}(${name(ft)} ${name(f)}) {
+            ((T)this->self)->${setter(f)}(${name(f)});
             return (B*)this;
         }""").mkString
         }${
@@ -109,7 +122,13 @@ namespace internal {
 
         ${builder(t)}_IMPL<$typeT>* build() final {
             return new ${builder(t)}_IMPL<$typeT>(make());
-        }
+        }${
+        val enums = allFields(t).filter(_.`type`.isInstanceOf[EnumDef])
+        if (enums.isEmpty) ""
+        else s"""
+
+        ${mapType(t)} make() final;"""
+      }
 
     protected:
 ${
@@ -149,6 +168,7 @@ $endGuard""")
     val out = files.open(s"Pools.cpp")
 
     out.write(s"""
+#include "File.h"
 #include "Pools.h"
 #include "StringKeeper.h"
 ${
@@ -218,6 +238,19 @@ ${
     return r;
 }
 """
+        }${
+          val enums = allFields(t).filter(_.`type`.isInstanceOf[EnumDef])
+          if (enums.isEmpty) ""
+          else enums.map { f ⇒
+            s"""
+    r->${name(f)} = (($packageName::api::File*)owner)->${name(f.`type`)}->get(${defaultValue(f)});"""
+          }.mkString(s"""
+
+${mapType(t)} $poolName::make() {
+    const auto r = ::ogss::internal::Pool<$packageName::${name(t)}>::make();""", "", """
+    return r;
+}
+""")
         }"""
       }).mkString
     }""")
