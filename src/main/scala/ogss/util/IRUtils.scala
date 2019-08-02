@@ -33,6 +33,8 @@ import ogss.oil.TypeContext
 import ogss.oil.View
 import ogss.oil.WithInheritance
 import ogss.oil.WithName
+import scala.collection.mutable.WeakHashMap
+import com.sun.org.apache.xml.internal.serializer.ToStream
 
 /**
  * Utility functions that simplify working with some OIL classes.
@@ -88,6 +90,42 @@ trait IRUtils {
 
   def ogssname(t : WithName) : String = {
     t.name.ogss
+  }
+
+  // classes require complex sorting
+  class PathName(val names : Array[Identifier]) extends Ordered[PathName] {
+    override def compare(r : PathName) : Int = {
+      var i = 0
+      while (i < names.size && i < r.names.size) {
+        if (names(i) != r.names(i)) {
+          if (ogssLess(names(i), r.names(i)))
+            return -1
+          else
+            return 1
+        }
+        i += 1
+      }
+      return names.size - r.names.size
+    }
+    override def toString = names.mkString("⇒")
+  }
+  private val pathNameCache = new WeakHashMap[WithInheritance, PathName]
+  private val currentPathConstruction = new HashSet[WithInheritance]
+  def pathName(t : WithInheritance) : PathName = synchronized {
+    if (currentPathConstruction.contains(t)) {
+      throw new IllegalStateException(s"Type ${t.name.ogss} has a cyclic path name, i.e. cyclic super classes.")
+    }
+
+    currentPathConstruction += t
+    try {
+      if (null == t.superType)
+        new PathName(Array(t.name))
+      else {
+        pathNameCache.getOrElseUpdate(t, new PathName(pathName(t.superType).names ++ Seq(t.name)))
+      }
+    } finally {
+      currentPathConstruction -= t
+    }
   }
 
   def adaStyle(id : Identifier) : String = {
@@ -146,11 +184,18 @@ trait IRUtils {
     r
   }
 
+  def ogssLess(left : String, right : String) : Boolean = {
+    val llen = left.length
+    val rlen = right.length
+    if (llen != rlen) llen < rlen
+    else left < right
+  }
+
   def ogssLess(left : Identifier, right : Identifier) : Boolean = {
     val llen = left.ogss.length
-    val rlen = left.ogss.length
+    val rlen = right.ogss.length
     if (llen != rlen) llen < rlen
-    else left.ogss < left.ogss
+    else left.ogss < right.ogss
   }
 
   def ogssLess(left : WithName, right : WithName) : Boolean = ogssLess(left.name, right.name)

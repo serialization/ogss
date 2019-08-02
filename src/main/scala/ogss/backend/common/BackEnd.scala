@@ -239,12 +239,9 @@ abstract class BackEnd extends IRUtils {
     case "lowercase" ⇒ lowercase(t.name)
   })
   /**
-   * Translation of a field to its representation in the source
-   * code
-   *
-   * TODO default naming convention
+   * Translation of a field to its representation in the source code
    */
-  protected def name(f : FieldLike) : String = escapedLonely(fieldNameConvention match {
+  protected[backend] def name(f : FieldLike) : String = escapedLonely(fieldNameConvention match {
     case "ada"       ⇒ adaStyle(f.name)
     case "c"         ⇒ cStyle(f.name)
     case "camel"     ⇒ camel(f.name)

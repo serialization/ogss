@@ -28,6 +28,7 @@ import ogss.oil.Field
 import ogss.oil.View
 import ogss.oil.WithInheritance
 import ogss.oil.BuiltinType
+import ogss.oil.Identifier
 
 /**
  * This object provides some functions to check the well-formedness of
@@ -61,6 +62,15 @@ object IRChecks {
           println(s"Type ${t.name.ogss} has no valid STID!")
           //          expect(false, s"Type ${t.name.ogss} has no valid STID!")
         }
+      }
+    }
+
+    // check that all types of the same name have the same type
+    {
+      val seen = new HashMap[String, Class[_]]
+      for (t ← sg.Type) {
+        val ex = seen.getOrElseUpdate(t.name.ogss, t.getClass)
+        expect(ex == t.getClass, s"type ${t.name.ogss} exists with different kinds: ${ex.getSimpleName} and ${t.getClass.getSimpleName}")
       }
     }
 
@@ -133,6 +143,41 @@ object IRChecks {
       for (t ← tc.classes ++ tc.interfaces ++ tc.containers ++ tc.enums) {
         expect(!seen(t.name.ogss), s"type ${t.name.ogss} has the same name as another type")
         seen += t.name.ogss
+      }
+    }
+
+    // check that classes and subtypes are in type order
+    {
+      var last : IRUtils.PathName = null
+      var lastID = 0
+      for (t ← tc.classes) {
+        val name = IRUtils.pathName(t)
+        if (null != last)
+          expect(last < name, s"classes in type context are not ordered: $last, $name")
+        last = name
+        val ID = t.stid
+        expect(lastID < ID, s"classes in type context are not STID-ordered: $last($lastID), $name($ID)")
+        lastID = ID
+      }
+    }
+    {
+      var last : Identifier = null
+      for (t ← tc.classes if null == t.superType) {
+        if (null != last) {
+          expect(IRUtils.ogssLess(last, t.name), s"base type ${t.name.ogss} is not in order: ${last.ogss}, ${t.name.ogss}")
+        }
+        last = t.name
+      }
+    }
+    {
+      for (t ← tc.classes ++ tc.interfaces) {
+        var last : Identifier = null
+        for (s ← t.subTypes) {
+          if (null != last) {
+            expect(IRUtils.ogssLess(last, s.name), s"subtypes of ${t.name.ogss} are not ordered: ${last.ogss}, ${s.name.ogss}")
+          }
+          last = s.name
+        }
       }
     }
 
@@ -257,5 +302,5 @@ object IRChecks {
     }
   }
 
-  private def expect(predicate : Boolean, msg : String) = if (!predicate) throw new IllegalStateException(msg)
+  private def expect(predicate : Boolean, msg : ⇒ String) = if (!predicate) throw new IllegalStateException(msg)
 }

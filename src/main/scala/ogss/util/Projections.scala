@@ -112,6 +112,12 @@ class Projections(sg : OGFile) {
       copyFields(typeMap, tc.byName(c.name.ogss).asInstanceOf[WithInheritance], c)
     }
 
+    // sort classes by pathname and subtypes with ogssLess
+    r.classes = r.classes.sortBy(IRUtils.pathName).to
+    for (c ← r.classes ++ r.interfaces) {
+      c.subTypes = c.subTypes.sortWith(IRUtils.ogssLess).to
+    }
+
     // we may have changed types, so we need to recalculate STIDs and KCCs
     IRUtils.recalculateSTIDs(r)
 
@@ -153,6 +159,12 @@ class Projections(sg : OGFile) {
       }
       if (null != c.baseType)
         c.baseType = typeMap(c.baseType).asInstanceOf[ClassDef]
+    }
+
+    // sort classes by pathname and subtypes with ogssLess
+    r.classes = r.classes.sortBy(IRUtils.pathName).to
+    for (c ← r.classes) {
+      c.subTypes = c.subTypes.sortWith(IRUtils.ogssLess).to
     }
 
     // calculate new fields

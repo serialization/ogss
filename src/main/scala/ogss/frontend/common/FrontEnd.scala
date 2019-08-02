@@ -127,14 +127,14 @@ abstract class FrontEnd {
     val r = out.Comment.make
     r.tags = new ArrayBuffer
 
-    @inline def ammend(text : ListBuffer[String]) {
+    @inline def amend(text : ListBuffer[String]) {
       if (null == r.text)
         r.text = text.to
       else
         r.tags.last.text = text.to
     }
 
-    @inline def ammendTag(text : ListBuffer[String], tag : String) {
+    @inline def amendTag(text : ListBuffer[String], tag : String) {
       if (null == r.text)
         r.text = text.to
       else
@@ -147,15 +147,15 @@ abstract class FrontEnd {
     }
 
     @tailrec def parse(ws : ListBuffer[String], text : ListBuffer[String]) : Unit =
-      if (ws.isEmpty) ammend(text)
+      if (ws.isEmpty) amend(text)
       else (ws.head, ws.tail) match {
-        case ("\n", ws) if (ws.isEmpty)     ⇒ ammend(text)
+        case ("\n", ws) if (ws.isEmpty)     ⇒ amend(text)
         case ("\n", ws) if (ws.head == "*") ⇒ parse(ws.tail, text)
         case ("\n", ws)                     ⇒ parse(ws, text)
         case (w, ws) if w.matches("""\*?@.+""") ⇒
           val end = if (w.contains(":")) w.lastIndexOf(':') else w.size
           val tag = w.substring(w.indexOf('@') + 1, end).toLowerCase
-          ammendTag(text, tag); parse(ws, ListBuffer[String]())
+          amendTag(text, tag); parse(ws, ListBuffer[String]())
         case (w, ws) ⇒ text.append(w); parse(ws, text)
       }
 
@@ -403,7 +403,7 @@ abstract class FrontEnd {
 
       // reorder TC interfaces
       tc.interfaces = out.InterfaceDef.toSeq.sortBy(
-        t ⇒ (allSuperOf(t).size, t.name.ogss)
+        t ⇒ (allSuperOf(t).size, t.name.ogss.length, t.name.ogss)
       ).to
     }
 
@@ -426,28 +426,11 @@ abstract class FrontEnd {
         c
       }).toSeq.sortBy(_.name.ogss).to
 
-    // classes require complex sorting
-    val pathNameCache = new HashMap[ClassDef, String]
-    val currentPathConstruction = new HashSet[ClassDef]
-    def pathName(cls : ClassDef) : String = {
-      if (currentPathConstruction.contains(cls)) {
-        reportError(cls.pos, s"Type ${cls.name.ogss} has a cyclic path name, i.e. cyclic super classes.")
-        return "☢";
-      }
-
-      currentPathConstruction += cls
-      val r =
-        if (null == cls.superType)
-          cls.name.ogss
-        else {
-          pathNameCache.getOrElseUpdate(cls, pathName(cls.superType) + "\u0000" + cls.name.ogss)
-        }
-      currentPathConstruction -= cls
-
-      r
+    // sort classes by pathname and subtypes with ogssLess
+    tc.classes = out.ClassDef.toSeq.sortBy(IRUtils.pathName).to
+    for (c ← tc.classes ++ tc.interfaces) {
+      c.subTypes = c.subTypes.sortWith(IRUtils.ogssLess).to
     }
-
-    tc.classes = out.ClassDef.toSeq.map(c ⇒ (pathName(c), c)).sortBy(p ⇒ p._1).map(_._2).to
 
     // sort containers by name and create names
     def ensureName(c : Type) : String = {
