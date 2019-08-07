@@ -2,8 +2,8 @@
 // Created by Timm Felden on 28.01.16.
 //
 
-#ifndef SKILL_CPP_COMMON_DISTRIBUTEDFIELD_H
-#define SKILL_CPP_COMMON_DISTRIBUTEDFIELD_H
+#ifndef OGSS_COMMON_DISTRIBUTEDFIELD_H
+#define OGSS_COMMON_DISTRIBUTEDFIELD_H
 
 #include "DataField.h"
 #include <unordered_map>
@@ -35,7 +35,7 @@ class DistributedField : public DataField {
       DataField(type, name, index, owner),
       firstID(owner->bpo + 1),
       lastID(firstID + owner->cachedSize),
-      data(nullptr),
+      data((api::Box *)calloc(lastID - firstID, sizeof(api::Box))),
       newData() {}
 
     ~DistributedField() override;
@@ -55,4 +55,4 @@ class DistributedField : public DataField {
 } // namespace internal
 } // namespace ogss
 
-#endif // SKILL_CPP_COMMON_DISTRIBUTEDFIELD_H
+#endif // OGSS_COMMON_DISTRIBUTEDFIELD_H

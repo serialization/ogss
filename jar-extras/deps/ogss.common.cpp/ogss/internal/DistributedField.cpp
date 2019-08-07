@@ -47,22 +47,13 @@ bool DistributedField::check() const {
     //    return true;
 }
 
-DistributedField::~DistributedField() { delete[] data; }
+DistributedField::~DistributedField() { free(data); }
 
 //! global lock used to synchronize allocations of data
 static std::mutex dataLock;
 
 void DistributedField::read(int begin, const int end,
                             streams::MappedInStream &in) const {
-    // we fill in data and data is nullptr at this point, so we have to allocate
-    // it first
-    if (nullptr == data) {
-        std::lock_guard<std::mutex> m(dataLock);
-        if (nullptr == data) {
-            data = new api::Box[lastID - firstID];
-        }
-    }
-
     const auto high = end - firstID;
     auto i = begin - firstID;
     while (i != high) {
@@ -86,33 +77,23 @@ bool DistributedField::write(int begin, const int end,
  */
 void DistributedField::compress(const ObjectID newLBPO) const {
     // create new data
-    api::Box *d = new api::Box[owner->cachedSize];
+    api::Box *const d = (api::Box *)calloc(owner->cachedSize, sizeof(api::Box));
 
     // calculate new data
     // note: data could be null
     ObjectID next = 0;
-    if (data) {
-        auto is = owner->allObjects();
-        while (is->hasNext()) {
-            const Object *const i = is->next();
-            const ObjectID ID = i->id;
-            if (0 != ID) {
-                d[next++] = ID < 0 ? newData[i] : data[ID - firstID];
-            }
-        }
-    } else {
-        auto is = owner->allObjects();
-        while (is->hasNext()) {
-            const Object *const i = is->next();
-            const ObjectID ID = i->id;
-            if (0 != ID) {
-                d[next++] = ID < 0 ? newData[i] : api::Box{};
-            }
+
+    auto is = owner->allObjects();
+    while (is->hasNext()) {
+        const Object *const i = is->next();
+        const ObjectID ID = i->id;
+        if (0 != ID) {
+            d[next++] = ID < 0 ? newData[i] : data[ID - firstID];
         }
     }
 
     // update state
-    delete[] data;
+    free(data);
     data = d;
     firstID = newLBPO + 1;
     lastID = firstID + owner->cachedSize;
