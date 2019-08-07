@@ -180,12 +180,12 @@ abstract class FrontEnd {
     // split into parts at _
     parts = parts.flatMap(_.split("_").map { s ⇒ if (s.isEmpty()) "_" else s }.to)
 
-    // split before changes from uppercase to lowercase
+    // split before changes between lowercase to Uppercase
     parts = parts.flatMap { s ⇒
       val parts = ArrayBuffer[String]()
       var last = 0
       for (i ← 1 until s.length - 1) {
-        if (s.charAt(i).isUpper && s.charAt(i + 1).isLower) {
+        if (s.charAt(i - 1).isLower && s.charAt(i).isUpper) {
           parts += s.substring(last, i)
           last = i
         }
