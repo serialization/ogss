@@ -170,7 +170,6 @@ ${
     val packageName = packageLastName
 
     for (f ← t.fields) {
-
       if (isDistributed(f)) {
         t match {
           case t : InterfaceDef ⇒ out.write(s"""

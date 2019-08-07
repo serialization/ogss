@@ -117,7 +117,7 @@ final class Main extends AbstractBackEnd
         "package" | "private" | "protected" | "return" | "sealed" | "super" | "this" | "throw" | "trait" | "true" |
         "try" | "type" | "var" | "while" | "with" | "yield" | "val" ⇒ s"`$target`"
 
-      case t if t.forall(c ⇒ '_' == c || Character.isLetterOrDigit(c)) ⇒ t
+      case t if t.forall(c ⇒ '_' == c || '=' == c || Character.isLetterOrDigit(c)) ⇒ t
 
       case _ ⇒ s"`$target`"
     }
