@@ -36,6 +36,7 @@ import ogss.oil.SetType
 import ogss.oil.SourcePosition
 import ogss.oil.Type
 import ogss.util.IRUtils
+import ogss.oil.Attribute
 
 /**
  * Provides common functionalities to be used by all front-ends.
@@ -454,5 +455,17 @@ abstract class FrontEnd {
     tc.byName = tbn
     for (c ← out.Type)
       tbn.put(c.name.ogss, c)
+
+    // set missing attrs to empty array
+    {
+      val none = new ArrayBuffer[Attribute]
+      for (
+        t ← out.UserDefinedType if null == t.attrs
+      ) t.attrs = none
+
+      for (
+        f ← out.Field if null == f.attrs
+      ) f.attrs = none
+    }
   }
 }

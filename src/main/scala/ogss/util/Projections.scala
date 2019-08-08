@@ -37,6 +37,7 @@ import ogss.oil.View
 import ogss.oil.WithInheritance
 import ogss.oil.Type
 import scala.collection.mutable.HashSet
+import ogss.oil.Attribute
 
 /**
  * Takes an unprojected .oil-file and creates interface and typedef
@@ -275,11 +276,11 @@ class Projections(sg : OGFile) {
    * projection!
    */
   private def copy(f : Field, typeMap : HashMap[Type, Type]) : Field = {
-    sg.Field
-      .build
+    sg.Field.build
       .isTransient(f.isTransient)
       .`type`(typeMap(f.`type`))
       .comment(f.comment)
+      .attrs(copyAttributes(f.attrs))
       .name(f.name)
       .pos(f.pos)
       .make
@@ -295,8 +296,7 @@ class Projections(sg : OGFile) {
     if (null == target) {
       null
     } else {
-      sg.View
-        .build
+      sg.View.build
         .name(f.name)
         .pos(f.pos)
         .comment(f.comment)
@@ -306,13 +306,24 @@ class Projections(sg : OGFile) {
     }
   }
 
+  private def copyAttributes(as : ArrayBuffer[Attribute]) : ArrayBuffer[Attribute] = {
+    if (as.isEmpty) as
+    else as.map { a ⇒
+      sg.Attribute.build
+        .isSerialized(a.isSerialized)
+        .name(a.name)
+        .arguments(a.arguments.to)
+        .make
+    }.to
+  }
+
   private def copyAliases(aliases : ArrayBuffer[TypeAlias]) : ArrayBuffer[TypeAlias] = {
     val r = new ArrayBuffer[TypeAlias]
     for (c ← aliases) {
-      r += sg.TypeAlias
-        .build
+      r += sg.TypeAlias.build
         .pos(c.pos)
         .comment(c.comment)
+        .attrs(copyAttributes(c.attrs))
         .name(c.name)
         .target(c.target)
         .make
@@ -327,11 +338,11 @@ class Projections(sg : OGFile) {
   private def copyClasses(classes : ArrayBuffer[ClassDef]) : ArrayBuffer[ClassDef] = {
     val r = new ArrayBuffer[ClassDef]
     for (c ← classes) {
-      r += sg.ClassDef
-        .build
+      r += sg.ClassDef.build
         .pos(c.pos)
         .name(c.name)
         .comment(c.comment)
+        .attrs(copyAttributes(c.attrs))
         .baseType(c.baseType)
         .superType(c.superType)
         .superInterfaces(c.superInterfaces)
@@ -351,11 +362,11 @@ class Projections(sg : OGFile) {
   private def copyInterfaces(interfaces : ArrayBuffer[InterfaceDef]) : ArrayBuffer[InterfaceDef] = {
     val r = new ArrayBuffer[InterfaceDef]
     for (c ← interfaces) {
-      r += sg.InterfaceDef
-        .build
+      r += sg.InterfaceDef.build
         .pos(c.pos)
         .name(c.name)
         .comment(c.comment)
+        .attrs(copyAttributes(c.attrs))
         .baseType(c.baseType)
         .superType(c.superType)
         .superInterfaces(c.superInterfaces)

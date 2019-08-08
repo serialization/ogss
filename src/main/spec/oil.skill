@@ -106,6 +106,30 @@ Identifier {
 }
 
 /**
+ * An attribute obtained from file.
+ * There is a copy per usage, i.e. projections copy attributes as well.
+ * 
+ * @todo known attributes should be subtypes of attribute
+ */
+Attribute {
+
+	/**
+	 * true iff the attribute shall be serialized by the tool
+	 */
+	bool isSerialized;
+
+	/**
+	 * the name in lowercase
+	 */
+	string name;
+
+	/**
+	 * the arguments as provided
+	 */
+	string[] arguments;
+}
+
+/**
  * A named entity. Either a Type or a FieldLike.
  */
 WithName {
@@ -139,6 +163,12 @@ UserDefinedType extends Type {
    * Any type definition obtained from a specification may have a comment.
    */
   Comment comment;
+
+  /**
+   * Type attributes obtained from the specification.
+   * Attributes are unique by name.
+   */
+  Attribute[] attrs;
   
   /**
    * The position of this definition in the original source file.
@@ -310,6 +340,12 @@ FieldLike : WithName {
  * A field definition.
  */
 Field extends FieldLike {
+
+  /**
+   * Field attributes obtained from the specification.
+   * Attributes are unique by name.
+   */
+  Attribute[] attrs;
 
   /**
    * The type of this field.

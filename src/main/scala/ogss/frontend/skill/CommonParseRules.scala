@@ -15,11 +15,14 @@
  ******************************************************************************/
 package ogss.frontend.skill
 
-import ogss.oil.Comment
 import scala.util.parsing.combinator.RegexParsers
+
 import ogss.frontend.common.FrontEnd
+import ogss.oil.Attribute
+import ogss.oil.Comment
 import ogss.oil.Identifier
 import ogss.util.IRUtils
+import scala.collection.mutable.ArrayBuffer
 
 /**
  * Parse rules used by multiple parsers.
@@ -69,14 +72,28 @@ abstract class CommonParseRules(self : FrontEnd) extends RegexParsers with IRUti
 
   /**
    * Matches Hints and Restrictions
+   *
+   * TODO sane argument rules!
    */
-  protected def attributes : Parser[String] = rep(
+  protected def attributes : Parser[ArrayBuffer[Attribute]] = rep(
     ("!" ~ "pragma" ~! idText ~ opt(("(" ~ """[^\)]*\)""".r) ^^ { case l ~ r ⇒ l + r })) ^^ {
-      case h ~ p ~ n ~ a ⇒ s"$h$p $n ${a.getOrElse("")}"
+      case h ~ p ~ n ~ a ⇒
+        self.out.Attribute
+          .build
+          .isSerialized(false)
+          .name(p.toLowerCase())
+          .arguments(ArrayBuffer(n) ++ a)
+          .make
     }
       |
       (("@" | "!") ~! idText ~ opt(("(" ~ """[^\)]*\)""".r) ^^ { case l ~ r ⇒ l + r })) ^^ {
-        case h ~ n ~ a ⇒ s"$h$n ${a.getOrElse("")}"
+        case h ~ n ~ a ⇒
+          self.out.Attribute
+            .build
+            .isSerialized("@".equals(h))
+            .name(n.toLowerCase())
+            .arguments(a.to)
+            .make
       }
-  ) ^^ { ts ⇒ ts.mkString("\n") }
+  ) ^^ { ts ⇒ ts.to }
 }

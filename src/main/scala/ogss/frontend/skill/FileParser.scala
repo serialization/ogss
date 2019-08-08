@@ -22,6 +22,7 @@ import scala.collection.mutable.HashSet
 
 import ogss.frontend.common.FrontEnd
 import ogss.frontend.common.Positioned
+import ogss.oil.Attribute
 import ogss.oil.Comment
 import ogss.oil.CustomFieldOption
 import ogss.oil.EnumConstant
@@ -66,21 +67,22 @@ class FileParser(self : FrontEnd) extends DefinitionPostProcessing(self) {
   /**
    * A user type Definition
    */
-  protected def content : Parser[Unit] = (opt(comment) <~ attributes ^^ { c ⇒ c.getOrElse(null) }) >> {
-    c ⇒ typedef(c) | enumType(c) | interfaceType(c) | classType(c)
+  protected def content : Parser[Unit] = (opt(comment) ~ attributes ^^ { case c ~ as ⇒ (c.getOrElse(null), as) }) >> {
+    case (c, as) ⇒ typedef(c, as) | enumType(c, as) | interfaceType(c, as) | classType(c, as)
   }
 
   /**
    * A declaration may start with a description, is followed by modifiers and a name, might have a super class and has
    * a body.
    */
-  private def classType(c : Comment) = (positioned(id ^^ PositionedID) ^^ {
+  private def classType(c : Comment, as : ArrayBuffer[Attribute]) = (positioned(id ^^ PositionedID) ^^ {
     case name ⇒
       ensureUnique(name)
 
       currentType = self.out.ClassDef
         .build
         .comment(c)
+        .attrs(as)
         .name(name.image)
         .pos(self.makeSPos(name))
         .fields(new ArrayBuffer)
@@ -94,76 +96,82 @@ class FileParser(self : FrontEnd) extends DefinitionPostProcessing(self) {
   /**
    * Interfaces are processed like ClassDefs
    */
-  private def interfaceType(c : Comment) = ("interface" ~! positioned(id ^^ PositionedID) ^^ {
-    case keyword ~ name ⇒
-      ensureUnique(name)
+  private def interfaceType(c : Comment, as : ArrayBuffer[Attribute]) =
+    ("interface" ~! positioned(id ^^ PositionedID) ^^ {
+      case keyword ~ name ⇒
+        ensureUnique(name)
 
-      currentType = self.out.InterfaceDef
-        .build
-        .comment(c)
-        .name(name.image)
-        .pos(self.makeSPos(name))
-        .fields(new ArrayBuffer)
-        .views(new ArrayBuffer)
-        .customs(new ArrayBuffer)
-        .make
+        currentType = self.out.InterfaceDef
+          .build
+          .comment(c)
+          .attrs(as)
+          .name(name.image)
+          .pos(self.makeSPos(name))
+          .fields(new ArrayBuffer)
+          .views(new ArrayBuffer)
+          .customs(new ArrayBuffer)
+          .make
 
-      definitions(name.image) = currentType
-  }) ~> withInheritance
+        definitions(name.image) = currentType
+    }) ~> withInheritance
 
   /**
    * creates a type alias
    */
-  private def typedef(c : Comment) = "typedef" ~! positioned(id ^^ PositionedID) ~! (attributes ~> fieldTypeImage <~ ";") ^^ {
-    case keyword ~ name ~ t ⇒
-      ensureUnique(name)
-
-      val pos = self.makeSPos(name)
-
-      val r = self.out.TypeAlias
-        .build
-        .name(name.image)
-        .pos(pos)
-        .comment(c)
-        .make
-      typedefImages(r) = t
-  }
-
-  /**
-   * creates an enum definition
-   */
-  private def enumType(c : Comment) = "enum" ~! positioned(id ^^ PositionedID) ~! ("{" ~> repsep(
-    opt(comment) ~ positioned(id ^^ PositionedID), ","
-  ) <~ ";") ~ (rep(field) <~ "}") ^^ {
-      case keyword ~ name ~ i ~ f ⇒
+  private def typedef(c : Comment, as : ArrayBuffer[Attribute]) =
+    "typedef" ~! positioned(id ^^ PositionedID) ~! (attributes ~> fieldTypeImage <~ ";") ^^ {
+      case keyword ~ name ~ t ⇒
         ensureUnique(name)
 
         val pos = self.makeSPos(name)
-        if (i.isEmpty)
-          self.reportError(s"""${self.printPosition(pos)}
-Enum ${name.image.ogss} requires a non-empty list of instances!""")
 
-        if (!f.isEmpty)
-          self.reportWarning(s"""${self.printPosition(pos)}
-Enum ${name.image.ogss} has fields. Enum fields are not supported in OGSS.""")
-
-        val vs = new ArrayBuffer[EnumConstant]
-        self.out.EnumDef
+        val r = self.out.TypeAlias
           .build
           .name(name.image)
           .pos(pos)
           .comment(c)
-          .values(vs)
+          .attrs(as)
           .make
-        for (c ~ n ← i) {
-          vs += self.out.EnumConstant
-            .build
-            .name(n.image)
-            .pos(self.makeSPos(n))
-            .comment(c.getOrElse(null))
-            .make
-        }
+        typedefImages(r) = t
     }
+
+  /**
+   * creates an enum definition
+   */
+  private def enumType(c : Comment, as : ArrayBuffer[Attribute]) =
+    "enum" ~! positioned(id ^^ PositionedID) ~! ("{" ~> repsep(
+      opt(comment) ~ positioned(id ^^ PositionedID), ","
+    ) <~ ";") ~ (rep(field) <~ "}") ^^ {
+        case keyword ~ name ~ i ~ f ⇒
+          ensureUnique(name)
+
+          val pos = self.makeSPos(name)
+          if (i.isEmpty)
+            self.reportError(s"""${self.printPosition(pos)}
+Enum ${name.image.ogss} requires a non-empty list of instances!""")
+
+          if (!f.isEmpty)
+            self.reportWarning(s"""${self.printPosition(pos)}
+Enum ${name.image.ogss} has fields. Enum fields are not supported in OGSS.""")
+
+          val vs = new ArrayBuffer[EnumConstant]
+          self.out.EnumDef
+            .build
+            .name(name.image)
+            .pos(pos)
+            .comment(c)
+            .attrs(as)
+            .values(vs)
+            .make
+          for (c ~ n ← i) {
+            vs += self.out.EnumConstant
+              .build
+              .name(n.image)
+              .pos(self.makeSPos(n))
+              .comment(c.getOrElse(null))
+              .make
+          }
+      }
 
   private def withInheritance : Parser[Unit] = rep((":" | "with" | "extends") ~> id) ~! definitionBody ^^ {
     case sup ~ body ⇒
@@ -186,7 +194,9 @@ Enum ${name.image.ogss} has fields. Enum fields are not supported in OGSS.""")
    * A field is either a constant or a real data field.
    */
   private def field : Parser[Unit] = (
-    (opt(comment) <~ attributes ^^ { c ⇒ c.getOrElse(null) }) >> { c ⇒ view(c) | custom(c) | constant | data(c) } <~ ";"
+    (opt(comment) ~ attributes ^^ { case c ~ as ⇒ (c.getOrElse(null), as) }) >> {
+      case (c, as) ⇒ view(c) | custom(c) | constant | data(c, as)
+    } <~ ";"
     | """[^\}]+""".r ^^ {
       case image ⇒ self.reportError("parse error in field declaration:\n" + image)
     }
@@ -258,25 +268,27 @@ Enum ${name.image.ogss} has fields. Enum fields are not supported in OGSS.""")
   /**
    * A data field may be marked to be auto and will therefore only be present at runtime.
    */
-  private def data(c : Comment) = opt("auto" | "transient") ~ fieldTypeImage ~! positioned(id ^^ PositionedID) ^^ {
-    case a ~ t ~ n ⇒
-      val target = currentType.asInstanceOf[WithInheritance]
+  private def data(c : Comment, as : ArrayBuffer[Attribute]) =
+    opt("auto" | "transient") ~ fieldTypeImage ~! positioned(id ^^ PositionedID) ^^ {
+      case a ~ t ~ n ⇒
+        val target = currentType.asInstanceOf[WithInheritance]
 
-      // ensure field parsing works even in fallback mode
-      if (null != target) {
-        val f = self.out.Field
-          .build
-          .comment(c)
-          .isTransient(!a.isEmpty)
-          .name(n.image)
-          .pos(self.makeSPos(n))
-          .owner(target)
-          .make
+        // ensure field parsing works even in fallback mode
+        if (null != target) {
+          val f = self.out.Field
+            .build
+            .comment(c)
+            .attrs(as)
+            .isTransient(!a.isEmpty)
+            .name(n.image)
+            .pos(self.makeSPos(n))
+            .owner(target)
+            .make
 
-        target.fields += f
-        fieldTypeImages(f) = t
-      }
-  }
+          target.fields += f
+          fieldTypeImages(f) = t
+        }
+    }
 
   /**
    * Parse a field type but return a canonical image

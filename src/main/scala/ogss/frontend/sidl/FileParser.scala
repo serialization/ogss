@@ -22,16 +22,16 @@ import scala.collection.mutable.HashSet
 
 import ogss.frontend.common.FrontEnd
 import ogss.frontend.common.Positioned
+import ogss.oil.Attribute
+import ogss.oil.ClassDef
 import ogss.oil.Comment
 import ogss.oil.CustomFieldOption
 import ogss.oil.EnumConstant
+import ogss.oil.FieldLike
 import ogss.oil.Identifier
+import ogss.oil.InterfaceDef
 import ogss.oil.UserDefinedType
 import ogss.oil.WithInheritance
-import ogss.oil.ClassDef
-import ogss.oil.InterfaceDef
-import scala.collection.mutable.HashMap
-import ogss.oil.FieldLike
 
 /**
  * Parse a file into definitions. A three-pass approach allows us to create
@@ -70,21 +70,22 @@ class FileParser(self : FrontEnd) extends DefinitionPostProcessing(self) {
   /**
    * A user type Definition
    */
-  protected def content : Parser[Unit] = (opt(comment) <~ attributes ^^ { c ⇒ c.getOrElse(null) }) >> {
-    c ⇒ typedef(c) | enumType(c) | addedFields(c) | interfaceType(c) | classType(c)
+  protected def content : Parser[Unit] = (opt(comment) ~ attributes ^^ { case c ~ as ⇒ (c.getOrElse(null), as) }) >> {
+    case (c, as) ⇒ typedef(c, as) | enumType(c, as) | addedFields(c) | interfaceType(c, as) | classType(c, as)
   }
 
   /**
    * A declaration may start with a description, is followed by modifiers and a name, might have a super class and has
    * a body.
    */
-  private def classType(c : Comment) = (positioned(id ^^ PositionedID) ^^ {
+  private def classType(c : Comment, as : ArrayBuffer[Attribute]) = (positioned(id ^^ PositionedID) ^^ {
     case name ⇒
       definitions.getOrElse(name.image, null) match {
         case null ⇒ {
           currentType = self.out.ClassDef
             .build
             .comment(c)
+            .attrs(as)
             .name(name.image)
             .pos(self.makeSPos(name))
             .superInterfaces(new ArrayBuffer)
@@ -109,13 +110,14 @@ class FileParser(self : FrontEnd) extends DefinitionPostProcessing(self) {
   /**
    * Interfaces are processed like ClassDefs
    */
-  private def interfaceType(c : Comment) = ("interface" ~! positioned(id ^^ PositionedID) ^^ {
+  private def interfaceType(c : Comment, as : ArrayBuffer[Attribute]) = ("interface" ~! positioned(id ^^ PositionedID) ^^ {
     case keyword ~ name ⇒
       definitions.getOrElse(name.image, null) match {
         case null ⇒ {
           currentType = self.out.InterfaceDef
             .build
             .comment(c)
+            .attrs(as)
             .name(name.image)
             .pos(self.makeSPos(name))
             .superInterfaces(new ArrayBuffer)
@@ -149,7 +151,7 @@ class FileParser(self : FrontEnd) extends DefinitionPostProcessing(self) {
   /**
    * creates a type alias
    */
-  private def typedef(c : Comment) = "typedef" ~! positioned(id ^^ PositionedID) ~! (attributes ~> fieldTypeImage <~ ";") ^^ {
+  private def typedef(c : Comment, as : ArrayBuffer[Attribute]) = "typedef" ~! positioned(id ^^ PositionedID) ~! (attributes ~> fieldTypeImage <~ ";") ^^ {
     case keyword ~ name ~ t ⇒
       ensureUnique(name)
 
@@ -160,6 +162,7 @@ class FileParser(self : FrontEnd) extends DefinitionPostProcessing(self) {
         .name(name.image)
         .pos(pos)
         .comment(c)
+        .attrs(as)
         .make
       typedefImages(r) = t
   }
@@ -167,7 +170,7 @@ class FileParser(self : FrontEnd) extends DefinitionPostProcessing(self) {
   /**
    * creates an enum definition
    */
-  private def enumType(c : Comment) = "enum" ~! positioned(id ^^ PositionedID) ~! ("::=" ~> rep1sep(
+  private def enumType(c : Comment, as : ArrayBuffer[Attribute]) = "enum" ~! positioned(id ^^ PositionedID) ~! ("::=" ~> rep1sep(
     opt(comment) ~ positioned(id ^^ PositionedID), "|"
   ) <~ opt(";")) ^^ {
       case keyword ~ name ~ i ⇒
@@ -181,6 +184,7 @@ class FileParser(self : FrontEnd) extends DefinitionPostProcessing(self) {
           .name(name.image)
           .pos(pos)
           .comment(c)
+          .attrs(as)
           .values(vs)
           .make
 
