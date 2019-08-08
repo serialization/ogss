@@ -54,18 +54,18 @@ trait SpecificationMaker extends AbstractBackEnd {
     // write specification
     val out = files.open(name)
 
-    out.write(IR.enums.map(t ⇒ s"""${comment(t)}enum ${capital(t.name)} {
+    out.write(IR.enums.map(t ⇒ s"""${comment(t)}${attributes(t)}enum ${capital(t.name)} {
   ${t.values.map(v ⇒ capital(v.name)).mkString("", ",\n  ", ";")}
 }
 
 """).mkString)
 
-    out.write(IR.aliases.map(t ⇒ s"""${comment(t)}typedef ${capital(t.name)}
+    out.write(IR.aliases.map(t ⇒ s"""${comment(t)}${attributes(t)}typedef ${capital(t.name)}
   ${mapType(t.target)};
 
 """).mkString)
 
-    out.write(IR.classes.map(t ⇒ s"""${prefix(t)}${capital(t.name)} ${
+    out.write(IR.classes.map(t ⇒ s"""${prefix(t)}${attributes(t)}${capital(t.name)} ${
       if (null == t.superType) ""
       else s"extends ${capital(t.superType.name)} "
     }${
@@ -75,7 +75,7 @@ trait SpecificationMaker extends AbstractBackEnd {
 
 """).mkString)
 
-    out.write(IR.interfaces.map(t ⇒ s"""${prefix(t)}interface ${capital(t.name)} ${
+    out.write(IR.interfaces.map(t ⇒ s"""${prefix(t)}${attributes(t)}interface ${capital(t.name)} ${
       if (null == t.superType) ""
       else s"extends ${capital(t.superType.name)} "
     }${
@@ -128,4 +128,19 @@ trait SpecificationMaker extends AbstractBackEnd {
 
     prefix
   }
+
+  private def attributes(t : UserDefinedType) : String = t.attrs.map { a ⇒
+    s"""${
+      if (a.isSerialized) "@" else "!"
+    }${a.name}${
+      if (a.arguments.isEmpty) ""
+      else if ("pragma".equals(a.name)) {
+        if (a.arguments.size == 1) a.arguments.head
+        else a.arguments.head + a.arguments.tail.mkString("(", ", ", ")")
+      } else {
+        a.arguments.mkString("(", ", ", ")")
+      }
+    }
+"""
+  }.mkString
 }
