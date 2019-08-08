@@ -142,6 +142,8 @@ object internal {
       val typeT = mapType(t)
       val accessT = access(t)
 
+      val isSingleton = !t.attrs.collect { case r if "singleton".equals(r.name) ⇒ r }.isEmpty
+
       // find all fields that belong to the projected version, but use the unprojected variant
       val fields = t.fields
 
@@ -152,7 +154,11 @@ object internal {
       }) extends Pool[$typeT](_idx, "${ogssname(t)}", ${
         if (isBasePool) "null"
         else "_sup"
-      }, ${fields.count(_.isTransient)}) {${
+      }, ${fields.count(_.isTransient)})${
+        if (isSingleton) s"""
+    with ogss.common.scala.internal.SingletonPool[$typeT]"""
+        else ""
+      } {${
         // export data for sub pools
         if (isBasePool) s"""
 
@@ -182,7 +188,9 @@ object internal {
         }
       case _ ⇒ null
     }"""
-      }
+      }${
+        if (isSingleton) ""
+        else s"""
 
     override def allocateInstances {
       var i = bpo
@@ -193,32 +201,40 @@ object internal {
         data(i) = new $typeT(j)
         i = j
       }
-    }
+    }"""
+      }
 
     override def typeCheck(x : Any) : scala.Boolean = x.isInstanceOf[$typeT]
 
     /**
      * @return a new $nameT instance with default field values
      */
-    override def make = {
+    override def make = {${
+        if (isSingleton) """
+      assert(size == 0)"""
+        else ""
+      }
       val r = new $typeT(0)
       add(r);
       r
-    }
+    }${
+        if (isSingleton) ""
+        else s"""
 
     def build : (${builder(t)}[$typeT, B] forSome { type B <: ${builder(t)}[$typeT, B] }) =
       new ${builder(t)}(this, new $typeT(0))
 ${
-        if (t.subTypes.isEmpty) ""
-        else s"""
+          if (t.subTypes.isEmpty) ""
+          else s"""
     override def nameSub(ID : scala.Int) : String = ID match {${
-          t.subTypes.zipWithIndex.map {
-            case (s, i) ⇒ s"""
+            t.subTypes.zipWithIndex.map {
+              case (s, i) ⇒ s"""
       case $i ⇒ "${ogssname(s)}""""
-          }.mkString
-        }
+            }.mkString
+          }
       case _ ⇒ null
-    }
+    }"""
+        }
 
     override def makeSub(ID : scala.Int, index : scala.Int) : Pool[_ <: ${mapType(t)}] = ID match {${
           t.subTypes.collect { case t : ClassDef ⇒ t }.zipWithIndex.map {
