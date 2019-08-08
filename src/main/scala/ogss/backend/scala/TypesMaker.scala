@@ -21,6 +21,7 @@ import ogss.oil.EnumDef
 import ogss.oil.Field
 import ogss.oil.InterfaceDef
 import ogss.oil.WithInheritance
+import ogss.oil.FieldLike
 
 trait TypesMaker extends AbstractBackEnd {
 
@@ -102,6 +103,29 @@ ${
         }""")
 
         makeGetterAndSetter(out, t, flatType)
+
+        // views
+        for (v ← t.views) {
+          // just redirect to the actual field so it's way simpler than getters & setters
+          val fieldName = name(v)
+          val target =
+            if (v.name == v.target.name) "super." + getter(v.target)
+            else v.target match {
+              case f : Field     ⇒ localFieldName(f)
+              case f : FieldLike ⇒ getter(f)
+            }
+
+          val fieldAssignName = setter(v)
+
+          val vt = mapType(v.`type`)
+
+          out.write(s"""
+	${comment(v)}${
+            if (v.name == v.target.name) "override "
+            else ""
+          }def $fieldName : $vt = $target.asInstanceOf[$vt]
+  ${comment(v)}def $fieldAssignName($fieldName : $vt) : scala.Unit = $target = $fieldName""")
+        }
 
         out.write(s"""
 }
