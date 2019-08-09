@@ -91,8 +91,14 @@ ${
 """
         }
     override def get(ref : Obj) : $fieldActualType = ref.asInstanceOf[${mapType(t)}].${localFieldName(f)}${
-          if (f.`type`.isInstanceOf[EnumDef]) s".asInstanceOf[${mapType(f.`type`)}]"
-          else ""
+          f.`type` match {
+            case ft : EnumDef ⇒ s""" match {
+        case null ⇒ owner.owner.asInstanceOf[OGFile].${name(ft)}.proxy(${defaultValue(f)})
+        case x : ${mapType(ft)} ⇒ x
+        case x : ${name(ft)}.Value ⇒ owner.owner.asInstanceOf[OGFile].${name(ft)}.proxy(x)
+      }"""
+            case _ ⇒ ""
+          }
         }
 
     override def set(ref : Obj, value : $fieldActualType) {
@@ -167,10 +173,10 @@ ${
       }
 
       case t : InterfaceDef if t.superType != null ⇒ s"t.get(in.v32()).asInstanceOf[${mapType(t)}]"
-      case t : InterfaceDef ⇒ s"t.r(in).asInstanceOf[${mapType(t)}]"
+      case t : InterfaceDef                        ⇒ s"t.r(in).asInstanceOf[${mapType(t)}]"
 
-      case t : ClassDef ⇒ "t.get(in.v32())"
-      case _ ⇒ "t.r(in)"
+      case t : ClassDef                            ⇒ "t.get(in.v32())"
+      case _                                       ⇒ "t.r(in)"
     }
 
     s"""$declareD$pre

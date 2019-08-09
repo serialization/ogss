@@ -18,6 +18,7 @@ package ogss.backend.scala
 
 import ogss.io.PrintWriter
 import ogss.oil.ClassDef
+import ogss.oil.EnumDef
 
 /**
  * Create an internal class instead of a package. That way, the fucked-up Java
@@ -284,7 +285,16 @@ ${
         }(_pool, _self) {${
           (for (f ← fields)
             yield s"""
-
+${
+            f.`type` match {
+              case t : EnumDef ⇒ s"""
+    def ${name(f)}(${name(f)} : $packagePrefix${name(f.`type`)}.Value) : B = {
+      self.${localFieldName(f)} = ${name(f)};
+      this.asInstanceOf[B]
+    }"""
+              case _ ⇒ ""
+            }
+          }
     def ${name(f)}(${name(f)} : ${mapType(f.`type`)}) : B = {
       self.${localFieldName(f)} = ${name(f)};
       this.asInstanceOf[B]

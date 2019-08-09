@@ -215,12 +215,12 @@ ${
           if (f.`type`.isInstanceOf[EnumDef]) {
             val et = s"$packagePrefix${name(f.`type`)}.Value"
             s"""
-  ${comment(f)}def ${escaped(capital(f.name) + "Enum")} : $et = ${makeGetterImplementation(t, f)} match {
+  ${comment(f)}def ${getter(f)} : $et = ${makeGetterImplementation(t, f)} match {
     case null ⇒ ${defaultValue(f)}
     case v : $et ⇒ v
     case v : ${mapType(f.`type`)} ⇒ v.target
   }
-  ${comment(f)}def ${getter(f)} : ${mapType(f.`type`)} = ${makeGetterImplementation(t, f)} match {
+  ${comment(f)}def ${escaped(capital(f.name) + "Proxy")} : ${mapType(f.`type`)} = ${makeGetterImplementation(t, f)} match {
     case v : ${mapType(f.`type`)} ⇒ v
     case _ ⇒ null
   }
