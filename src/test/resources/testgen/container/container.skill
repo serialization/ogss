@@ -8,6 +8,9 @@ Container {
   map<string, v64, v64> f;
 
   set<SomethingElse> someSet;
+
+  /** add an auto field to check correct merging */
+  auto map<SomethingElse, SomethingElse> z;
 }
 
 /** no instance of this is required */
