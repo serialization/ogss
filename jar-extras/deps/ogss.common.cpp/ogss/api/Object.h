@@ -39,9 +39,15 @@ class Object {
     //! bulk allocation
     Object(){};
 
+  public:
+    /**
+     * Only delete objects that you created explicitly via new. This is barely
+     * ever the case.
+     *
+     * @note you must not free objects obtained from an iterator.
+     */
     virtual ~Object() = default;
 
-  public:
     /**
      * @return the static type ID
      * @note types with stid == -1 are named and hold a pointer to their pool
