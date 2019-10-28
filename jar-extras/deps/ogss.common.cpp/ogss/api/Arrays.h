@@ -51,6 +51,7 @@ namespace ogss {
         struct Array : public std::vector<T>, public BoxedArray {
 
             Array() : std::vector<T>() {}
+            Array(std::initializer_list<T> init) : std::vector<T>(init) {}
 
             virtual ~Array() {}
 
