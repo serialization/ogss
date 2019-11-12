@@ -125,7 +125,7 @@ class AbstractPool : public fieldTypes::FieldType {
     /**
      * @return a builder that constructs a new instance registered in this pool
      */
-    virtual Builder *build() = 0;
+    virtual api::Builder *build() = 0;
 
     /**
      * restrictions of this pool
@@ -169,7 +169,7 @@ class AbstractPool : public fieldTypes::FieldType {
      * Get the name of known sub pool with argument local id. Return null, if id
      * is invalid.
      */
-    virtual String nameSub(uint32_t id) const { return nullptr; }
+    virtual api::String nameSub(uint32_t id) const { return nullptr; }
 
     /**
      * Create the known sub pool with argument local id. Return null, if id is
@@ -198,7 +198,7 @@ class AbstractPool : public fieldTypes::FieldType {
     int bpo;
 
     //! reset internal state on write
-    virtual void resetOnWrite(Object **d) = 0;
+    virtual void resetOnWrite(api::Object **d) = 0;
 
   private:
     /**
@@ -248,7 +248,7 @@ class AbstractPool : public fieldTypes::FieldType {
      * names of known fields, the actual field information is given in the
      * generated addKnownFiled method.
      */
-    virtual String KFN(uint32_t id) const { return nullptr; }
+    virtual api::String KFN(uint32_t id) const { return nullptr; }
 
     /**
      * construct the known field with the given id

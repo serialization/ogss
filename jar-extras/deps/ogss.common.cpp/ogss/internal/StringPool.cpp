@@ -74,7 +74,7 @@ void internal::StringPool::readSL(ogss::streams::FileInputStream *in) {
         // note: we will intern the string only if it is unknown
         const int cmp =
           hasFI
-            ? (hasKI ? equalityLess::javaCMP(literals->strings[ki], next) : 1)
+            ? (hasKI ? ::ogss::api::equalityLess::javaCMP(literals->strings[ki], next) : 1)
             : -1;
 
         if (0 <= cmp) {

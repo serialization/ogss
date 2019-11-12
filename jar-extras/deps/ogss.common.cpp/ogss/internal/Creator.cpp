@@ -23,7 +23,7 @@ Creator::Creator(const std::string &path, const ogss::internal::PoolBuilder &pb)
         // @note to self: in C++ this should be string*[32]
         int nextID[50];
         nextID[0] = 0;
-        String nextName = pb.name(0);
+        ::ogss::api::String nextName = pb.name(0);
 
         AbstractPool *p = nullptr, *last = nullptr;
         while (nextName) {
@@ -84,8 +84,8 @@ Creator::Creator(const std::string &path, const ogss::internal::PoolBuilder &pb)
     {
         int ki = 0;
         AbstractEnumPool *r;
-        String nextName = pb.enumName(ki);
-        const std::vector<String> foundValues;
+        ::ogss::api::String nextName = pb.enumName(ki);
+        const std::vector<::ogss::api::String> foundValues;
         // create remaining known enums
         while (nullptr != nextName) {
             r = pb.enumMake(ki++, tid++, foundValues);
@@ -97,7 +97,7 @@ Creator::Creator(const std::string &path, const ogss::internal::PoolBuilder &pb)
 
     // Create Fields
     for (AbstractPool *p : classes) {
-        String f;
+    	::ogss::api::String f;
         for (int i = 0; (f = p->KFN(i)); i++) {
 
             FieldDeclaration *const fd = p->KFC(i, SIFA, nextFieldID);

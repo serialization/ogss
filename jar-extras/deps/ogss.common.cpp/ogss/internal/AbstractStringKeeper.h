@@ -19,7 +19,7 @@ namespace ogss {
             /**
              * Begin of the ordered array of string literals.
              */
-            const api::String strings[0];
+            const ogss::api::String strings[0];
 
             AbstractStringKeeper(const ObjectID size) : size(size), strings{} {};
         };

@@ -148,7 +148,7 @@ void File::changeMode(WriteMode newMode) {
     }
 }
 
-std::string File::to_string(ogss::Object *ref) {
+std::string File::to_string(::ogss::api::Object *ref) {
     if (!ref)
         return "(null)";
 
@@ -204,7 +204,7 @@ std::string File::to_string(ogss::Object *ref) {
     return ss.str();
 }
 
-bool File::contains(ogss::Object *ref) const {
+bool File::contains(::ogss::api::Object *ref) const {
     if (!ref)
         return false;
     const ObjectID ID = ref->id;

@@ -55,7 +55,7 @@ template <class T> class Pool : public AbstractPool {
         }
     }
 
-    void resetOnWrite(Object **d) final {
+    void resetOnWrite(ogss::api::Object **d) final {
         // update data
         data = (T **)d;
 

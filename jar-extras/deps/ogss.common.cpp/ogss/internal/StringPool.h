@@ -19,7 +19,6 @@ namespace api {
 class File;
 }
 
-using namespace api;
 namespace internal {
 class Parser;
 
@@ -44,12 +43,12 @@ class StringPool final : public fieldTypes::HullType {
      * have to have duplicate names laying around, improving the performance of
      * hash containers and name checks:)
      */
-    mutable std::unordered_set<String, equalityHash, equalityEquals>
+    mutable std::unordered_set<ogss::api::String, ogss::api::equalityHash, ogss::api::equalityEquals>
       knownStrings;
     /// strings in here will be deleted by the pool
     /// @note we keep this list to allow freeing of strings that are no longer
     /// reachable otherwise
-    mutable std::vector<String> owned;
+    mutable std::vector<ogss::api::String> owned;
 
     /**
      * Strings known at compile time. Literals are not deleted and cannot be
@@ -65,7 +64,7 @@ class StringPool final : public fieldTypes::HullType {
      * @note literal strings can alias literals->strings, in which case it must
      * not be freed
      */
-    const String *literalStrings;
+    const ogss::api::String *literalStrings;
     size_t literalStringCount;
 
     /**
@@ -94,7 +93,7 @@ class StringPool final : public fieldTypes::HullType {
      * @note this is essentially Javas String.intern()
      * @note the resulting string object is owned by this pool
      */
-    api::String add(const char *img) const {
+    ogss::api::String add(const char *img) const {
         auto r = new std::string(img);
         auto other = knownStrings.find(r);
         if (other != knownStrings.end()) {
@@ -107,7 +106,7 @@ class StringPool final : public fieldTypes::HullType {
         return r;
     }
 
-    api::Box get(ObjectID ID) const final {
+    ogss::api::Box get(ObjectID ID) const final {
         api::Box r{};
         r.string = byID(ID);
         return r;
@@ -117,13 +116,13 @@ class StringPool final : public fieldTypes::HullType {
      * search a string by id it had inside of the read file, may block if the
      * string has not yet been read
      */
-    String byID(ObjectID index) const {
+    ogss::api::String byID(ObjectID index) const {
         if (index <= 0)
             return nullptr;
         else if (index > lastID)
             throw std::out_of_range("index of StringPool::get too large");
         else {
-            String result = static_cast<String>(idMap[index]);
+            auto result = static_cast<ogss::api::String>(idMap[index]);
             if (nullptr == result) {
                 std::lock_guard<std::mutex> readLock(mapLock);
 

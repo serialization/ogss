@@ -211,7 +211,7 @@ $checks
     case t : BuiltinType ⇒ lowercase(t.name) match {
       case "anyref" | "string" ⇒ s"""const auto v = $accessI;
             if (v) {
-                type->w(::ogss::box(v), out);
+                type->w(::ogss::api::box(v), out);
                 drop = false;
             } else
                 out->i8(0);"""
@@ -226,8 +226,8 @@ $checks
         } else
             out->i8(0);"""
 
-    case t : ListType ⇒ s"drop &= ((ogss::fieldTypes::ListType<${mapType(t.baseType)}>*)type)->w(::ogss::box($accessI), out);"
+    case t : ListType ⇒ s"drop &= ((ogss::fieldTypes::ListType<${mapType(t.baseType)}>*)type)->w(::ogss::api::box($accessI), out);"
 
-    case _            ⇒ s"""drop &= type->w(::ogss::box($accessI), out);"""
+    case _            ⇒ s"""drop &= type->w(::ogss::api::box($accessI), out);"""
   }
 }

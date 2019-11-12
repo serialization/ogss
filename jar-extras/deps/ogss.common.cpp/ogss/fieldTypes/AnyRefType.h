@@ -62,7 +62,7 @@ namespace ogss {
 
             bool w(api::Box target, streams::BufferedOutStream *out) const final {
                 if (target.anyRef) {
-                    if (Object *ref = dynamic_cast<Object *>(target.anyRef)) {
+                    if (auto ref = dynamic_cast<::ogss::api::Object *>(target.anyRef)) {
                         out->v64(owner->pool(ref)->typeID - 8);
                         out->v64(target.anyRef->id);
                     } else {

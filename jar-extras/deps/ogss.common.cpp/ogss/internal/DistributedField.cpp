@@ -85,7 +85,7 @@ void DistributedField::compress(const ObjectID newLBPO) const {
 
     auto is = owner->allObjects();
     while (is->hasNext()) {
-        const Object *const i = is->next();
+        const ::ogss::api::Object *const i = is->next();
         const ObjectID ID = i->id;
         if (0 != ID) {
             d[next++] = ID < 0 ? newData[i] : data[ID - firstID];

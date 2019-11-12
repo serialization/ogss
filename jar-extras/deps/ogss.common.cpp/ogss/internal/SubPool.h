@@ -34,13 +34,13 @@ template <class T> class SubPool final : public Pool<T> {
     }
 
     AbstractPool *
-    makeSub(ogss::TypeID index, String name,
+    makeSub(ogss::TypeID index, ogss::api::String name,
             std::unordered_set<TypeRestriction *> *restrictions) final {
         return new SubPool<T>(index, this, name, restrictions);
     }
 
   public:
-    SubPool(TypeID TID, AbstractPool *super, String name,
+    SubPool(TypeID TID, AbstractPool *super, ogss::api::String name,
             ::std::unordered_set<::ogss::restrictions::TypeRestriction *>
               *restrictions) :
       Pool<T>(TID, super, name, restrictions, 0) {}

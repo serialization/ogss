@@ -52,7 +52,7 @@ Writer::Writer(api::File *state, streams::FileOutputStream &out) :
         sp->idMap.reserve(count);
         sp->IDs.reserve(count);
         for (size_t i = 0; i < sp->literalStringCount; i++) {
-            const String s = sp->literalStrings[i];
+            const ::ogss::api::String s = sp->literalStrings[i];
             sp->IDs[s] = sp->idMap.size();
             sp->idMap.push_back((void *)s);
         }
@@ -271,7 +271,7 @@ uint32_t Writer::writeTF(api::File *const state, BufferedOutStream &out) {
             internal::AbstractEnumPool *p = state->enums[i];
             out.v64(string->id(p->name));
             out.v64((int)((EnumPool<api::UnknownEnum> *)p)->values.size());
-            for (AbstractEnumProxy *v : *p) {
+            for (::ogss::api::AbstractEnumProxy *v : *p) {
                 out.v64(string->id(v->name));
             }
         }
@@ -338,21 +338,21 @@ void Writer::compress(AbstractPool *const base, int *bpos) {
 
     // from now on, size will take deleted objects into account, thus d may
     // in fact be smaller then data!
-    Object **tmp = ((Pool<Object> *)base)->data;
+    ::ogss::api::Object **tmp = ((Pool<::ogss::api::Object> *)base)->data;
     base->allocateData();
-    Object **d = ((Pool<Object> *)base)->data;
-    ((Pool<Object> *)base)->data = tmp;
+    ::ogss::api::Object **d = ((Pool<::ogss::api::Object> *)base)->data;
+    ((Pool<::ogss::api::Object> *)base)->data = tmp;
     ObjectID pos = 0;
 
     {
         auto is = base->allObjects();
         while (is->hasNext()) {
-            Object *const i = is->next();
+        	::ogss::api::Object *const i = is->next();
             if (0 != i->id) {
                 d[pos] = i;
                 i->id = ++pos;
             } else {
-                ((Pool<Object> *)base->owner->pool(i))->book->free(i);
+                ((Pool<::ogss::api::Object> *)base->owner->pool(i))->book->free(i);
             }
         }
     }
@@ -529,7 +529,7 @@ BufferedOutStream *Writer::writeHull(Writer *self, const HullType *ht,
             } else if (dynamic_cast<const StringPool *>(ht)) {
                 // nothing to do (in fact we cant type check a MapType)
             } else {
-                const auto mt = (fieldTypes::MapType<Box, Box> *)ht;
+                const auto mt = (fieldTypes::MapType<::ogss::api::Box, ::ogss::api::Box> *)ht;
                 if (auto bt = dynamic_cast<HullType *>(mt->keyType)) {
                     if (0 == --bt->deps) {
                         std::lock_guard<std::mutex> rLock(self->resultLock);

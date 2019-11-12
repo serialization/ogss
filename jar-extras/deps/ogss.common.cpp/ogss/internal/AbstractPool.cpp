@@ -51,7 +51,7 @@ internal::AbstractPool::~AbstractPool() {
 
 api::Object *AbstractPool::getAsAnnotation(ObjectID id) const {
     return ((0 < id) & (id <= lastID))
-           ? (((Pool<Object> *) this)->data[id - 1])
+           ? (((Pool<::ogss::api::Object> *) this)->data[id - 1])
            : nullptr;
 }
 
@@ -59,7 +59,7 @@ api::Box AbstractPool::r(streams::InStream &in) const {
     api::Box r = {};
     const auto id = (ObjectID) (in.has(9) ? in.v64checked() : in.v64());
     r.anyRef = ((0 < id) & (id <= lastID))
-               ? (((Pool<Object> *) this)->data[id - 1])
+               ? (((Pool<::ogss::api::Object> *) this)->data[id - 1])
                : nullptr;
     return r;
 }
