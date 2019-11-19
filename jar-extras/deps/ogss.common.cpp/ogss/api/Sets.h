@@ -74,6 +74,7 @@ namespace ogss {
             Set() : std::unordered_set<T>() {}
             Set(std::initializer_list<value_type> init) :
                 std::unordered_set<T>(init) {}
+            Set(const Set &other) : std::unordered_set<T>(other) {}
 
             virtual ~Set() {};
 

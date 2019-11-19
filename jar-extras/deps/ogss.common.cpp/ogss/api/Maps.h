@@ -131,6 +131,7 @@ namespace ogss {
             Map() : std::unordered_map<K, V>() {}
             Map(std::initializer_list<value_type> init) :
                 std::unordered_map<K, V>(init) {}
+            Map(const Map &other) : std::unordered_map<K, V>(other) {}
 
             virtual ~Map() {}
 
