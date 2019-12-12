@@ -113,7 +113,7 @@ template <class T> class Pool : public AbstractPool {
 
         T *rval = book->next();
         new (rval) T();
-        rval->id = -1;
+        rval->id = -1 - this->newObjects.size();
         this->newObjects.push_back(rval);
         return rval;
     };
