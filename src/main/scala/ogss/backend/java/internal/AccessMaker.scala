@@ -29,13 +29,19 @@ trait AccessMaker extends AbstractBackEnd {
       val typeT = mapType(t)
       val accessT = access(t)
 
+      val isSingleton = !t.attrs.collect { case r if "singleton".equals(r.name) ⇒ r }.isEmpty
+
       // find all fields that belong to the projected version, but use the unprojected variant
       val fields = t.fields
 
       out.write(s"""
 ${
         comment(t)
-      }public static final class $accessT extends Pool<$typeT> {
+      }public static final class $accessT extends Pool<$typeT>${
+        if (isSingleton) s"""
+        implements ogss.common.java.internal.SingletonPool<$typeT>"""
+        else ""
+      } {
 
     /**
      * Can only be constructed by the SkillFile in this package.
@@ -89,7 +95,49 @@ ${
       }
 
     @Override
-    protected void allocateInstances() {
+    protected void allocateInstances() {${
+        if(isSingleton)
+s"""
+        int i = bpo;
+
+        if (staticDataInstances > 1) {
+            throw new OGSSException("class "+name+" is a singleton, but has "+staticDataInstances+" instances");
+        }
+        if (1 == staticDataInstances) {
+            // create a new object, claiming that there is none in data
+            staticDataInstances = 0
+            $typeT v = get();
+            // instance is not a new object and make the object an object obtained from file
+            this.newObjects.clear()
+            staticDataInstances = 1
+
+            data[i] = v
+            v._ID = i + 1
+        }
+    }
+
+    /**
+     * @return a new $nameT instance with default field values
+     */
+    @Override
+    public $typeT make() {
+        assert 0 == size();
+        $typeT rval = new $typeT(0);
+        add(rval);
+        return rval;
+    }
+
+    private $typeT instance;
+
+    @Override
+    public synchronized $typeT get() {
+        if(null == instance){
+            instance = make();
+        }
+        return instance;
+    }
+"""
+        else s"""
         int i = bpo, j;
         final int high = i + staticDataInstances;
         while (i < high) {
@@ -123,7 +171,7 @@ ${
         }
         default: return null;
         }
-    }
+    }"""}
 
     @Override
     protected Pool<? extends ${mapType(t)}> makeSub(int id, int idx) {
