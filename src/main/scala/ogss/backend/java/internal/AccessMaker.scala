@@ -105,14 +105,14 @@ s"""
         }
         if (1 == staticDataInstances) {
             // create a new object, claiming that there is none in data
-            staticDataInstances = 0
+            staticDataInstances = 0;
             $typeT v = get();
             // instance is not a new object and make the object an object obtained from file
-            this.newObjects.clear()
-            staticDataInstances = 1
+            this.newObjects.clear();
+            staticDataInstances = 1;
 
-            data[i] = v
-            v._ID = i + 1
+            data[i] = v;
+            setID(v, i + 1);
         }
     }
 
