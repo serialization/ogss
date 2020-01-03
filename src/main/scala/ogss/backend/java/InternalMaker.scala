@@ -1,12 +1,12 @@
 /*******************************************************************************
  * Copyright 2019 University of Stuttgart, Germany
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License.  You may obtain a copy
  * of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
@@ -18,6 +18,7 @@ package ogss.backend.java
 import ogss.backend.java.internal.AccessMaker
 import ogss.backend.java.internal.FieldDeclarationMaker
 import ogss.io.PrintWriter
+import ogss.oil.EnumDef
 
 /**
  * Create an internal class instead of a package. That way, the fucked-up Java
@@ -181,7 +182,10 @@ ${
           case f ⇒ fields.find(ogssname(_).equals(ogssname(f))).get -> f
         }.toMap
 
-        out.write(s"""
+        val isSingleton = !t.attrs.collect { case r if "singleton".equals(r.name) ⇒ r }.isEmpty
+
+        if (!isSingleton)
+          out.write(s"""
     /**
      * Builder for new $nameT instances.
      *
@@ -196,7 +200,14 @@ ${
             super(pool, self);
         }${
           (for (f ← fields)
-            yield s"""
+            yield s"""${
+              if(f.`type`.isInstanceOf[EnumDef])s"""
+
+        public final B ${name(f)}($packagePrefix${name(f.`type`)} ${name(f)}) {
+            self.${name(f)} = ((OGFile)p.owner()).${name(f.`type`)}.proxy(${name(f)});
+            return (B)this;
+        }""" else ""
+            }
 
         public final B ${name(f)}(${mapType(f.`type`)} ${name(f)}) {
             self.${name(f)} = ${name(f)};
