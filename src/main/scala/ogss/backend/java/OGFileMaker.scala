@@ -102,6 +102,12 @@ ${
      * Access for all ${name(t)}s in this file
      */
     final public ${interfacePool(t)} ${name(t)}s;""").mkString("")
+    }${
+      (for (t ← enums) yield s"""
+    /**
+     * Access for all ${name(t)} proxies in this file
+     */
+    final public ogss.common.java.internal.EnumPool<$packagePrefix${name(t)}> ${name(t)};""").mkString("")
     }
 
     private OGFile(StateInitializer init) {
@@ -121,6 +127,9 @@ ${
         if (realizations.isEmpty) ""
         else realizations.mkString(",", ",", "")
       });""").mkString("")
+    }${
+      (for (t ← enums) yield s"""
+        ${name(t)} = (ogss.common.java.internal.EnumPool<$packagePrefix${name(t)}>) init.SIFA[${t.stid}];""").mkString("")
     }
 
         init.awaitResults();

@@ -121,7 +121,10 @@ s"""
      */
     @Override
     public $typeT make() {
-        assert 0 == size();
+        if(0 != size()) {
+            throw new OGSSException("class "+name+" is a singleton with "+size()+" instance; use get to access the instance.");
+        }
+
         $typeT rval = new $typeT(0);
         add(rval);
         return rval;
