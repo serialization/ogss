@@ -25,7 +25,6 @@ trait InterfacesMaker extends AbstractBackEnd {
       //package
       out.write(s"""package ${this.packageName};
 
-import ogss.common.java.api.FieldDeclaration;
 import ogss.common.java.internal.EnumProxy;
 import ogss.common.java.internal.Pool;
 """)
