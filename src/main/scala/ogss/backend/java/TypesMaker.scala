@@ -1,12 +1,12 @@
 /*******************************************************************************
  * Copyright 2019 University of Stuttgart, Germany
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License.  You may obtain a copy
  * of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
@@ -25,34 +25,33 @@ trait TypesMaker extends AbstractBackEnd {
     for (t ← IR) {
       val out = files.open(s"${name(t)}.java")
 
-      val customizations = t.customs.filter(_.language.equals("java")).toArray
+      // in java, we have to implement customizations from super interfaces as well
+      val customizations = (Seq(t) ++ t.superInterfaces)
+        .flatMap(_.customs.filter(_.language.equals("java")))
+        .toSet
+        .toArray
 
       // package
       out.write(s"""package ${this.packageName};
 
 import ogss.common.java.internal.EnumProxy;
-${
-        customizations.flatMap(
+${customizations
+        .flatMap(
           _.options.find(_.name.equals("import")).toSeq.flatMap(_.arguments)
-        ).map(i ⇒ s"import $i;\n").mkString
-      }
+        )
+        .map(i ⇒ s"import $i;\n")
+        .mkString}
 """)
 
       val fields = allFields(t)
 
       out.write(s"""
-${
-        comment(t)
-      }${
-        suppressWarnings
-      }public class ${name(t)} extends ${
-        if (null != t.superType) { name(t.superType) }
-        else { "ogss.common.java.internal.Obj" }
-      }${
-        if (t.superInterfaces.isEmpty) ""
-        else
-          t.superInterfaces.map(name(_)).mkString(" implements ", ", ", "")
-      } {
+${comment(t)}${suppressWarnings}public class ${name(t)} extends ${if (null != t.superType) {
+        name(t.superType)
+      } else { "ogss.common.java.internal.Obj" }}${if (t.superInterfaces.isEmpty)
+        ""
+      else
+        t.superInterfaces.map(name(_)).mkString(" implements ", ", ", "")} {
 
     /**
      * Create a new unmanaged ${ogssname(t)}. Allocation of objects without using the
@@ -84,7 +83,7 @@ ${
       }
 
       var implementedFields = t.fields
-      def addFields(i : InterfaceDef) {
+      def addFields(i: InterfaceDef) {
         implementedFields ++= i.fields
         for (t ← i.superInterfaces)
           addFields(t)
@@ -95,20 +94,17 @@ ${
       // getters & setters //
       ///////////////////////
       for (f ← implementedFields) {
-        def makeField : String = s"""
-    protected ${
-          if (f.isTransient) "transient "
-          else ""
-        }${
-          if (f.`type`.isInstanceOf[EnumDef]) s"Object ${name(f)};// = $packagePrefix${name(f.`type`)}.${
-            capital(f.`type`.asInstanceOf[EnumDef].values.head.name)
-          };"
-          else s"${mapType(f.`type`)} ${name(f)};"
-        }
+        def makeField: String =
+          s"""
+    protected ${if (f.isTransient) "transient "
+          else ""}${if (f.`type`.isInstanceOf[EnumDef])
+            s"Object ${name(f)};// = $packagePrefix${name(f.`type`)}.${capital(
+              f.`type`.asInstanceOf[EnumDef].values.head.name)};"
+          else s"${mapType(f.`type`)} ${name(f)};"}
 """
 
-        def makeGetterImplementation : String = s"return ${name(f)};"
-        def makeSetterImplementation : String = s"this.${name(f)} = ${name(f)};"
+        def makeGetterImplementation: String = s"return ${name(f)};"
+        def makeSetterImplementation: String = s"this.${name(f)} = ${name(f)};"
 
         if (f.`type`.isInstanceOf[EnumDef]) {
           val nameF = name(f)
@@ -122,7 +118,8 @@ ${
     }
     ${comment(f)}final public $enumF ${getter(f)}AsEnum() {
         if (null == $nameF)
-            return ($enumF) ($nameF = $enumF.${capital(f.`type`.asInstanceOf[EnumDef].values.head.name)});
+            return ($enumF) ($nameF = $enumF.${capital(
+            f.`type`.asInstanceOf[EnumDef].values.head.name)});
         if ($nameF instanceof EnumProxy<?>)
             return (($typeF) $nameF).target;
         return ($enumF) $nameF;
@@ -152,11 +149,29 @@ ${
 
       // custom fields
       for (c ← customizations) {
-        val mod = c.options.find(_.name.equals("modifier")).map(_.arguments.head).getOrElse("public")
+        val opts = c.options
+
+        val mod = opts
+          .find(_.name.equals("modifier"))
+          .map(_.arguments.head)
+          .getOrElse("public")
+
+        val default = opts
+          .find(_.name.equals("default"))
+          .map(_.arguments(0))
+          .getOrElse(null)
 
         out.write(s"""
-    ${comment(c)}$mod ${c.typename} ${name(c)}; 
+    ${comment(c)}$mod ${c.typename} ${name(c)}${if (null == default) ""
+        else s" = $default"};
 """)
+        // realize accessor methods from interface fields
+        if(c.owner != t){
+          out.write(s"""
+    ${comment(c)}@Override
+    $mod ${c.typename} ${name(c)}() {return ${name(c)};}
+""")
+        }
       }
 
       // fix toAnnotation
@@ -168,7 +183,7 @@ ${
     }
 """)
 
-      out.write(s"""
+      out.write("""
 }
 """);
       out.close()
