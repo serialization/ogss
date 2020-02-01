@@ -15,8 +15,7 @@
  ******************************************************************************/
 package ogss.backend.java
 
-import ogss.oil.EnumDef
-import ogss.oil.InterfaceDef
+import ogss.oil.{EnumDef, Field, FieldLike, InterfaceDef}
 
 trait TypesMaker extends AbstractBackEnd {
   abstract override def make {
@@ -137,7 +136,7 @@ ${comment(t)}${suppressWarnings}public class ${name(t)} extends ${if (null != t.
 """)
         } else
           out.write(s"""$makeField
-    ${comment(f)}final public ${mapType(f.`type`)} ${getter(f)}() {
+    ${comment(f)}public ${mapType(f.`type`)} ${getter(f)}() {
         $makeGetterImplementation
     }
 
@@ -166,10 +165,29 @@ ${comment(t)}${suppressWarnings}public class ${name(t)} extends ${if (null != t.
         else s" = $default"};
 """)
         // realize accessor methods from interface fields
-        if(c.owner != t){
+        if (c.owner != t) {
           out.write(s"""
     ${comment(c)}@Override
     $mod ${c.typename} ${name(c)}() {return ${name(c)};}
+""")
+        }
+      }
+
+      // views
+      for (v ← t.views) {
+        // just redirect to the actual field so it's way simpler than getters & setters
+        val fieldName = name(v)
+        val target = name(v.target)
+        val vt = mapType(v.`type`)
+
+        // filter non-feasible views (in Java)
+        if (!v.`type`.isInstanceOf[InterfaceDef]) {
+          out.write(
+            s"""
+	${comment(v)}${
+              if (v.name == v.target.name) " @Override\n    "
+              else ""
+            }public $vt ${getter(v)}() { return ($vt) $target; }
 """)
         }
       }
