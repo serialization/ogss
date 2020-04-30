@@ -46,6 +46,7 @@ final class Main extends AbstractBackEnd
   with StringKeeperMaker
   with PoolsMaker
   with TypesMaker
+  with MarkAndSweepMaker
   //@note this maker has to be performed after others
   with FileNamesMaker {
 
@@ -130,6 +131,7 @@ final class Main extends AbstractBackEnd
       case "writefilenames"   ⇒ writeGeneratedSources = ("true".equals(value))
       case "pic"              ⇒ cmakeFPIC = ("true".equals(value))
       case "suppresswarnings" ⇒ cmakeNoWarn = ("true".equals(value))
+      case "markandsweep"     ⇒ generateMarkAndSweep = ("true".equals(value))
       case unknown            ⇒ sys.error(s"unkown Argument: $unknown")
     }
   }
@@ -139,7 +141,8 @@ final class Main extends AbstractBackEnd
     OptionDescription("interfaceChecks", "true/false", "if set to true, the generated API will contain is[[interface]] methods"),
     OptionDescription("writeFileNames", "true/false", "if set to true, create generatedFiles.txt that contains all generated file names"),
     OptionDescription("PIC", "true/false", "generated cmake project will create position independent code"),
-    OptionDescription("suppressWarnings", "true/false", "generated cmake project will tell gcc to suppress warnings")
+    OptionDescription("suppressWarnings", "true/false", "generated cmake project will tell gcc to suppress warnings"),
+    OptionDescription("markAndSweep", "true/false", "if set to true, a class implementing Mark-and-Sweep will be generated")
   )
 
   override def customFieldManual : String = """

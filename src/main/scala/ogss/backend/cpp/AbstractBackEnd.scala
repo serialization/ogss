@@ -85,6 +85,11 @@ trait AbstractBackEnd extends BackEnd {
   protected var cmakeNoWarn = false;
 
   /**
+   * If set to true, will generate a MarkAndSweep class
+   */
+  protected var generateMarkAndSweep = false;
+
+  /**
    * If interfaceChecks then skillName -> Name of sub-interfaces
    * @note the same interface can be sub and super, iff the type is a base type;
    * in that case, super wins!
