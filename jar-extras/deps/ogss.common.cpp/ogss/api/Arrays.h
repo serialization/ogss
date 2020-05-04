@@ -52,6 +52,7 @@ namespace ogss {
 
             Array() : std::vector<T>() {}
             Array(std::initializer_list<T> init) : std::vector<T>(init) {}
+            Array(const Array &other) : std::vector<T>(other) {}
 
             virtual ~Array() {}
 

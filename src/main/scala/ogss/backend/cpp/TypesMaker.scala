@@ -239,7 +239,8 @@ ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}
 
         out.write(s"""
 
-        ::ogss::TypeID stid() const override { return ${t.stid}; }
+        static constexpr ::ogss::TypeID typeID = ${t.stid};
+        ::ogss::TypeID stid() const override { return typeID; }
     };
 
     class ${name(t)}_UnknownSubType : public ${name(t)}, public ::ogss::api::NamedObj {
