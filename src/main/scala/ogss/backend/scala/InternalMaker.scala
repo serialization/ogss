@@ -55,9 +55,9 @@ import ogss.common.scala.internal.StringPool;
 import ogss.common.scala.internal.SubPool;
 import ogss.common.scala.internal.fields.AutoField
 import ogss.common.scala.internal.fields.KnownField
-import ogss.common.streams.BufferedOutStream;
-import ogss.common.streams.FileInputStream;
-import ogss.common.streams.MappedInStream;
+import ogss.common.jvm.streams.BufferedOutStream;
+import ogss.common.jvm.streams.FileInputStream;
+import ogss.common.jvm.streams.MappedInStream;
 
 object internal {
 """)

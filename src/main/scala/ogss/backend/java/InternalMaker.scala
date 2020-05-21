@@ -60,9 +60,9 @@ import ogss.common.java.internal.fieldDeclarations.AutoField;
 import ogss.common.java.internal.fieldDeclarations.KnownField;
 import ogss.common.java.internal.fieldTypes.*;
 import ogss.common.java.restrictions.TypeRestriction;
-import ogss.common.streams.BufferedOutStream;
-import ogss.common.streams.FileInputStream;
-import ogss.common.streams.MappedInStream;
+import ogss.common.jvm.streams.BufferedOutStream;
+import ogss.common.jvm.streams.FileInputStream;
+import ogss.common.jvm.streams.MappedInStream;
 
 
 ${

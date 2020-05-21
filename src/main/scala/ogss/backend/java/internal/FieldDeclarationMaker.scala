@@ -212,7 +212,7 @@ ${
 
     f.`type`.stid match {
       case 0 ⇒ s"""$declareD
-        final ogss.common.streams.BoolOutWrapper wrap = new ogss.common.streams.BoolOutWrapper(out);
+        final ogss.common.jvm.streams.BoolOutWrapper wrap = new ogss.common.jvm.streams.BoolOutWrapper(out);
         for (; i != h; i++) {
             final boolean v = $fieldAccess;
             drop &= !v;

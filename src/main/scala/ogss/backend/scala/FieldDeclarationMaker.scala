@@ -200,7 +200,7 @@ ${
 
     f.`type`.stid match {
       case 0 ⇒ s"""$declareD
-      val wrap = new ogss.common.streams.BoolOutWrapper(out)
+      val wrap = new ogss.common.jvm.streams.BoolOutWrapper(out)
       var i = begin
       while (i != h) {
         val v = $fieldAccess;
