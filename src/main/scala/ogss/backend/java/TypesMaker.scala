@@ -168,7 +168,7 @@ ${comment(t)}${suppressWarnings}public class ${name(t)} extends ${if (null != t.
         if (c.owner != t) {
           out.write(s"""
     ${comment(c)}@Override
-    $mod ${c.typename} ${name(c)}() {return ${name(c)};}
+    ${mod.replace("transient", "")} ${c.typename} ${name(c)}() {return ${name(c)};}
 """)
         }
       }

@@ -80,7 +80,7 @@ ${///////////////////////
           .getOrElse("public")
 
         out.write(s"""
-    ${comment(c)}$mod ${c.typename} ${name(c)}();
+    ${comment(c)}${mod.replace("transient", "")} ${c.typename} ${name(c)}();
 """)
       }
       out.write("""}
