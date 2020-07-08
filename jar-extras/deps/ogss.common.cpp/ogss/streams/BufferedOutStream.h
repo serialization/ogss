@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <cstring>
 #include <vector>
+#include <stdexcept>
 
 namespace ogss {
 namespace streams {

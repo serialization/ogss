@@ -51,7 +51,7 @@ template <class T> class Pool : public AbstractPool {
         if (super) {
             this->data = (T **)((Pool<T> *)this->base)->data;
         } else {
-            this->data = new T *[this->cachedSize];
+            this->data = new T *[static_cast<size_t>(this->cachedSize)];
         }
     }
 
@@ -60,7 +60,7 @@ template <class T> class Pool : public AbstractPool {
         data = (T **)d;
 
         // update structural knowledge of data
-        staticDataInstances += newObjects.size() - deletedCount;
+        staticDataInstances += static_cast<ObjectID>(newObjects.size()) - deletedCount;
         deletedCount = 0;
         newObjects.clear();
     }
@@ -94,7 +94,7 @@ template <class T> class Pool : public AbstractPool {
       book(nullptr),
       newObjects() {}
 
-    virtual ~Pool() {
+    virtual ~Pool() override {
         if (book)
             delete book;
         if (!super)
@@ -113,7 +113,7 @@ template <class T> class Pool : public AbstractPool {
 
         T *rval = book->next();
         new (rval) T();
-        rval->id = -1 - this->newObjects.size();
+        rval->id = -1 - static_cast<ObjectID>(this->newObjects.size());
         this->newObjects.push_back(rval);
         return rval;
     };

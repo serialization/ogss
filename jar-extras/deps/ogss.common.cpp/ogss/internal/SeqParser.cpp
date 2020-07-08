@@ -2,6 +2,8 @@
 // Created by Timm Felden on 03.04.19.
 //
 
+#include <algorithm>
+
 #include "SeqParser.h"
 #include "../concurrent/Pool.h"
 #include "../fieldTypes/ContainerType.h"

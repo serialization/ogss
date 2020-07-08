@@ -41,6 +41,15 @@ class DynamicDataIterator : public std::iterator<std::input_iterator_tag, T> {
             p = nullptr;
     }
 
+    inline const Pool<T>* asPool() const {
+        return static_cast<const Pool<T> *>(p);
+    }
+
+    /** converts index to type expected by indexing. makes compiler happy. */
+    inline typename std::vector<T*>::size_type vIndex() const {
+        return static_cast<typename std::vector<T*>::size_type>(index);
+    }
+
   public:
     //! creates an empty iterator
     DynamicDataIterator() :
@@ -61,7 +70,7 @@ class DynamicDataIterator : public std::iterator<std::input_iterator_tag, T> {
         if ((index == last) | (nullptr == p->data)) {
             second = true;
             while (this->p) {
-                if ((last = ((Pool<T> *)this->p)->newObjects.size())) {
+                if ((last = static_cast<ObjectID>(asPool()->newObjects.size()))) {
                     index = 0;
                     break;
                 }
@@ -85,7 +94,7 @@ class DynamicDataIterator : public std::iterator<std::input_iterator_tag, T> {
                 second = true;
             }
             while (this->p) {
-                if ((last = ((Pool<T> *)this->p)->newObjects.size())) {
+                if ((last = static_cast<ObjectID>(asPool()->newObjects.size()))) {
                     index = 0;
                     break;
                 }
@@ -103,8 +112,8 @@ class DynamicDataIterator : public std::iterator<std::input_iterator_tag, T> {
 
     //! move to next position and return current element
     T *next() {
-        auto r = second ? ((Pool<T> *)p)->newObjects[index]
-                        : ((Pool<T> *)p)->data[index];
+        auto r = second ? asPool()->newObjects[vIndex()]
+                        : asPool()->data[vIndex()];
         this->operator++();
         return r;
     }
@@ -130,13 +139,13 @@ class DynamicDataIterator : public std::iterator<std::input_iterator_tag, T> {
 
     T &operator*() const {
         // @note increment happens before access, because we shifted data by 1
-        return *(second ? ((Pool<T> *)p)->newObjects[index]
-                        : ((Pool<T> *)p)->data[index]);
+        return *(second ? asPool()->newObjects[vIndex()]
+                        : asPool()->data[vIndex()]);
     }
 
     T *operator->() const {
-        return second ? ((Pool<T> *)p)->newObjects[index]
-                      : ((Pool<T> *)p)->data[index];
+        return second ? asPool()->newObjects[vIndex()]
+                        : asPool()->data[vIndex()];
     }
 
     //! iterators themselves can be used in generalized for loops

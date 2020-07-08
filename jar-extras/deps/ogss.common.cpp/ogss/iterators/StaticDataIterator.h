@@ -34,6 +34,10 @@ namespace ogss {
 
             bool second;
 
+            /** converts index to type expected by indexing. makes compiler happy. */
+            inline typename std::vector<T*>::size_type vIndex() const {
+                return static_cast<typename std::vector<T*>::size_type>(index);
+            }
         public:
             //! creates an empty iterator
             StaticDataIterator()
@@ -46,7 +50,7 @@ namespace ogss {
                 if ((index == last) | (nullptr == p->data)) {
                     second = true;
                     index = 0;
-                    last = p->newObjects.size();
+                    last = static_cast<ObjectID>(p->newObjects.size());
                 }
             }
 
@@ -58,7 +62,7 @@ namespace ogss {
                     if (!second) {
                         second = true;
                         index = 0;
-                        last = p->newObjects.size();
+                        last = static_cast<ObjectID>(p->newObjects.size());
                     }
                 }
                 return *this;
@@ -72,12 +76,12 @@ namespace ogss {
 
             //! move to next position and return current element
             T *next() {
-                auto r = second ? p->newObjects[index] : p->data[index];
+                auto r = second ? p->newObjects[vIndex()] : p->data[vIndex()];
                 if (++index == last) {
                     if (!second) {
                         second = true;
                         index = 0;
-                        last = p->newObjects.size();
+                        last = static_cast<ObjectID>(p->newObjects.size());
                     }
                 }
                 return r;
@@ -108,11 +112,11 @@ namespace ogss {
 
             T &operator*() const {
                 // @note increment happens before access, because we shifted data by 1
-                return *(second ? p->newObjects[index] : p->data[index]);
+                return *(second ? p->newObjects[vIndex()] : p->data[vIndex()]);
             }
 
             T *operator->() const {
-                return second ? p->newObjects[index] : p->data[index];
+                return second ? p->newObjects[vIndex()] : p->data[vIndex()];
             }
 
             //!iterators themselves can be used in generalized for loops

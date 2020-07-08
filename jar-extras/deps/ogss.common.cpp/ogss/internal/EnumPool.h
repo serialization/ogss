@@ -56,7 +56,7 @@ class AbstractEnumPool : public fieldTypes::FieldType {
 class Creator;
 class Writer;
 
-template <typename T> class EnumPool : public AbstractEnumPool {
+template <typename T> class EnumPool final: public AbstractEnumPool {
     /**
      * values as seen from the combined specification
      */
