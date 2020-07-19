@@ -6,6 +6,9 @@ scalaVersion := "2.12.10"
 
 javacOptions ++= Seq("-encoding", "UTF-8")
 
+scalacOptions += "-target:jvm-1.8"
+javacOptions ++= Seq("-source", "1.8")
+
 compileOrder := CompileOrder.JavaThenScala
 
 
