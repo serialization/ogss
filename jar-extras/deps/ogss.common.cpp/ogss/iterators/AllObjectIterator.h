@@ -19,6 +19,7 @@ namespace ogss {
          */
         struct AllObjectIterator :
                 public std::iterator<std::input_iterator_tag, api::Object *> {
+            virtual ~AllObjectIterator() =default;
 
             virtual AllObjectIterator &operator++() = 0;
 
@@ -49,6 +50,7 @@ namespace ogss {
 
         public:
             Implementation() : iter() {}
+            virtual ~Implementation() =default;
 
             explicit Implementation(const Pool<T> *p) : iter(p) {}
 

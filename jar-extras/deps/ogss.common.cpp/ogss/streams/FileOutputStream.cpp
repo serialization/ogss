@@ -5,15 +5,11 @@
 #include "FileOutputStream.h"
 #include "../api/Exception.h"
 #include "BufferedOutStream.h"
-#include <string.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <unistd.h>
 
 using namespace ogss::streams;
 
 FileOutputStream::FileOutputStream(const std::string &path) :
-  Stream(&buffer, (void *)(((long)&buffer) + BUFFER_SIZE)),
+  Stream(&buffer, static_cast<void*>(&buffer + BUFFER_SIZE)),
   path(path),
   file(fopen(path.c_str(), "w+")),
   bytesWriten(0) {

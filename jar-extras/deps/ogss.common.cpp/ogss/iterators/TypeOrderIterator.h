@@ -39,7 +39,7 @@ namespace ogss {
             TypeOrderIterator(const Pool<T> *p)
                     : ts(p), is(p) {
                 while (ts.hasNext()) {
-                    auto t = (Pool<T> *) ts.next();
+                    auto t = static_cast<const Pool<T> *>(ts.next());
                     if (t->staticSize()) {
                         new(&is) StaticDataIterator<T>(t);
                         return;
@@ -57,7 +57,7 @@ namespace ogss {
                 is.next();
                 if (!is.hasNext()) {
                     while (ts.hasNext()) {
-                        auto t = (Pool<T> *) ts.next();
+                        auto t = static_cast<const Pool<T> *>(ts.next());
                         if (t->staticSize()) {
                             new(&is) StaticDataIterator<T>(t);
                             break;
@@ -78,7 +78,7 @@ namespace ogss {
                 T *result = is.next();
                 if (!is.hasNext()) {
                     while (ts.hasNext()) {
-                        auto t = (Pool<T> *) ts.next();
+                        auto t = static_cast<const Pool<T> *>(ts.next());
                         if (t->staticSize()) {
                             new(&is) StaticDataIterator<T>(t);
                             break;

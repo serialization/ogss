@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <cstddef>
+#include <functional>
 
 namespace ogss {
     namespace streams {
@@ -55,11 +56,11 @@ namespace ogss {
             }
 
             inline bool eof() const noexcept {
-                return position >= end;
+                return std::greater_equal<void*>()(position, end);
             }
 
             inline bool has(size_t amountLeft) const noexcept {
-                return (position + amountLeft) < end;
+                return std::less<void*>()(position + amountLeft, end);
             }
         };
     }

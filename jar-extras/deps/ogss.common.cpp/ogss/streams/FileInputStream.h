@@ -25,12 +25,17 @@ namespace ogss {
             /**
              * the file object used for communication to the fs
              */
+#ifdef _WIN32
+            void *file, *mapping; // HANDLE
+            FileInputStream(void *begin, void *end, const std::string *path,
+                    void *file, void *mapping);
+#else
             const FILE *const file;
-
             /**
              * required for replacing begin and end after map
              */
-            FileInputStream(void *begin, void *end, const std::string *path, const FILE *file);
+            FileInputStream(void *begin, void *end, const std::string *path,const FILE *file);
+#endif
 
         public:
 

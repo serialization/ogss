@@ -40,7 +40,7 @@ template <class T> class Book {
     explicit Book(ObjectID expectedSize = defaultPageSize) :
       freelist(),
       pages(),
-      currentPage(expectedSize ? (T *)std::calloc(expectedSize, sizeof(T))
+      currentPage(expectedSize ? (T *)std::calloc(static_cast<size_t>(expectedSize), sizeof(T))
                                : nullptr),
       currentPageRemaining(0) {
         if (currentPage)
