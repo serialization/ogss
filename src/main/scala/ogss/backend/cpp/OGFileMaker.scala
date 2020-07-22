@@ -38,6 +38,7 @@ trait OGFileMaker extends AbstractBackEnd {
 #include <ogss/fieldTypes/ListType.h>
 #include <ogss/fieldTypes/SetType.h>
 #include <ogss/fieldTypes/MapType.h>
+#include <ogss/internal/EnumPool.h>
 
 ${
       if (enums.isEmpty) ""

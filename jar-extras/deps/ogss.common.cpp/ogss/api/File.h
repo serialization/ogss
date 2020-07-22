@@ -10,6 +10,7 @@
 #include "../fieldTypes/HullType.h"
 #include "../internal/AbstractPool.h"
 #include "../streams/FileInputStream.h"
+#include "IteratorProxy.h"
 #include "String.h"
 #include <memory>
 #include <unordered_map>
@@ -244,6 +245,43 @@ class File {
      * end iteration over types in the state
      */
     internal::AbstractPool *const *end() const { return classes + classCount; }
+
+    typedef IteratorProxy<File, internal::AbstractPool *const *, &File::begin,
+                          &File::end>
+      ClassIterator;
+
+    /**
+     * @return an iterator over all classes known by this file
+     */
+    ClassIterator allClasses() const { return ClassIterator(*this); }
+
+    fieldTypes::HullType *const *beginContainers() const { return containers; }
+    fieldTypes::HullType *const *endContainers() const {
+        return containers + containerCount;
+    }
+
+    typedef IteratorProxy<File, fieldTypes::HullType *const *,
+                          &File::beginContainers, &File::endContainers>
+      ContainerIterator;
+
+    /**
+     * @return an iterator over all enums known by this file
+     */
+    ContainerIterator allContainers() const { return ContainerIterator(*this); }
+
+    internal::AbstractEnumPool *const *beginEnums() const { return enums; }
+    internal::AbstractEnumPool *const *endEnums() const {
+        return enums + enumCount;
+    }
+
+    typedef IteratorProxy<File, internal::AbstractEnumPool *const *,
+                          &File::beginEnums, &File::endEnums>
+      EnumIterator;
+
+    /**
+     * @return an iterator over all enums known by this file
+     */
+    EnumIterator allEnums() const { return EnumIterator(*this); }
 
     /**
      * number of types in the file
