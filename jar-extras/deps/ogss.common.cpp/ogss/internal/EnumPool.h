@@ -56,7 +56,7 @@ class AbstractEnumPool : public fieldTypes::FieldType {
 class Creator;
 class Writer;
 
-template <typename T> class EnumPool final: public AbstractEnumPool {
+template <typename T> class EnumPool final : public AbstractEnumPool {
     /**
      * values as seen from the combined specification
      */
@@ -105,7 +105,7 @@ template <typename T> class EnumPool final: public AbstractEnumPool {
             if (!known) {
                 svCount = 0;
                 values.reserve(foundValues.size());
-                for (size_t i = 0; i < values.size(); i++) {
+                for (size_t i = 0; i < foundValues.size(); i++) {
                     p = new api::EnumProxy<T>(T::UNKNOWN, this, foundValues[i],
                                               i);
                     values.push_back(p);
