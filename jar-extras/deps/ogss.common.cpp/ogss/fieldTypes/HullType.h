@@ -43,13 +43,13 @@ class HullType : public FieldType {
     //! guard parallel update to maps
     mutable std::mutex mapLock;
 
+  public:
     /**
      * get an instance by its ID
      *
      * @note This is only usable for instances with IDs and for valid IDs. This
      * function is unrelated to Collection.get
      */
-  public:
     virtual api::Box get(ObjectID ID) const = 0;
 
     /**
@@ -92,6 +92,16 @@ class HullType : public FieldType {
      */
     mutable std::vector<void *> idMap;
 
+  public:
+    /**
+     * @return the number of known instances of this type
+     * @note It can be, that an instance of the hulltype is reachable and
+     * unknown and reachable and vice versa. This size is, hence, the number of
+     * instances that can be retrieved by get().
+     */
+    size_t knownSize() const {return idMap.size();}
+
+  protected:
     /**
      * get ID from Object
      *
@@ -111,12 +121,7 @@ class HullType : public FieldType {
     }
 
     explicit HullType(TypeID tid, uint32_t kcc) :
-      FieldType(tid),
-      mapLock(),
-      kcc(kcc),
-      deps(0),
-      idMap(),
-      IDs() {
+      FieldType(tid), mapLock(), kcc(kcc), deps(0), idMap(), IDs() {
         idMap.push_back(nullptr);
     }
 

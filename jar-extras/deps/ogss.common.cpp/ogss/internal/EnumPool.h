@@ -43,9 +43,7 @@ class AbstractEnumPool : public fieldTypes::FieldType {
 
   protected:
     AbstractEnumPool(int tid, const api::String name, const EnumBase last) :
-      FieldType(tid),
-      last(last),
-      name(name){};
+      FieldType(tid), last(last), name(name){};
 
     ~AbstractEnumPool() override = default;
 
@@ -83,8 +81,7 @@ template <typename T> class EnumPool final : public AbstractEnumPool {
     EnumPool(int tid, api::String name,
              const std::vector<api::String> &foundValues,
              api::String *const known, const EnumBase last) :
-      AbstractEnumPool(tid, name, last),
-      values() {
+      AbstractEnumPool(tid, name, last), values() {
 
         api::EnumProxy<T> *p;
         if (foundValues.empty()) {
