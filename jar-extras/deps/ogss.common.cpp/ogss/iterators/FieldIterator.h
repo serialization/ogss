@@ -15,6 +15,7 @@ namespace ogss {
 
     namespace iterators {
         using internal::AbstractPool;
+
         /**
          * iterates over all fields of a type in an arbitrary but stable order
          *
@@ -30,12 +31,12 @@ namespace ogss {
             /**
              * @pre p != nullptr
              */
-            explicit FieldIterator(const AbstractPool *p) : p(p), i(-p->afCount) {
+            explicit FieldIterator(const AbstractPool *const p) : p(p), i(-p->afCount) {
 
-                while (nullptr != p && 0 == i && 0 == p->dataFields.size()) {
-                    p = p->super;
-                    if (p)
-                        i = -p->afCount;
+                while (nullptr != this->p && 0 == i && this->p->dataFields.empty()) {
+                    this->p = this->p->super;
+                    if (this->p)
+                        i = -this->p->afCount;
                 }
             }
 
