@@ -34,6 +34,14 @@ class File;
 class Object {
 
   protected:
+    /**
+     * @invariant 0 <-> Deleted
+     * @invariant id > 0 -> pool(this).data[id-1] == this
+     * @invariant id < 0 -> pool(this).newObjects[-1-id] == this
+     *
+     * @note because pools of the same hierarchy share data, the second
+     * invariant can be abused to access the object from any pool
+     */
     ObjectID id;
 
     //! bulk allocation

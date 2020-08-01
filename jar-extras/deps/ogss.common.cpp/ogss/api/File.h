@@ -158,10 +158,10 @@ class File {
     /**
      * @return the pool corresponding to the dynamic type of the argument Obj
      */
-    const internal::AbstractPool *pool(Object *ref) const {
+    const internal::AbstractPool *pool(const Object *ref) const {
         if (!ref) {
             return nullptr;
-        } else if (NamedObj *no = dynamic_cast<NamedObj *>(ref))
+        } else if (const NamedObj *no = dynamic_cast<const NamedObj *>(ref))
             return no->pool->owner == this ? no->pool : nullptr;
         else {
             const auto idx = ref->stid() - 10;

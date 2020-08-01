@@ -118,6 +118,25 @@ class AbstractPool : public fieldTypes::FieldType {
     api::Object *getAsAnnotation(ObjectID id) const;
 
     /**
+     * return the ObjectID if the object belongs to this pool or a sub-pool
+     *
+     * @param ref any type-correct pointer
+     * @return negative if the object is part of the pool but not read from
+     * file; 0 if ref was null, marked for deletion or if ref is not from this
+     * pool; otherwise the argument ID required to get ref from an
+     * getAsAnnotation call.
+     *
+     * @note this function can be used to implement consistency checks
+     *
+     * @note This operation is O(h(d(ref)) - h(σ(ref))) where h is the height in
+     * the hierarchy, d the dynamic type and σ the static type. If you consider
+     * hashmaps constant time, this is constant time as well. Further, the
+     * complexity is actually constant if ref has not been allocated since the
+     * last read or flush operation.
+     */
+    ObjectID getObjectID(const api::Object *ref) const;
+
+    /**
      * @return a new instance with default field values
      */
     virtual api::Object *make() = 0;

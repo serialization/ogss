@@ -3,13 +3,14 @@
 //
 
 #include "AbstractPool.h"
-#include "UnknownObject.h"
-#include "Pool.h"
-#include "AutoField.h"
-#include "DataField.h"
-#include "../iterators/TypeHierarchyIterator.h"
+#include "../api/File.h"
 #include "../iterators/FieldIterator.h"
 #include "../iterators/StaticFieldIterator.h"
+#include "../iterators/TypeHierarchyIterator.h"
+#include "AutoField.h"
+#include "DataField.h"
+#include "Pool.h"
+#include "UnknownObject.h"
 
 using namespace ogss;
 using namespace internal;
@@ -50,9 +51,46 @@ internal::AbstractPool::~AbstractPool() {
 }
 
 api::Object *AbstractPool::getAsAnnotation(ObjectID id) const {
+    // note: not using bpo as lower bound is in fact not correct but a
+    // normalizing optimization
     return ((0 < id) & (id <= lastID))
-           ? (((Pool<::ogss::api::Object> *) this)->data[id - 1])
-           : nullptr;
+             ? (((Pool<::ogss::api::Object> *)this)->data[id - 1])
+             : nullptr;
+}
+
+ObjectID internal::AbstractPool::getObjectID(const api::Object *ref) const {
+    if (!ref)
+        return 0;
+
+    const auto ID = ref->id;
+
+    if (ID <= 0) {
+        // new object
+        auto dt = owner->pool(ref);
+
+        // perform a subtype check
+        // note: this is actually sufficient because we would end up with this
+        // != dt and type(this) == type(dt) if ref had the correct type but
+        // would belong to another state
+        while (nullptr != dt && THH <= dt->THH) {
+            if (this == dt)
+                return ID;
+            else
+                dt = dt->super;
+        }
+
+        // from another type
+        return 0;
+    }
+
+    // if ID is a valid index, we have to check if its the same object
+    if (this->bpo < ID && ID <= this->lastID &&
+        ref == ((Pool<::ogss::api::Object> *)this)->data[ID - 1]) {
+        return ID;
+    }
+
+    // else its an object but not ours
+    return 0;
 }
 
 api::Box AbstractPool::r(streams::InStream &in) const {
