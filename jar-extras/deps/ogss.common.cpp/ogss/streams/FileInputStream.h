@@ -34,7 +34,7 @@ namespace ogss {
             /**
              * required for replacing begin and end after map
              */
-            FileInputStream(void *begin, void *end, const std::string *path,const FILE *file);
+            FileInputStream(void *begin, void *end, const std::string *path, const FILE *file);
 #endif
 
         public:
