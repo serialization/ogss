@@ -157,8 +157,7 @@ ${comment(t)}${suppressWarnings}public class ${name(t)} extends ${if (null != t.
 
         val default = opts
           .find(_.name.equals("default"))
-          .map(_.arguments(0))
-          .getOrElse(null)
+          .map(_.arguments(0)).orNull
 
         out.write(s"""
     ${comment(c)}$mod ${c.typename} ${name(c)}${if (null == default) ""
