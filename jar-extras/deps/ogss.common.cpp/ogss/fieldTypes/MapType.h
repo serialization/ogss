@@ -46,8 +46,9 @@ template <typename K, typename V> class MapType final : public ContainerType {
             int s = in->v32();
             xs->reserve(s);
             while (s-- != 0) {
-                (*xs)[api::unbox<K>(keyType->r(*in))] =
-                  api::unbox<V>(valueType->r(*in));
+                auto k = api::unbox<K>(keyType->r(*in));
+                auto v = api::unbox<V>(valueType->r(*in));
+                (*xs)[k] = v;
             }
         }
     }
