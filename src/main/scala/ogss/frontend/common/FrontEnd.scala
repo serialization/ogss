@@ -1,12 +1,12 @@
 /*******************************************************************************
  * Copyright 2019 University of Stuttgart, Germany
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License.  You may obtain a copy
  * of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
@@ -53,53 +53,50 @@ abstract class FrontEnd {
    *
    * @note helper methods use out to create new objects
    */
-  var out : OGFile = _;
+  var out: OGFile = _;
 
   /**
    * The name of this front-end as per command line interface.
    */
-  def name : String;
+  def name: String;
 
   /**
    * The human readable description of this front-end.
    */
-  def description : String;
+  def description: String;
 
   /**
    * The file extension associated with this front-end.
    */
-  def extension : String;
+  def extension: String;
 
-  def reportWarning(msg : String) {
+  def reportWarning(msg: String) {
     println("[warning]" + msg)
   }
-  def reportWarning(pos : SourcePosition, msg : String) {
+  def reportWarning(pos: SourcePosition, msg: String) {
     println(s"[warning] ${printPosition(pos)} $msg")
   }
 
-  def reportError(msg : String) : Nothing = {
+  def reportError(msg: String): Nothing =
     throw new ParseException(msg)
-  }
-  def reportError(pos : Positioned, msg : String) : Nothing = {
+  def reportError(pos: Positioned, msg: String): Nothing =
     throw new ParseException(s"${printPosition(makeSPos(pos))} $msg")
-  }
-  def reportError(pos : SourcePosition, msg : String) : Nothing = {
+  def reportError(pos: SourcePosition, msg: String): Nothing =
     throw new ParseException(s"${printPosition(pos)} $msg")
-  }
 
   /**
    * Run the front-end on the argument path
    */
-  def run(path : File)
+  def run(path: File)
 
   /**
    * Create a comment from a comment string
    *
    * The representation of text is without the leading "/°" and trailing "°/" (where °=*)
    */
-  final def toComment(text : String) : Comment = {
+  final def toComment(text: String): Comment = {
     // scan s to split it into pieces
-    @inline def scan(last : Int) : ListBuffer[String] = {
+    @inline def scan(last: Int): ListBuffer[String] = {
       var begin = 0;
       var next = 0;
       // we have to insert a line break, because the whitespace handling may have removed one
@@ -128,37 +125,37 @@ abstract class FrontEnd {
     val r = out.Comment.make
     r.tags = new ArrayBuffer
 
-    @inline def amend(text : ListBuffer[String]) {
+    @inline def amend(text: ListBuffer[String]) {
       if (null == r.text)
         r.text = text.to
       else
         r.tags.last.text = text.to
     }
 
-    @inline def amendTag(text : ListBuffer[String], tag : String) {
+    @inline def amendTag(text: ListBuffer[String], tag: String) {
       if (null == r.text)
         r.text = text.to
       else
         r.tags.last.text = text.to
 
-      r.tags += out.CommentTag
-        .build
+      r.tags += out.CommentTag.build
         .name(tag)
         .make
     }
 
-    @tailrec def parse(ws : ListBuffer[String], text : ListBuffer[String]) : Unit =
+    @tailrec def parse(ws: ListBuffer[String], text: ListBuffer[String]): Unit =
       if (ws.isEmpty) amend(text)
-      else (ws.head, ws.tail) match {
-        case ("\n", ws) if (ws.isEmpty)     ⇒ amend(text)
-        case ("\n", ws) if (ws.head == "*") ⇒ parse(ws.tail, text)
-        case ("\n", ws)                     ⇒ parse(ws, text)
-        case (w, ws) if w.matches("""\*?@.+""") ⇒
-          val end = if (w.contains(":")) w.lastIndexOf(':') else w.size
-          val tag = w.substring(w.indexOf('@') + 1, end).toLowerCase
-          amendTag(text, tag); parse(ws, ListBuffer[String]())
-        case (w, ws) ⇒ text.append(w); parse(ws, text)
-      }
+      else
+        (ws.head, ws.tail) match {
+          case ("\n", ws) if (ws.isEmpty) ⇒ amend(text)
+          case ("\n", ws) if (ws.head == "*") ⇒ parse(ws.tail, text)
+          case ("\n", ws) ⇒ parse(ws, text)
+          case (w, ws) if w.matches("""\*?@.+""") ⇒
+            val end = if (w.contains(":")) w.lastIndexOf(':') else w.size
+            val tag = w.substring(w.indexOf('@') + 1, end).toLowerCase
+            amendTag(text, tag); parse(ws, ListBuffer[String]())
+          case (w, ws) ⇒ text.append(w); parse(ws, text)
+        }
 
     parse(ws, ListBuffer[String]())
 
@@ -167,19 +164,22 @@ abstract class FrontEnd {
 
   // ogssname -> identifier
   private val idCache = new HashMap[String, Identifier]
+
   /**
    * Create an identifier from string
    *
    * @note results are deduplicated
    */
-  final def toIdentifier(text : String) : Identifier = {
+  final def toIdentifier(text: String): Identifier = {
     if (null == text)
       return null
 
     var parts = ArrayBuffer(text)
 
     // split into parts at _
-    parts = parts.flatMap(_.split("_").map { s ⇒ if (s.isEmpty()) "_" else s }.to)
+    parts = parts.flatMap(_.split("_").map { s ⇒
+      if (s.isEmpty()) "_" else s
+    }.to)
 
     // split before changes between lowercase to Uppercase
     parts = parts.flatMap { s ⇒
@@ -200,8 +200,7 @@ abstract class FrontEnd {
 
     idCache.getOrElseUpdate(
       ogssName,
-      out.Identifier
-        .build
+      out.Identifier.build
         .ogss(ogssName)
         .parts(parts.to)
         .make
@@ -209,75 +208,76 @@ abstract class FrontEnd {
   }
 
   private val SPosCache = new HashMap[(String, Int, Int), SourcePosition]
-  final def makeSPos(from : Positioned) : SourcePosition = SPosCache.getOrElseUpdate(
-    (from.declaredInFile, from.pos.line, from.pos.column),
-    out.SourcePosition
-      .build
-      .file(from.declaredInFile)
-      .column(from.pos.column)
-      .line(from.pos.line)
-      .make
-  )
+  final def makeSPos(from: Positioned): SourcePosition =
+    SPosCache.getOrElseUpdate(
+      (from.declaredInFile, from.pos.line, from.pos.column),
+      out.SourcePosition.build
+        .file(from.declaredInFile)
+        .column(from.pos.column)
+        .line(from.pos.line)
+        .make
+    )
 
-  final def printPosition(pos : SourcePosition) = s"${pos.file} ${pos.line}:${pos.column}"
+  final def printPosition(pos: SourcePosition) =
+    s"${pos.file} ${pos.line}:${pos.column}"
 
   private val arrayTypes = new HashMap[Type, ArrayType]
-  final def makeArray(t : Type) : ArrayType = arrayTypes.getOrElseUpdate(
+  final def makeArray(t: Type): ArrayType = arrayTypes.getOrElseUpdate(
     t,
-    out.ArrayType
-      .build
+    out.ArrayType.build
       .baseType(t)
       .make
   )
   private val listTypes = new HashMap[Type, ListType]
-  final def makeList(t : Type) : ListType = listTypes.getOrElseUpdate(
+  final def makeList(t: Type): ListType = listTypes.getOrElseUpdate(
     t,
-    out.ListType
-      .build
+    out.ListType.build
       .baseType(t)
       .make
   )
   private val setTypes = new HashMap[Type, SetType]
-  final def makeSet(t : Type) : SetType = setTypes.getOrElseUpdate(
+  final def makeSet(t: Type): SetType = setTypes.getOrElseUpdate(
     t,
-    out.SetType
-      .build
+    out.SetType.build
       .baseType(t)
       .make
   )
   private val mapTypes = new HashMap[(Type, Type), MapType]
-  final def makeMap(k : Type, v : Type) : MapType = mapTypes.getOrElseUpdate(
+  final def makeMap(k: Type, v: Type): MapType = mapTypes.getOrElseUpdate(
     (k, v),
-    out.MapType
-      .build
+    out.MapType.build
       .keyType(k)
       .valueType(v)
       .make
   )
 
   private val namedTypes = new HashMap[Identifier, Type]
-  final def makeNamedType(name : Identifier, pos : SourcePosition = null) : Type = namedTypes.getOrElseUpdate(
-    name,
-    name.ogss match {
-      case "Bool"   ⇒ out.BuiltinType.build.stid(0).name(name).make
-      case "I8"     ⇒ out.BuiltinType.build.stid(1).name(name).make
-      case "I16"    ⇒ out.BuiltinType.build.stid(2).name(name).make
-      case "I32"    ⇒ out.BuiltinType.build.stid(3).name(name).make
-      case "I64"    ⇒ out.BuiltinType.build.stid(4).name(name).make
-      case "V64"    ⇒ out.BuiltinType.build.stid(5).name(name).make
-      case "F32"    ⇒ out.BuiltinType.build.stid(6).name(name).make
-      case "F64"    ⇒ out.BuiltinType.build.stid(7).name(name).make
-      case "AnyRef" ⇒ out.BuiltinType.build.stid(8).name(name).make
-      case "String" ⇒ out.BuiltinType.build.stid(9).name(name).make
+  final def makeNamedType(name: Identifier, pos: SourcePosition = null): Type =
+    namedTypes.getOrElseUpdate(
+      name,
+      name.ogss match {
+        case "Bool" ⇒ out.BuiltinType.build.stid(0).name(name).make
+        case "I8" ⇒ out.BuiltinType.build.stid(1).name(name).make
+        case "I16" ⇒ out.BuiltinType.build.stid(2).name(name).make
+        case "I32" ⇒ out.BuiltinType.build.stid(3).name(name).make
+        case "I64" ⇒ out.BuiltinType.build.stid(4).name(name).make
+        case "V64" ⇒ out.BuiltinType.build.stid(5).name(name).make
+        case "F32" ⇒ out.BuiltinType.build.stid(6).name(name).make
+        case "F64" ⇒ out.BuiltinType.build.stid(7).name(name).make
+        case "AnyRef" ⇒ out.BuiltinType.build.stid(8).name(name).make
+        case "String" ⇒ out.BuiltinType.build.stid(9).name(name).make
 
-      case _ ⇒ out.UserDefinedType.find(_.name == name).getOrElse(
-        if (null != pos)
-          reportError(pos, s"Undeclared type ${name.ogss}")
-        else
-          reportError(s"Undeclared type ${name.ogss}")
-      )
-    }
-  )
+        case _ ⇒
+          out.UserDefinedType
+            .find(_.name == name)
+            .getOrElse(
+              if (null != pos)
+                reportError(pos, s"Undeclared type ${name.ogss}")
+              else
+                reportError(s"Undeclared type ${name.ogss}")
+            )
+      }
+    )
 
   /**
    * Normalize out, i.e.
@@ -331,28 +331,37 @@ abstract class FrontEnd {
     // normalize inheritance hierarchies
     {
       // calculate all super types to perform type hierarchy normalization as set opertions
-      val allSuperOf = out.WithInheritance.map(t ⇒ (t, IRUtils.allSuperTypes(t))).toMap
+      val allSuperOf =
+        out.WithInheritance.map(t ⇒ (t, IRUtils.allSuperTypes(t))).toMap
 
       for (c ← out.WithInheritance) {
         // calculate super frontier
-        val superCS : HashSet[ClassDef] = allSuperOf(c).collect { case c : ClassDef ⇒ c }
+        val superCS: HashSet[ClassDef] = allSuperOf(c).collect {
+          case c: ClassDef ⇒ c
+        }
         for (x ← superCS.flatMap(allSuperOf)) {
           x match {
-            case x : ClassDef ⇒ superCS -= x
-            case _            ⇒
+            case x: ClassDef ⇒ superCS -= x
+            case _ ⇒
           }
         }
 
-        val superIS : HashSet[InterfaceDef] = allSuperOf(c).collect { case i : InterfaceDef ⇒ i }
+        val superIS: HashSet[InterfaceDef] = allSuperOf(c).collect {
+          case i: InterfaceDef ⇒ i
+        }
         for (x ← allSuperOf(c).flatMap(allSuperOf)) {
           x match {
-            case x : InterfaceDef ⇒ superIS -= x
-            case _                ⇒
+            case x: InterfaceDef ⇒ superIS -= x
+            case _ ⇒
           }
         }
 
         if (superCS.size > 1) {
-          reportError(c.pos, s"Type ${c.name.ogss} has multiple distinct super classes: ${superCS.map(_.name.ogss).mkString(", ")}")
+          reportError(
+            c.pos,
+            s"Type ${c.name.ogss} has multiple distinct super classes: ${superCS
+              .map(_.name.ogss)
+              .mkString(", ")}")
         }
         superCS.foreach { sup ⇒
           if (sup == c)
@@ -360,7 +369,9 @@ abstract class FrontEnd {
 
           if (sup != c.superType) {
             if (null != c.superType) {
-              reportWarning(c.pos, s"Type ${c.name.ogss} has super classes ${c.superType.name.ogss}, but should have ${sup.name.ogss} instead")
+              reportWarning(
+                c.pos,
+                s"Type ${c.name.ogss} has super classes ${c.superType.name.ogss}, but should have ${sup.name.ogss} instead")
             }
             c.superType = sup
           }
@@ -374,19 +385,26 @@ abstract class FrontEnd {
 
         // set correct base type
         if (null != c.superType) {
-          c.baseType = allSuperOf(c).collect { case c : ClassDef if c.superType == null ⇒ c }.headOption.getOrElse {
-            reportWarning(c.pos, s"Type ${c.name.ogss} has cyclic super classes")
-            null
-          }
+          c.baseType = allSuperOf(c)
+            .collect { case c: ClassDef if c.superType == null ⇒ c }
+            .headOption
+            .getOrElse {
+              reportWarning(
+                c.pos,
+                s"Type ${c.name.ogss} has cyclic super classes")
+              null
+            }
         } else {
           c match {
-            case c : ClassDef ⇒ c.baseType = c
-            case _            ⇒
+            case c: ClassDef ⇒ c.baseType = c
+            case _ ⇒
           }
         }
 
         for (sup ← c.superInterfaces -- superIS) {
-          reportWarning(c.pos, s"Type ${c.name.ogss} has an unneeded super interface ${sup.name.ogss}.")
+          reportWarning(
+            c.pos,
+            s"Type ${c.name.ogss} has an unneeded super interface ${sup.name.ogss}.")
         }
         // reorder super interfaces
         c.superInterfaces = superIS.toSeq.sortBy(_.name.ogss).to
@@ -403,9 +421,11 @@ abstract class FrontEnd {
       }
 
       // reorder TC interfaces
-      tc.interfaces = out.InterfaceDef.toSeq.sortBy(
-        t ⇒ (allSuperOf(t).size, t.name.ogss.length, t.name.ogss)
-      ).to
+      tc.interfaces = out.InterfaceDef.toSeq
+        .sortBy(
+          t ⇒ (allSuperOf(t).size, t.name.ogss.length, t.name.ogss)
+        )
+        .to
     }
 
     // normalize fieldLike orders
@@ -421,11 +441,10 @@ abstract class FrontEnd {
     tc.aliases = out.TypeAlias.toSeq.sortBy(_.name.ogss).to
 
     // normalize enums
-    tc.enums =
-      (for (c ← out.EnumDef) yield {
-        c.values.sortBy(v ⇒ (v.name.ogss.size, v.name.ogss))
-        c
-      }).toSeq.sortBy(_.name.ogss).to
+    tc.enums = (for (c ← out.EnumDef) yield {
+      c.values.sortWith(IRUtils.ogssLess)
+      c
+    }).toSeq.sortBy(_.name.ogss).to
 
     // sort classes by pathname and subtypes with ogssLess
     tc.classes = out.ClassDef.toSeq.sortBy(IRUtils.pathName).to
@@ -434,13 +453,15 @@ abstract class FrontEnd {
     }
 
     // sort containers by name and create names
-    def ensureName(c : Type) : String = {
+    def ensureName(c: Type): String = {
       if (null == c.name)
         c.name = (c match {
-          case c : ArrayType ⇒ toIdentifier(s"${ensureName(c.baseType)}[]")
-          case c : ListType  ⇒ toIdentifier(s"list<${ensureName(c.baseType)}>")
-          case c : SetType   ⇒ toIdentifier(s"set<${ensureName(c.baseType)}>")
-          case c : MapType   ⇒ toIdentifier(s"map<${ensureName(c.keyType)},${ensureName(c.valueType)}>")
+          case c: ArrayType ⇒ toIdentifier(s"${ensureName(c.baseType)}[]")
+          case c: ListType ⇒ toIdentifier(s"list<${ensureName(c.baseType)}>")
+          case c: SetType ⇒ toIdentifier(s"set<${ensureName(c.baseType)}>")
+          case c: MapType ⇒
+            toIdentifier(
+              s"map<${ensureName(c.keyType)},${ensureName(c.valueType)}>")
         })
       c.name.ogss
     }
@@ -459,13 +480,9 @@ abstract class FrontEnd {
     // set missing attrs to empty array
     {
       val none = new ArrayBuffer[Attribute]
-      for (
-        t ← out.UserDefinedType if null == t.attrs
-      ) t.attrs = none
+      for (t ← out.UserDefinedType if null == t.attrs) t.attrs = none
 
-      for (
-        f ← out.Field if null == f.attrs
-      ) f.attrs = none
+      for (f ← out.Field if null == f.attrs) f.attrs = none
     }
   }
 }

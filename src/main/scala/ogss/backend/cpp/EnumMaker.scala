@@ -15,6 +15,8 @@
  ******************************************************************************/
 package ogss.backend.cpp
 
+import ogss.util.IRUtils
+
 trait EnumMaker extends AbstractBackEnd {
   abstract override def make {
     super.make
@@ -32,7 +34,7 @@ ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}""")
         UNKNOWN = (ogss::EnumBase)-1,
         ${
         // TODO comments!
-        t.values.map(id ⇒ escaped(camel(id.name))).zipWithIndex.map { case (s, i) ⇒ s"$s = $i" }.mkString("", ",\n        ", "")
+        t.values.sortWith(IRUtils.ogssLess).map(id ⇒ escaped(camel(id.name))).zipWithIndex.map { case (s, i) ⇒ s"$s = $i" }.mkString("", ",\n        ", "")
       }
     };
 """);

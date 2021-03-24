@@ -15,6 +15,8 @@
  ******************************************************************************/
 package ogss.backend.scala
 
+import ogss.util.IRUtils
+
 trait EnumMaker extends AbstractBackEnd {
   abstract override def make {
     super.make
@@ -33,7 +35,7 @@ object ${name(t)} extends Enumeration {
   type ${name(t)} = Value
   ${
         (
-          for (v ← t.values) yield s"""
+          for (v ← t.values.sortWith(IRUtils.ogssLess)) yield s"""
   ${comment(v)}val ${name(v)} = Value"""
         ).mkString
       }

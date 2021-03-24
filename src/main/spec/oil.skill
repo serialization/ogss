@@ -130,7 +130,7 @@ Attribute {
 }
 
 /**
- * A named entity. Either a Type or a FieldLike.
+ * Any named entity.
  */
 WithName {
 	
@@ -213,8 +213,7 @@ EnumDef extends UserDefinedType {
  *
  * @author Timm Felden
  */
-EnumConstant {
-  Identifier name;
+EnumConstant extends WithName {
 
   Comment comment;
   

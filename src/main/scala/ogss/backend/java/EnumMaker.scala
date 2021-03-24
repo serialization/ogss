@@ -15,6 +15,8 @@
  ******************************************************************************/
 package ogss.backend.java
 
+import ogss.util.IRUtils
+
 trait EnumMaker extends AbstractBackEnd {
   abstract override def make {
     super.make
@@ -28,9 +30,7 @@ trait EnumMaker extends AbstractBackEnd {
 public enum ${name(t)} {
   ${
         // TODO comments!
-        t.values.map(id ⇒ escaped(capital(id.name))).sortWith(
-          (l, r) ⇒ l.length() < r.length() || (l.length() == r.length() && l.compareTo(r) < 0)
-        ).mkString("", ",\n  ", ";")
+        t.values.sortWith(IRUtils.ogssLess).map(id ⇒ escaped(capital(id.name))).mkString("", ",\n  ", ";")
       }
 }""");
       out.close()

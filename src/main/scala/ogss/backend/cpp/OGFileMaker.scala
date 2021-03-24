@@ -21,6 +21,7 @@ import ogss.oil.ListType
 import ogss.oil.MapType
 import ogss.oil.SetType
 import ogss.oil.Type
+import ogss.util.IRUtils
 
 trait OGFileMaker extends AbstractBackEnd {
   abstract override def make {
@@ -204,7 +205,7 @@ ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}
       else enums.zipWithIndex.map {
         case (t, i) ⇒ s"""
                     case $i: {
-                        ogss::api::String names[] = {${t.values.map(v ⇒ skName(v.name)).mkString(", ")}};
+                        ogss::api::String names[] = {${t.values.sortWith(IRUtils.ogssLess).map(v ⇒ skName(v.name)).mkString(", ")}};
                         return new ::ogss::internal::EnumPool<$packageName::${name(t)}>(index, ${skName(t.name)}, foundValues, names, ${t.values.size});
                     }"""
       }.mkString("""switch (id) {""", "", """
