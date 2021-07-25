@@ -82,3 +82,24 @@ try (OGFile graph = OGFile.open("out.sg", Mode.Read, Mode.ReadOnly)) {
 ```
 This will print *world* of every *Hello* found in the file *out.sg*.
 So, likely, you will get a single line "new world".
+
+
+## Polymoprhism, Iterators and delete
+
+Polymoprhism has some noteworthy consequences on our API. Let's use a new specification *poly.skill*:
+```
+A {
+  A ref;
+}
+B : A {
+  bool flag;
+}
+```
+We already learned how to create and manipulate *A*s and *B*s.
+If you do so, you will eventually realize that iterating over *A* instances will also give you *B* instances.
+If this is not what you want, you can switch to `graph.As.staticInstances()`.
+This will provide you with an efficient iterator return only *A*s.
+The same is true for `size()` and `staticSize()`.
+
+If an object *x* is no longer required, it can be deleted by calling `graph.delete(x)`.
+The method is placed directly in graph, as trying to delete an *A* that is actually a *B* would have catastrophic consequences.
