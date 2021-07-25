@@ -103,3 +103,10 @@ The same is true for `size()` and `staticSize()`.
 
 If an object *x* is no longer required, it can be deleted by calling `graph.delete(x)`.
 The method is placed directly in graph, as trying to delete an *A* that is actually a *B* would have catastrophic consequences.
+Hence, the API is designed to prevent that.
+
+Also, actually deleting an object from a graph is an expensive operation, as the whole graph has to be searched for references.
+Therefore, calling *delete* will just mark an object for deletion.
+It is actually deleted when writing the graph during the graph compression phase.
+A consequence is, besides much better performance, that iterators may return deleted objects.
+Such objects can be identified with the *isDeleted* method provided by all objects.
