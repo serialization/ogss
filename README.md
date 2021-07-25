@@ -30,7 +30,7 @@ The specification language is object-oriented.
 Objects can store pointers to other objects in the same graph without further restrictions.
 Objects are accessed via a generated API provided by this tool.
 The generated API provides means of iterating over all objects loaded from a file.
-The generated API provides means of iterating over all type and field information from a loaded file -- even if not contained in the original specification.
+The generated API provides means of iterating over all type and field information from a loaded file – even if not contained in the original specification.
 The generated API exposes comments from the specification.
 
 Objects are serialized to a binary file format.
@@ -71,6 +71,13 @@ SIDL| SIDL   | any              | Emit the input specification in a single file 
 
 ## Viewing Serialized Graphs
 
+A general purpose binary graph viewer exists in the form of [OGSS View 2](https://github.com/serialization/ogssView2).
+This is most useful to check if and what is in a file.
+Also, it can be used to check if a file can be read at all.
+Unreadable files can be caused by memory corruption in C++ tools.
+
+A good approach in practice is to use a generated API for your specification language to create a custom viewer using DOT.
+This usually requires only around 100 lines of code and allows domain-specific reduction of presented information.
 
 ## Known Active Users
 
