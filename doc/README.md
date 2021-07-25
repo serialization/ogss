@@ -1,4 +1,4 @@
-This is a short introduction to OGSS using the SKilL specification language and the Java programming language.
+This is a short introduction to OGSS using the [SKilL](https://www2.informatik.uni-stuttgart.de/bibliothek/ftp/ncstrl.ustuttgart_fi/TR-2017-01/TR-2017-01.pdf) specification language and the Java programming language.
 Other introductory material can be found in this folder.
 
 ## First Steps
