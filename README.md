@@ -77,7 +77,7 @@ Also, it can be used to check if a file can be read at all.
 Unreadable files can be caused by memory corruption in C++ tools.
 
 A good approach in practice is to use a generated API for your specification language to create a custom viewer using DOT.
-This usually requires only around 100 lines of code and allows domain-specific reduction of presented information.
+Usually, this requires only around 100 lines of code and allows domain-specific reduction of presented information.
 
 ## Known Active Users
 
