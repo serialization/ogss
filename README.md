@@ -19,7 +19,7 @@ Usage:
 java -jar ../ogss.jar build spec.sidl -L doxygen -p MyProject -o doc
 ```
 
-TODO Link getting started: Hello World with SIDL and Java
+Getting started: [Hello World with SKilL and Java](https://github.com/serialization/ogss/blob/master/doc/README.md)
 
 ## About
 
