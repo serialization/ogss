@@ -16,6 +16,7 @@
 package ogss.backend.java
 
 import ogss.oil.{EnumDef, Field, FieldLike, InterfaceDef}
+import ogss.util.IRUtils
 
 trait TypesMaker extends AbstractBackEnd {
   abstract override def make {
@@ -118,7 +119,7 @@ ${comment(t)}${suppressWarnings}public class ${name(t)} extends ${if (null != t.
     ${comment(f)}final public $enumF ${getter(f)}AsEnum() {
         if (null == $nameF)
             return ($enumF) ($nameF = $enumF.${capital(
-            f.`type`.asInstanceOf[EnumDef].values.head.name)});
+            f.`type`.asInstanceOf[EnumDef].values.sortWith(IRUtils.ogssLess).head.name)});
         if ($nameF instanceof EnumProxy<?>)
             return (($typeF) $nameF).target;
         return ($enumF) $nameF;
