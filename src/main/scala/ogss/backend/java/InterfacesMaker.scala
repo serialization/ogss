@@ -81,6 +81,7 @@ ${///////////////////////
 
         out.write(s"""
     ${comment(c)}${mod.replace("transient", "")} ${c.typename} ${name(c)}();
+    ${comment(c)}${mod.replace("transient", "")} void ${name(c)}(${c.typename} ${name(c)});
 """)
       }
       out.write("""}

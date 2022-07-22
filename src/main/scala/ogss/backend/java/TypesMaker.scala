@@ -25,11 +25,16 @@ trait TypesMaker extends AbstractBackEnd {
     for (t ← IR) {
       val out = files.open(s"${name(t)}.java")
 
-      // in java, we have to implement customizations from super interfaces as well
-      val customizations = (Seq(t) ++ t.superInterfaces)
-        .flatMap(_.customs.filter(_.language.equals("java")))
-        .toSet
-        .toArray
+      // in java, we have to implement customizations from all super interfaces as well
+      val customizations = {
+        var cs = IRUtils.allCustoms(t).filter(_.language.equals("java"))
+        if (null != t.superType) {
+          cs --= IRUtils
+            .allCustoms(t.superType)
+            .filter(_.language.equals("java"))
+        }
+        cs
+      }.toSet.toArray
 
       // package
       out.write(s"""package ${this.packageName};
@@ -119,7 +124,12 @@ ${comment(t)}${suppressWarnings}public class ${name(t)} extends ${if (null != t.
     ${comment(f)}final public $enumF ${getter(f)}AsEnum() {
         if (null == $nameF)
             return ($enumF) ($nameF = $enumF.${capital(
-            f.`type`.asInstanceOf[EnumDef].values.sortWith(IRUtils.ogssLess).head.name)});
+            f.`type`
+              .asInstanceOf[EnumDef]
+              .values
+              .sortWith(IRUtils.ogssLess)
+              .head
+              .name)});
         if ($nameF instanceof EnumProxy<?>)
             return (($typeF) $nameF).target;
         return ($enumF) $nameF;
@@ -158,7 +168,8 @@ ${comment(t)}${suppressWarnings}public class ${name(t)} extends ${if (null != t.
 
         val default = opts
           .find(_.name.equals("default"))
-          .map(_.arguments(0)).orNull
+          .map(_.arguments(0))
+          .orNull
 
         out.write(s"""
     ${comment(c)}$mod ${c.typename} ${name(c)}${if (null == default) ""
@@ -168,7 +179,11 @@ ${comment(t)}${suppressWarnings}public class ${name(t)} extends ${if (null != t.
         if (c.owner != t) {
           out.write(s"""
     ${comment(c)}@Override
-    ${mod.replace("transient", "")} ${c.typename} ${name(c)}() {return ${name(c)};}
+    ${mod.replace("transient", "")} ${c.typename} ${name(c)}() {return ${name(
+            c)};}
+    ${comment(c)}@Override
+    ${mod.replace("transient", "")} void ${name(c)}(${c.typename} ${name(c)}) {this.${name(
+            c)} = ${name(c)};}
 """)
         }
       }
@@ -182,12 +197,9 @@ ${comment(t)}${suppressWarnings}public class ${name(t)} extends ${if (null != t.
 
         // filter non-feasible views (in Java)
         if (!v.`type`.isInstanceOf[InterfaceDef]) {
-          out.write(
-            s"""
-	${comment(v)}${
-              if (v.name == v.target.name) " @Override\n    "
-              else ""
-            }public $vt ${getter(v)}() { return ($vt) $target; }
+          out.write(s"""
+	${comment(v)}${if (v.name == v.target.name) " @Override\n    "
+          else ""}public $vt ${getter(v)}() { return ($vt) $target; }
 """)
         }
       }
