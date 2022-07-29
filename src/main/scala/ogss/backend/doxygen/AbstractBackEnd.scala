@@ -19,15 +19,7 @@ import scala.collection.mutable.HashMap
 import scala.collection.mutable.HashSet
 
 import ogss.backend.common.BackEnd
-import ogss.oil.ClassDef
-import ogss.oil.EnumDef
-import ogss.oil.Field
-import ogss.oil.FieldLike
-import ogss.oil.Identifier
-import ogss.oil.OGFile
-import ogss.oil.Type
-import ogss.oil.TypeContext
-import ogss.oil.UserDefinedType
+import ogss.oil.{ClassDef, EnumConstant, EnumDef, Field, FieldLike, Identifier, OGFile, Type, TypeContext, UserDefinedType}
 
 /**
  * The parent class for all output makers.
@@ -48,6 +40,7 @@ trait AbstractBackEnd extends BackEnd {
   lineLength = 80
   override def comment(d : UserDefinedType) : String = format(d.comment, "/**\n", "     * ", "     */\n    ")
   override def comment(f : FieldLike) : String = format(f.comment, "/**\n", "         * ", "         */\n        ")
+  override def comment(f : EnumConstant) : String = format(f.comment, "/**\n", "         * ", "         */\n        ")
 
   // options
 

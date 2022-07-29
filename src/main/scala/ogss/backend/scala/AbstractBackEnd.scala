@@ -62,7 +62,7 @@ abstract class AbstractBackEnd extends BackEnd {
   lineLength = 120
   override def comment(d : UserDefinedType) : String = format(d.comment, "/**\n", " * ", " */\n")
   override def comment(f : FieldLike) : String = format(f.comment, "/**\n", "   * ", "     */\n  ")
-  def comment(v : EnumConstant) : String = format(v.comment, "/**\n", "   * ", "     */\n  ")
+  override def comment(v : EnumConstant) : String = format(v.comment, "/**\n", "   * ", "     */\n  ")
   def name(v : EnumConstant) : String = escaped(capital(v.name))
 
   protected def subtype(t : WithInheritance) = escaped("sub " + capital(t.name))

@@ -16,11 +16,7 @@
 package ogss.backend.skill
 
 import ogss.backend.common.BackEnd
-import ogss.oil.Field
-import ogss.oil.FieldLike
-import ogss.oil.OGFile
-import ogss.oil.Type
-import ogss.oil.UserDefinedType
+import ogss.oil.{EnumConstant, Field, FieldLike, OGFile, Type, UserDefinedType}
 
 /**
  * The parent class for all output makers.
@@ -37,6 +33,7 @@ trait AbstractBackEnd extends BackEnd {
   lineLength = 80
   override def comment(d : UserDefinedType) : String = format(d.comment, "/**\n", " *", " */\n")
   override def comment(f : FieldLike) : String = format(f.comment, "/**\n", "   *", "   */\n  ")
+  override def comment(f : EnumConstant) : String = format(f.comment, "/**\n", "   *", "   */\n  ")
 
   override def defaultValue(f : Field) : String = {
     val stid = f.`type`.stid

@@ -1,12 +1,12 @@
 /*******************************************************************************
  * Copyright 2019 University of Stuttgart, Germany
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License.  You may obtain a copy
  * of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
@@ -26,10 +26,11 @@ trait EnumMaker extends AbstractBackEnd {
         // package
         out.write(s"""
 ${comment(t)}enum class ${name(t)} {
-  ${
-          // TODO comments!
-          t.values.map(id ⇒ escaped(camel(id.name))).zipWithIndex.map { case (s, i) ⇒ s"$s = $i" }.mkString("", ",\n  ", "")
-        }
+  ${t.values
+          .map(id ⇒ comment(id) + escaped(camel(id.name)))
+          .zipWithIndex
+          .map { case (s, i) ⇒ s"$s = $i" }
+          .mkString("", ",\n  ", "")}
 };
 """);
       }

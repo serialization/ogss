@@ -20,13 +20,7 @@ import java.io.File
 import scala.collection.mutable.HashSet
 
 import ogss.io.PrintingService
-import ogss.oil.Comment
-import ogss.oil.Field
-import ogss.oil.FieldLike
-import ogss.oil.Identifier
-import ogss.oil.OGFile
-import ogss.oil.Type
-import ogss.oil.UserDefinedType
+import ogss.oil.{Comment, EnumConstant, Field, FieldLike, Identifier, OGFile, Type, UserDefinedType}
 import ogss.util.HeaderInfo
 import ogss.util.IRUtils
 
@@ -157,6 +151,11 @@ abstract class BackEnd extends IRUtils {
    * Transform a comment of a field into the language's comment system
    */
   protected def comment(d : FieldLike) : String;
+
+  /**
+   * Transform a comment of an enum constant into the language's comment system
+   */
+  protected def comment(d : EnumConstant) : String;
 
   /**
    * Creates a nicely formatted String with line breaks and a prefix for a code generators output.

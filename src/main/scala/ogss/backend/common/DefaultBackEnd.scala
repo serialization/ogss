@@ -15,8 +15,7 @@
  ******************************************************************************/
 package ogss.backend.common
 
-import ogss.oil.FieldLike
-import ogss.oil.UserDefinedType
+import ogss.oil.{EnumConstant, FieldLike, UserDefinedType}
 import ogss.util.HeaderInfo
 
 /**
@@ -68,6 +67,11 @@ abstract class DefaultBackEnd extends BackEnd {
    * Transform a comment of a field into the language's comment system
    */
   override def comment(d : FieldLike) : String = ""
+
+  /**
+   * Transform a comment of an enum constant into the language's comment system
+   */
+  override def comment(d : EnumConstant) : String = ""
 
   /**
    * Tries to escape a string without decreasing the usability of the generated identifier.

@@ -55,7 +55,7 @@ trait SpecificationMaker extends AbstractBackEnd {
     val out = files.open(path)
 
     out.write(IR.enums.map(t ⇒ s"""${comment(t)}enum ${capital(t.name)} ::= ${
-      t.values.map(v ⇒ capital(v.name)).mkString("", "\n  | ", "")
+      t.values.map(v ⇒ comment(v) + capital(v.name)).mkString("", "\n  | ", "")
     }
 
 """).mkString)

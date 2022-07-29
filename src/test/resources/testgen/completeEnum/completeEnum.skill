@@ -10,7 +10,10 @@ enum Farbe {
 }
 
 enum Brot {
-	roggen, weiss;
+    /* brr */
+	roggen,
+	/* m-hmm */
+	weiss;
 }
 
 Typ {

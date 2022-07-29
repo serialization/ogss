@@ -1,12 +1,12 @@
 /*******************************************************************************
  * Copyright 2019 University of Stuttgart, Germany
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License.  You may obtain a copy
  * of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
@@ -18,15 +18,7 @@ package ogss.backend.java
 import scala.collection.mutable.HashMap
 
 import ogss.backend.common.BackEnd
-import ogss.oil.ClassDef
-import ogss.oil.EnumDef
-import ogss.oil.FieldLike
-import ogss.oil.Identifier
-import ogss.oil.InterfaceDef
-import ogss.oil.OGFile
-import ogss.oil.Type
-import ogss.oil.TypeContext
-import ogss.oil.UserDefinedType
+import ogss.oil.{ClassDef, EnumConstant, EnumDef, FieldLike, Identifier, InterfaceDef, OGFile, Type, TypeContext, UserDefinedType}
 
 /**
  * Abstract Java back-end
@@ -59,6 +51,7 @@ abstract class AbstractBackEnd extends BackEnd {
   lineLength = 120
   override def comment(d : UserDefinedType) : String = format(d.comment, "/**\n", " * ", " */\n")
   override def comment(f : FieldLike) : String = format(f.comment, "/**\n", "     * ", "     */\n    ")
+  override def comment(f : EnumConstant) : String = format(f.comment, "/**\n", "     * ", "     */\n    ")
 
   // container type mappings
   val ArrayTypeName = "java.util.ArrayList"
