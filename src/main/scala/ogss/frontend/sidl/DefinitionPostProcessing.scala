@@ -1,12 +1,12 @@
 /*******************************************************************************
  * Copyright 2019 University of Stuttgart, Germany
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License.  You may obtain a copy
  * of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
@@ -40,7 +40,8 @@ import ogss.frontend.skill.CommonParseRules
  * Post processing transformations that have to performed after parsing all
  * files, because information flow can be across files.
  */
-abstract class DefinitionPostProcessing(self : FrontEnd) extends CommonParseRules(self) {
+abstract class DefinitionPostProcessing(self: FrontEnd)
+    extends CommonParseRules(self) {
 
   /**
    * Field definitions are gathered until all types are known, because we dont
@@ -53,11 +54,13 @@ abstract class DefinitionPostProcessing(self : FrontEnd) extends CommonParseRule
    * know if the target entity is an interface.
    */
   protected val addComments = new HashMap[Identifier, Comment]
+
   /**
    * Subtypes are gathered until all types are known, because we cannot
    * introduce them if we do not know if they are interfaces.
    */
-  protected val addSubtypes = new HashMap[WithInheritance, ArrayBuffer[Identifier]]
+  protected val addSubtypes =
+    new HashMap[WithInheritance, ArrayBuffer[Identifier]]
 
   /**
    * A definition entry is created iff a type definition is encountered; super
@@ -90,72 +93,77 @@ abstract class DefinitionPostProcessing(self : FrontEnd) extends CommonParseRule
    * @note types created during backtracking are necessarily part of a
    * successful application of this parser
    */
-  private def fieldType(pos : SourcePosition) : Parser[Type] = (
-    (("set" | "list") ~! ("<" ~> fieldType(pos) <~ ">")) ^^ {
-      case "set" ~ base ⇒ {
-        self.makeSet(base)
+  private def fieldType(pos: SourcePosition): Parser[Type] =
+    (
+      (("set" | "list") ~! ("<" ~> fieldType(pos) <~ ">")) ^^ {
+        case "set" ~ base ⇒ {
+          self.makeSet(base)
+        }
+        case "list" ~ base ⇒ {
+          self.makeList(base)
+        }
       }
-      case "list" ~ base ⇒ {
-        self.makeList(base)
-      }
-    }
-    | ("map" ~> ("<" ~> fieldType(pos) <~ ",") ~ (fieldType(pos) <~ ">")) ^^ {
-      case l ~ r ⇒ {
-        self.makeMap(l, r)
-      }
-    }
-    | id ^^ { name ⇒
-      definitions.getOrElse(name, self.makeNamedType(name, pos)) match {
-        case t : TypeAlias ⇒ ensureTypeAlias(t) // unpack type aliases
-        case t             ⇒ t
-      }
-    }
-  ) ~ rep("[" ~> "]") ^^ {
-      case t ~ as ⇒ as.foldLeft[Type](t) { (l, r) ⇒ self.makeArray(l) }
+        | ("map" ~> ("<" ~> fieldType(pos) <~ ",") ~ (fieldType(pos) <~ ">")) ^^ {
+          case l ~ r ⇒ {
+            self.makeMap(l, r)
+          }
+        }
+        | id ^^ { name ⇒
+          definitions.getOrElse(name, self.makeNamedType(name, pos)) match {
+            case t: TypeAlias ⇒ ensureTypeAlias(t) // unpack type aliases
+            case t ⇒ t
+          }
+        }
+    ) ~ rep("[" ~> "]") ^^ {
+      case t ~ as ⇒
+        as.foldLeft[Type](t) { (l, r) ⇒
+          self.makeArray(l)
+        }
     }
 
-  private def parseType(pos : SourcePosition, image : String) : Type = parseAll(fieldType(pos), image) match {
-    case Success(r, _) ⇒ r
-    case f             ⇒ self.reportError(pos, s"parsing field type failed: $f");
-  }
+  private def parseType(pos: SourcePosition, image: String): Type =
+    parseAll(fieldType(pos), image) match {
+      case Success(r, _) ⇒ r
+      case f ⇒ self.reportError(pos, s"parsing field type failed: $f");
+    }
 
-  private def ensureTypeAlias(t : TypeAlias) : Type = {
+  private def ensureTypeAlias(t: TypeAlias): Type =
     if (null != t.target) t.target
     else {
       val r = parseType(t.pos, typedefImages(t))
       t.target = r
       r
     }
-  }
 
   private[sidl] def postProcess {
     // add fields
     for ((n, fs) ← addFields) {
-      val t = definitions.getOrElseUpdate(
-        n,
-        self.out.ClassDef
-          .build
-          .comment(null)
-          .name(n)
-          .pos(fs.head.pos)
-          .superInterfaces(new ArrayBuffer)
-          .subTypes(new ArrayBuffer)
-          .fields(new ArrayBuffer)
-          .views(new ArrayBuffer)
-          .customs(new ArrayBuffer)
-          .make
-      ).asInstanceOf[WithInheritance]
+      val t = definitions
+        .getOrElseUpdate(
+          n,
+          self.out.ClassDef.build
+            .comment(null)
+            .name(n)
+            .pos(fs.head.pos)
+            .superInterfaces(new ArrayBuffer)
+            .subTypes(new ArrayBuffer)
+            .fields(new ArrayBuffer)
+            .views(new ArrayBuffer)
+            .customs(new ArrayBuffer)
+            .make
+        )
+        .asInstanceOf[WithInheritance]
 
       fs.foreach {
-        case f : Field ⇒
+        case f: Field ⇒
           t.fields += f
           f.owner = t
 
-        case f : View ⇒
+        case f: View ⇒
           t.views += f
           f.owner = t
 
-        case f : CustomField ⇒
+        case f: CustomField ⇒
           t.customs += f
           f.owner = t
       }
@@ -163,20 +171,21 @@ abstract class DefinitionPostProcessing(self : FrontEnd) extends CommonParseRule
 
     // add subtypes
     for ((sup, subs) ← addSubtypes; sub ← subs) {
-      val s = definitions.getOrElseUpdate(
-        sub,
-        self.out.ClassDef
-          .build
-          .comment(null)
-          .name(sub)
-          .pos(sup.pos)
-          .superInterfaces(new ArrayBuffer)
-          .subTypes(new ArrayBuffer)
-          .fields(new ArrayBuffer)
-          .views(new ArrayBuffer)
-          .customs(new ArrayBuffer)
-          .make
-      ).asInstanceOf[WithInheritance]
+      val s = definitions
+        .getOrElseUpdate(
+          sub,
+          self.out.ClassDef.build
+            .comment(null)
+            .name(sub)
+            .pos(sup.pos)
+            .superInterfaces(new ArrayBuffer)
+            .subTypes(new ArrayBuffer)
+            .fields(new ArrayBuffer)
+            .views(new ArrayBuffer)
+            .customs(new ArrayBuffer)
+            .make
+        )
+        .asInstanceOf[WithInheritance]
 
       superTypes.getOrElseUpdate(s, new HashSet) += sup.name
     }
@@ -192,23 +201,29 @@ abstract class DefinitionPostProcessing(self : FrontEnd) extends CommonParseRule
     // set types
     for ((f, i) ← fieldTypeImages) {
       f match {
-        case f : Field ⇒ f.`type` = parseType(f.pos, i)
-        case f : View  ⇒ f.`type` = parseType(f.pos, i)
+        case f: Field ⇒ f.`type` = parseType(f.pos, i)
+        case f: View ⇒ f.`type` = parseType(f.pos, i)
       }
     }
 
     // create type hierarchy
-    for (
-      (t, supers) ← superTypes;
-      sup ← supers.map(s ⇒ definitions.getOrElse(
-        s,
-        self.reportError(t.pos, s"type ${t.name.ogss} has an undefined super type ${s.ogss}")
-      )).collect { case t : WithInheritance ⇒ t }
-    ) {
+    for ((t, supers) ← superTypes;
+         sup ← supers
+                .map(s ⇒
+                  definitions.getOrElse(
+                    s,
+                    self.reportError(
+                      t.pos,
+                      s"type ${t.name.ogss} has an undefined super type ${s.ogss}")
+                ))
+                .collect { case t: WithInheritance ⇒ t }) {
       sup match {
-        case sup : ClassDef if (null != t.superType) ⇒ self.reportError(t.pos, s"$t cannot have two super classes")
-        case sup : ClassDef                          ⇒ t.superType = sup
-        case sup : InterfaceDef                      ⇒ t.superInterfaces += sup
+        case sup: ClassDef if (null != t.superType) ⇒
+          self.reportError(
+            t.pos,
+            s"${t.name.ogss} cannot have two super classes: " + t.superType.name.ogss + " and " + sup.name.ogss)
+        case sup: ClassDef ⇒ t.superType = sup
+        case sup: InterfaceDef ⇒ t.superInterfaces += sup
       }
       sup.subTypes += t
     }
@@ -217,12 +232,18 @@ abstract class DefinitionPostProcessing(self : FrontEnd) extends CommonParseRule
     for ((v, (st, sf)) ← superViews) {
       if (null == st) {
         // if there is no explicit super name, take any super field
-        val target = allFields(v.owner).find(_.name == sf).getOrElse(self.reportError(v.pos, "Could not find super field to be viewed."))
+        val target = allFields(v.owner)
+          .find(_.name == sf)
+          .getOrElse(
+            self.reportError(v.pos, "Could not find super field to be viewed."))
         v.target = target
       } else {
         definitions(st) match {
-          case t : WithInheritance ⇒
-            val target = t.fields.find(_.name == sf).getOrElse(self.reportError(v.pos, "Could not find super field to be viewed."))
+          case t: WithInheritance ⇒
+            val target = t.fields
+              .find(_.name == sf)
+              .getOrElse(self
+                .reportError(v.pos, "Could not find super field to be viewed."))
             v.target = target
           case _ ⇒ ???
         }
@@ -233,7 +254,7 @@ abstract class DefinitionPostProcessing(self : FrontEnd) extends CommonParseRule
   /**
    * merge a comment into a user defined type
    */
-  protected def mergeComment(t : UserDefinedType, c : Comment) {
+  protected def mergeComment(t: UserDefinedType, c: Comment) {
     if (null == t.comment) {
       t.comment = c
     } else if (null != c) {
@@ -244,7 +265,7 @@ abstract class DefinitionPostProcessing(self : FrontEnd) extends CommonParseRule
   /**
    * merge a comment into another comment
    */
-  protected def mergeComment(to : Comment, c : Comment) {
+  protected def mergeComment(to: Comment, c: Comment) {
     if (null == to.text) to.text = c.text
     else to.text ++= c.text
 
