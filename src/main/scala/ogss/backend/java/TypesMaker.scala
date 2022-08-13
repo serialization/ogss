@@ -15,7 +15,7 @@
  ******************************************************************************/
 package ogss.backend.java
 
-import ogss.oil.{EnumDef, Field, FieldLike, InterfaceDef}
+import ogss.oil.{EnumDef, Field, FieldLike, InterfaceDef, View}
 import ogss.util.IRUtils
 
 trait TypesMaker extends AbstractBackEnd {
@@ -195,8 +195,21 @@ ${comment(t)}${suppressWarnings}public class ${name(t)} extends ${if (null != t.
         val target = name(v.target)
         val vt = mapType(v.`type`)
 
+        def onlyInterfaceBaseFields(target: FieldLike): Boolean = {
+          var f = target;
+          while(f.isInstanceOf[View]) {
+            var v = f.asInstanceOf[View];
+            if(!v.`type`.isInstanceOf[InterfaceDef])
+              return false;
+
+            f = f.asInstanceOf[View].target
+          };
+
+          return f.asInstanceOf[Field].`type`.isInstanceOf[InterfaceDef]
+        };
+
         // filter non-feasible views (in Java)
-        if (!v.`type`.isInstanceOf[InterfaceDef]) {
+        if (!v.`type`.isInstanceOf[InterfaceDef] || onlyInterfaceBaseFields(v)) {
           out.write(s"""
 	${comment(v)}${if (v.name == v.target.name) " @Override\n    "
           else ""}public $vt ${getter(v)}() { return ($vt) $target; }
