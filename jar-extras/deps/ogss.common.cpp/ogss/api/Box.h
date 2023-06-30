@@ -50,7 +50,7 @@ namespace ogss {
         template<typename T>
         inline Box box(const T x) {
             Box r;
-            r.anyRef = reinterpret_cast<Object *>(x);
+            r.anyRef = (Object *)x;
             return r;
         }
 

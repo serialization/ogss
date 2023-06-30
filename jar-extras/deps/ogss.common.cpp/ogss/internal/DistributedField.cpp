@@ -4,6 +4,7 @@
 
 #include "DistributedField.h"
 #include "AbstractPool.h"
+#include "EnumPool.h"
 #include "Pool.h"
 
 using namespace ogss;
@@ -16,7 +17,13 @@ api::Box DistributedField::getR(const api::Object *i) {
 
     if (0 == ID || ID >= lastID)
         throw std::out_of_range("illegal access to distributed field");
-    return data[ID - firstID];
+
+    auto rval = data[ID - firstID];
+    if (nullptr == rval.enumProxy)
+        if (auto e = dynamic_cast<const AbstractEnumPool *>(type))
+            return api::box(e->fileDefault());
+
+    return rval;
 }
 
 void DistributedField::setR(api::Object *i, api::Box v) {

@@ -4,6 +4,7 @@
 
 #include "LazyField.h"
 #include "AbstractPool.h"
+#include "EnumPool.h"
 
 using namespace ogss;
 using namespace internal;
@@ -18,7 +19,12 @@ api::Box LazyField::getR(const api::Object *i) {
 
     ensureIsLoaded();
 
-    return data[ID - firstID];
+    auto rval = data[ID - firstID];
+    if (nullptr == rval.enumProxy)
+        if (auto e = dynamic_cast<const AbstractEnumPool *>(type))
+            return api::box(e->fileDefault());
+
+    return rval;
 }
 
 void LazyField::setR(api::Object *i, api::Box v) {

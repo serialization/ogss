@@ -34,12 +34,18 @@ class AbstractEnumPool : public fieldTypes::FieldType {
     /**
      * @return begin of all instances
      */
-    virtual api::AbstractEnumProxy **begin() = 0;
+    virtual api::AbstractEnumProxy **begin() const = 0;
 
     /**
      * @return end of all instances
      */
-    virtual api::AbstractEnumProxy **end() = 0;
+    virtual api::AbstractEnumProxy **end() const = 0;
+
+    /**
+     * @return the default value obtained from file; if no file has been read,
+     * the default value from the specification is used
+     */
+    virtual api::AbstractEnumProxy *fileDefault() const = 0;
 
   protected:
     AbstractEnumPool(int tid, const api::String name, const EnumBase last) :
@@ -192,12 +198,16 @@ template <typename T> class EnumPool final : public AbstractEnumPool {
         }
     }
 
-    api::AbstractEnumProxy **begin() final {
+    api::AbstractEnumProxy **begin() const final {
         return (api::AbstractEnumProxy **)values.data();
     }
 
-    api::AbstractEnumProxy **end() final {
+    api::AbstractEnumProxy **end() const final {
         return (api::AbstractEnumProxy **)(values.data() + values.size());
+    }
+
+    api::AbstractEnumProxy *fileDefault() const final {
+        return fvCount ? fileValues[0] : staticValues[0];
     }
 
     friend class Creator;
