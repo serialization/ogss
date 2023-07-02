@@ -10,8 +10,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <vector>
 #include <stdexcept>
+#include <vector>
 
 namespace ogss {
 namespace streams {

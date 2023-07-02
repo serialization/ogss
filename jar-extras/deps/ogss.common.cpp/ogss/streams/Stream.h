@@ -22,7 +22,7 @@ namespace ogss {
         protected:
 
             //! size of the backing buffer
-            static constexpr size_t BUFFER_SIZE = 4096;
+            static constexpr int BUFFER_SIZE = 4096;
 
             /**
              * base pointer of the stream.

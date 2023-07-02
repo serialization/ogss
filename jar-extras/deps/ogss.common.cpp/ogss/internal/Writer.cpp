@@ -21,10 +21,7 @@ using ogss::fieldTypes::HullType;
 using ogss::streams::BufferedOutStream;
 
 Writer::Writer(api::File *state, streams::FileOutputStream &out) :
-  resultLock(),
-  results(),
-  errors(),
-  awaitBuffers(0) {
+  resultLock(), results(), errors(), awaitBuffers(0) {
     /**
      * *************** * G * ****************
      */
@@ -85,7 +82,7 @@ Writer::Writer(api::File *state, streams::FileOutputStream &out) :
     bool hasErrors = false;
     size_t i = 0;
     for (; awaitBuffers != 0; awaitBuffers--, i++) {
-        std::future<BufferedOutStream *> *f = nullptr;
+        std::shared_future<BufferedOutStream *> *f = nullptr;
         {
             // if the writer is faster then encoders triggering hull fields, it
             // could be that we have to await buffers which have not even been
@@ -108,6 +105,8 @@ Writer::Writer(api::File *state, streams::FileOutputStream &out) :
                     if (i < results.size())
                         break;
                 }
+                // yield CPU to worker threads while we do not hold the result
+                // lock
                 std::this_thread::yield();
             }
             if (hasErrors)

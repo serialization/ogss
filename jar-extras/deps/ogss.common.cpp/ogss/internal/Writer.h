@@ -25,7 +25,7 @@ class Writer final {
     /// prevent that the buffer consumer interferes with a hull task
     /// @note this should go; we should use a non-blocking queue instead
     std::mutex resultLock;
-    std::vector<std::future<BufferedOutStream *>> results;
+    std::vector<std::shared_future<BufferedOutStream *>> results;
     std::vector<std::string> errors;
 
     std::atomic<uint32_t> awaitBuffers;
