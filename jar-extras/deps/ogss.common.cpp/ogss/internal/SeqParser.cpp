@@ -24,9 +24,7 @@ class SeqReadTask final : public Job {
 
   public:
     SeqReadTask(DataField *f, BlockID block, streams::MappedInStream *in) :
-      block(block),
-      f(f),
-      in(in) {}
+      block(block), f(f), in(in) {}
 
     ~SeqReadTask() final {
         if (!dynamic_cast<LazyField *>(f))
@@ -54,9 +52,7 @@ class SHRT final : public Job {
 
   public:
     SHRT(fieldTypes::ContainerType *t, int block, streams::MappedInStream *in) :
-      block(block),
-      t(t),
-      in(in) {}
+      block(block), t(t), in(in) {}
 
     ~SHRT() final { delete in; }
 
@@ -183,8 +179,6 @@ void SeqParser::processData() {
             Job *j = jobs[i];
             j->run();
             delete j;
-
-            // TODO default initialization!
         }
     } catch (std::exception &e) {
         // delete remaining jobs in case of error

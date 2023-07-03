@@ -6,6 +6,7 @@
 #include "AutoField.h"
 #include "DataField.h"
 #include "EnumPool.h"
+#include "KnownEnumField.h"
 #include "LazyField.h"
 #include "SubPool.h"
 #include "UnknownObject.h"
@@ -55,17 +56,18 @@ void ogss::internal::Parser::parseFile(FileInputStream *in) {
     // HD
     processData();
 
-    if (!in->eof()) {
+    // complete known enum fields; they are the only ones whose defaults are not
+    // yet correct
+    // TODO insert enum field queue processing here
+
+      if (!in->eof()) {
         ParseException(in, "Expected end of file, but some bytes remain.");
     }
 }
 
 ogss::internal::Parser::Parser(const std::string &path, FileInputStream *in,
                                const PoolBuilder &pb) :
-  StateInitializer(path, in, pb),
-  pb(pb),
-  fields(),
-  fdts() {}
+  StateInitializer(path, in, pb), pb(pb), fields(), fdts() {}
 
 void ogss::internal::Parser::ParseException(ogss::InStream *in,
                                             const std::string &msg) {
@@ -563,9 +565,23 @@ void ogss::internal::Parser::readFields(ogss::AbstractPool *p) {
             if (!dynamic_cast<AutoField *>(f)) {
                 nextFieldID++;
 
+                // for enum fields, enqueue default initialization
+                if (auto ef = dynamic_cast<KnownEnumField *>(f)) {
+                    auto ft = (AbstractEnumPool *)ef->type;
+                    if (ft->proxy(0) != ft->fileDefault()) {
+                        // note to self: enqueue this, add priority queues to
+                        // KnownEnumField and skip over initialized ranges; the
+                        // field queue should be part of this class and
+                        // processed synchronously after reading all data; this
+                        // is a very specific corner case
+                        SK_TODO + " enum default initialization with diverging "
+                                  "defaults";
+                    }
+                    // else, defaults are the same, so get will do what we want
+                }
                 // increase maxDeps
-                if (auto ft =
-                      dynamic_cast<const fieldTypes::HullType *>(f->type)) {
+                else if (auto ft = dynamic_cast<const fieldTypes::HullType *>(
+                           f->type)) {
                     const_cast<fieldTypes::HullType *>(ft)->maxDeps++;
                 }
             }

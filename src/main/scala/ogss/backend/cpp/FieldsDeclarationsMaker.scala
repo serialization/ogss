@@ -15,14 +15,7 @@
  ******************************************************************************/
 package ogss.backend.cpp
 
-import ogss.oil.ArrayType
-import ogss.oil.BuiltinType
-import ogss.oil.ClassDef
-import ogss.oil.Field
-import ogss.oil.ListType
-import ogss.oil.MapType
-import ogss.oil.SetType
-import ogss.oil.Type
+import ogss.oil.{ArrayType, BuiltinType, ClassDef, EnumDef, Field, ListType, MapType, SetType, Type}
 
 trait FieldDeclarationsMaker extends AbstractBackEnd {
   abstract override def make {
@@ -42,6 +35,7 @@ trait FieldDeclarationsMaker extends AbstractBackEnd {
 #include <ogss/fieldTypes/AnyRefType.h>
 #include <ogss/internal/AutoField.h>
 #include <ogss/internal/DataField.h>
+#include <ogss/internal/KnownEnumField.h>
 
 #include "TypesOf${name(base)}.h"
 
@@ -54,7 +48,8 @@ ${packageParts.mkString("namespace ", " {\nnamespace ", " {")}
          * ${f.`type`.name.ogss} ${capital(t.name)}.${camel(f.name)}
          */
         class ${knownField(f)} : public ::ogss::internal::${
-        if (f.isTransient) "Auto"
+        if(f.`type`.isInstanceOf[EnumDef]) "KnownEnum"
+        else if (f.isTransient) "Auto"
         else "Data"
       }Field {
         public:
@@ -127,7 +122,10 @@ $fieldName::${knownField(f)}(
         ::ogss::internal::AbstractPool *const owner)
         : ${
             if (f.isTransient) s"AutoField(type, ${skName(f.name)}, ${-1 - autoFieldIndex(f)}, owner)"
-            else s"DataField(type, ${skName(f.name)}, index, owner)"
+            else {
+              (if (f.`type`.isInstanceOf[EnumDef]) "KnownEnum"
+              else "Data") + s"Field(type, ${skName(f.name)}, index, owner)"
+            }
           } {
 }
 ${
