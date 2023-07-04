@@ -20,6 +20,7 @@ import scala.collection.mutable.HashSet
 
 import ogss.backend.common.BackEnd
 import ogss.oil.{ClassDef, EnumConstant, EnumDef, Field, FieldLike, Identifier, OGFile, Type, TypeContext, UserDefinedType}
+import ogss.util.IRUtils
 
 /**
  * The parent class for all output makers.
@@ -97,7 +98,7 @@ trait AbstractBackEnd extends BackEnd {
     val stid = f.`type`.stid
     if (stid < 0 || 8 <= stid) {
       f.`type` match {
-        case t : EnumDef ⇒ s"$packageName::${name(t)}::${escaped(camel(t.values.head.name))}"
+        case t : EnumDef ⇒ s"$packageName::${name(t)}::${escaped(camel(t.values.sortWith(IRUtils.ogssLess).head.name))}"
         case _           ⇒ "nullptr"
       }
     } else if (0 == stid)
