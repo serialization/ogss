@@ -2,7 +2,7 @@ name := "ogss"
 
 version := "0.5"
 
-scalaVersion := "2.12.10"
+scalaVersion := "2.12.19"
 
 javacOptions ++= Seq("-encoding", "UTF-8")
 
