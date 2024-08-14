@@ -444,7 +444,7 @@ abstract class FrontEnd {
     tc.enums = (for (c ← out.EnumDef) yield {
       c.values.sortWith(IRUtils.ogssLess)
       c
-    }).toSeq.sortBy(_.name.ogss).to
+    }).toSeq.sortWith(IRUtils.ogssLess).to
 
     // sort classes by pathname and subtypes with ogssLess
     tc.classes = out.ClassDef.toSeq.sortBy(IRUtils.pathName).to
