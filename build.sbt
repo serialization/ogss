@@ -13,12 +13,11 @@ compileOrder := CompileOrder.JavaThenScala
 
 
 libraryDependencies ++= Seq(
-	"junit" % "junit" % "4.12" % "test",
-    "org.scalatest" %% "scalatest" % "3.0.5" % "test"
+	"junit" % "junit" % "4.13.2" % "test",
+    "org.scalatest" %% "scalatest" % "3.2.18" % "test"
 )
 
 (testOptions in Test) += Tests.Argument(TestFrameworks.ScalaTest, "-u", "target/tests")
-
 
 exportJars := true
 
@@ -26,10 +25,9 @@ mainClass := Some("ogss.main.CommandLine")
 
 unmanagedResourceDirectories in Compile += { baseDirectory.value / "jar-extras" }
 
+libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "2.3.0"
 
-libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.2"
-
-libraryDependencies += "com.github.scopt" %% "scopt" % "3.5.0"
+libraryDependencies += "com.github.scopt" %% "scopt" % "4.1.0"
 
 libraryDependencies += "org.json" % "json" % "20160810"
 

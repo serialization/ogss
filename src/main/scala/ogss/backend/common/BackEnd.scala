@@ -194,7 +194,7 @@ abstract class BackEnd extends IRUtils {
       line.append(" @").append(tag).append(' ');
 
     for (w ← text) {
-      if (line.length() + w.length() + 1 > lineLength) {
+      if (line.length + w.length() + 1 > lineLength) {
         // break line
         sb.append(line).append('\n');
         line = new StringBuilder(linePrefix);
