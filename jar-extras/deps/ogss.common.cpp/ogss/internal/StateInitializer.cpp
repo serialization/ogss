@@ -95,6 +95,8 @@ StateInitializer::~StateInitializer() noexcept(false) {
     // delete all accumulated type information iff the state initializer has not
     // been consumed
     if (strings) {
+        delete threadPool;
+
         delete strings;
         delete anyRef;
 
@@ -107,8 +109,6 @@ StateInitializer::~StateInitializer() noexcept(false) {
         for (auto c : enums) {
             delete c;
         }
-
-        delete threadPool;
     }
 
     delete[] SIFA;
