@@ -45,7 +45,7 @@ namespace ogss {
                 std::unique_lock <std::mutex> lock(mx);
                 // on while instead of if: threads can be woken up accidentally
                 // @see https://en.wikipedia.org/wiki/Spurious_wakeup
-                while (0 >= status)
+                while (status < 1)
                     cv.wait(lock);
                 --status;
             }
@@ -58,12 +58,16 @@ namespace ogss {
              */
             void takeMany(std::int32_t n) {
                 assert(n >= 0);
-                while (n > 0) {
+                if(0 == n)
+                    return;
 
-                    //TODO !!!optimize!!!
-                    take();
-                    n--;
-                }
+                std::unique_lock <std::mutex> lock(mx);
+                // on while instead of if: threads can be woken up accidentally
+                // @see https://en.wikipedia.org/wiki/Spurious_wakeup
+                while (status < n)
+                    cv.wait(lock);
+                
+                status -= n;
             }
 
             /**

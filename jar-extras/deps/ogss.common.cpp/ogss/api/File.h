@@ -98,12 +98,6 @@ class File {
      */
     bool canWrite;
 
-    /**
-     * The thread pool associated with this file. Can be null, if none was ever
-     * used.
-     */
-    concurrent::Pool *threadPool;
-
     File(internal::StateInitializer *init);
 
   public:

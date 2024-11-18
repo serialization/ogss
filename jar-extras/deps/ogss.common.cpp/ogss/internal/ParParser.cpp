@@ -13,8 +13,7 @@ using namespace ogss::internal;
 using ogss::concurrent::Job;
 using ogss::concurrent::Semaphore;
 
-namespace ogss {
-namespace internal {
+namespace ogss::internal {
 
 // TODO error reporting in tasks will currently not work as intended!
 
@@ -28,10 +27,7 @@ class ParReadTask final : public Job {
   public:
     ParReadTask(DataField *f, BlockID block, streams::MappedInStream *in,
                 Semaphore *barrier) :
-      block(block),
-      f(f),
-      in(in),
-      barrier(barrier) {}
+      block(block), f(f), in(in), barrier(barrier) {}
 
     ~ParReadTask() final {
         if (!dynamic_cast<LazyField *>(f))
@@ -64,10 +60,7 @@ class PHRT final : public Job {
   public:
     PHRT(fieldTypes::ContainerType *t, int block, streams::MappedInStream *in,
          Semaphore *barrier) :
-      block(block),
-      t(t),
-      in(in),
-      barrier(barrier) {}
+      block(block), t(t), in(in), barrier(barrier) {}
 
     ~PHRT() final { delete in; }
 
@@ -80,7 +73,6 @@ class PHRT final : public Job {
         t->read(i, end, in);
     }
 };
-} // namespace internal
 } // namespace ogss
 
 ParParser::ParParser(const std::string &path, streams::FileInputStream *in,
@@ -88,10 +80,8 @@ ParParser::ParParser(const std::string &path, streams::FileInputStream *in,
   Parser(path, in, pb),
   barrier(),
   jobs(),
-  jobMX() {
-    // we use a thread pool, so we have to create it
-    threadPool = new concurrent::Pool();
-}
+  jobMX(),
+  threadPool(new concurrent::Pool()) {}
 
 ParParser::~ParParser() noexcept(false) {
     barrier.takeMany(jobs.size());
@@ -105,8 +95,13 @@ ParParser::~ParParser() noexcept(false) {
         for (auto &e : errors) {
             ss << "  " << e << std::endl;
         }
+
+        delete threadPool;
+
         throw ogss::Exception(ss.str());
     }
+
+    delete threadPool;
 }
 
 /**

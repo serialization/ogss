@@ -48,7 +48,6 @@ File::File(internal::StateInitializer *init) :
   fromFile(init->in.release()),
   currentWritePath(init->path),
   canWrite(init->canWrite),
-  threadPool(init->threadPool),
   SIFA{} {
 
     // release complex builtin types
@@ -91,8 +90,6 @@ File::~File() {
 
     delete TBN;
     delete fromFile;
-
-    delete threadPool;
 }
 
 void File::check() {

@@ -49,7 +49,6 @@ StateInitializer::StateInitializer(const std::string &path, FileInputStream *in,
   anyRef(new AnyRefType(strings, &classes)),
   SIFA(new FieldType *[pb.sifaSize]),
   sifaSize(pb.sifaSize),
-  threadPool(nullptr),
   nsID(10),
   nextFieldID(1) {
 
@@ -95,8 +94,6 @@ StateInitializer::~StateInitializer() noexcept(false) {
     // delete all accumulated type information iff the state initializer has not
     // been consumed
     if (strings) {
-        delete threadPool;
-
         delete strings;
         delete anyRef;
 

@@ -25,6 +25,12 @@ class ParParser final : public Parser {
     // protection for jobs until we implement a wait-free queue
     std::mutex jobMX;
 
+    /**
+     * The thread pool used to create this initializer. Nullptr, if not a
+     * ParParser.
+     */
+    concurrent::Pool *threadPool;
+
     ParParser(const std::string &path, streams::FileInputStream *in,
               const PoolBuilder &pb);
 
