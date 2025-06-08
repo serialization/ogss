@@ -238,12 +238,13 @@ abstract class DefinitionPostProcessing(self: FrontEnd)
             self.reportError(v.pos, "Could not find super field to be viewed."))
         v.target = target
       } else {
-        definitions(st) match {
+        definitions.getOrElse(st, self.reportError(v.pos, "Could not find super field to be viewed: " + st.ogss)) match {
+          case null ⇒
           case t: WithInheritance ⇒
             val target = t.fields
               .find(_.name == sf)
               .getOrElse(self
-                .reportError(v.pos, "Could not find super field to be viewed."))
+                .reportError(v.pos, "Could not find super field to be viewed: " + st.ogss))
             v.target = target
           case _ ⇒ ???
         }
