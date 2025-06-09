@@ -250,7 +250,10 @@ trait IRUtils {
         nextSTID += 1
       }
 
-      assert (tc.containers.size == done.size, "Some containers have the same UCC and got lost. Note: this can happen when using containers on interface types.")
+      if(tc.containers.size != done.size)
+        println(s"""Warning: Some containers have the same UCC and got lost.
+        Note: this can happen when using containers on interface types.
+        Lost: ${(tc.containers.toSet -- done.toSet).map(_.name.ogss).mkString(", ")}""")
 
       tc.containers.clear
       tc.containers ++= done
