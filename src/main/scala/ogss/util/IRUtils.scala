@@ -285,7 +285,10 @@ trait IRUtils {
    * @note looks only into direct bases since transitive get stids
    */
   private def effectiveBase(t: Type): Type = t match {
-    case t: InterfaceDef ⇒ if (null != t.superType) t.superType else t
+    case t: InterfaceDef ⇒ if (null != t.superType) {
+      println("warning: containers with interface base types are currently broken")
+      t.superType
+    } else t
     case t ⇒ t
   }
 
