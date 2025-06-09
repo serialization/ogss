@@ -1,0 +1,8 @@
+enum E ::= v
+
+B ::= I
+interface I ::= S
+interface M ::= I
+
+S ⇒ f : set<I>
+B ⇒ f : set<M>

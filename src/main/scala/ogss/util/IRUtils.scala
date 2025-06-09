@@ -250,6 +250,8 @@ trait IRUtils {
         nextSTID += 1
       }
 
+      assert (tc.containers.size == done.size, "some containers have the same UCC and got lost")
+
       tc.containers.clear
       tc.containers ++= done
     }
@@ -266,7 +268,7 @@ trait IRUtils {
   /**
    * we use Long, because JVM provides no uint32_t
    */
-  def ucc(kcc : Integer) : Long = {
+  def ucc(kcc: Integer): Long = {
     val stid1 = kcc.toLong & 0x7FFFL;
     val stid2 = (kcc.toLong >> 15L) & 0x7FFFL;
     val kind = (kcc.toLong >> 30L) & 0x3L;
@@ -277,31 +279,42 @@ trait IRUtils {
   }
 
   /**
+   * Project interfaces to their base types to allow interfaces in containers.
+   *
+   * @note to be used for container UCC calculation only
+   * @note looks only into direct bases since transitive get stids
+   */
+  private def effectiveBase(t: Type): Type = t match {
+    case t: InterfaceDef ⇒ if (null != t.superType) t.superType else t
+    case t ⇒ t
+  }
+
+  /**
    * we use Long, because JVM provides no uint32_t
    * @return -1L, if no ucc can be assigned yet
    */
-  def ucc(ct : ContainerType) : Long = {
+  def ucc(ct: ContainerType): Long = {
     val stid1 = ct match {
-      case c : ArrayType ⇒ c.baseType.stid
-      case c : ListType  ⇒ c.baseType.stid
-      case c : SetType   ⇒ c.baseType.stid
-      case c : MapType   ⇒ c.keyType.stid
+      case c: ArrayType ⇒ effectiveBase(c.baseType).stid
+      case c: ListType ⇒ effectiveBase(c.baseType).stid
+      case c: SetType ⇒ effectiveBase(c.baseType).stid
+      case c: MapType ⇒ effectiveBase(c.keyType).stid
     }
     if (-1 == stid1)
       return -1
 
     val stid2 = ct match {
-      case c : MapType ⇒ c.valueType.stid
-      case _           ⇒ 0
+      case c: MapType ⇒ effectiveBase(c.valueType).stid
+      case _ ⇒ 0
     }
     if (-1 == stid2)
       return -1
 
     val kind = ct match {
-      case c : ArrayType ⇒ 0
-      case c : ListType  ⇒ 1
-      case c : SetType   ⇒ 2
-      case c : MapType   ⇒ 3
+      case c: ArrayType ⇒ 0
+      case c: ListType ⇒ 1
+      case c: SetType ⇒ 2
+      case c: MapType ⇒ 3
     }
 
     if (stid1 > stid2)
@@ -310,11 +323,13 @@ trait IRUtils {
       (stid2 << 17L) | (kind << 15L) | (stid1)
   }
 
-  def kcc(c : ContainerType) : Int = c match {
-    case c : ArrayType ⇒ (c.baseType.stid & 0x7FFF)
-    case c : ListType  ⇒ ((1 << 30) | (c.baseType.stid & 0x7FFF))
-    case c : SetType   ⇒ ((2 << 30) | (c.baseType.stid & 0x7FFF))
-    case c : MapType   ⇒ ((3 << 30) | (c.keyType.stid & 0x7FFF) | ((c.valueType.stid & 0x7FFF) << 15))
+  def kcc(c: ContainerType): Int = c match {
+    case c: ArrayType ⇒ (effectiveBase(c.baseType).stid & 0x7FFF)
+    case c: ListType ⇒ ((1 << 30) | (effectiveBase(c.baseType).stid & 0x7FFF))
+    case c: SetType ⇒ ((2 << 30) | (effectiveBase(c.baseType).stid & 0x7FFF))
+    case c: MapType ⇒
+      ((3 << 30) | (effectiveBase(c.keyType).stid & 0x7FFF) |
+        ((effectiveBase(c.valueType).stid & 0x7FFF) << 15))
   }
 }
 
