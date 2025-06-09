@@ -250,6 +250,8 @@ trait IRUtils {
         nextSTID += 1
       }
 
+      assert (tc.containers.size == done.size, "Some containers have the same UCC and got lost. Note: this can happen when using containers on interface types.")
+
       tc.containers.clear
       tc.containers ++= done
     }
