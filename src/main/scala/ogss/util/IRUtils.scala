@@ -18,21 +18,8 @@ package ogss.util
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.HashSet
+import ogss.oil.{ArrayType, ContainerType, CustomField, Field, FieldLike, Identifier, InterfaceDef, ListType, MapType, SetType, Type, TypeContext, View, WithInheritance, WithName}
 
-import ogss.oil.ArrayType
-import ogss.oil.ContainerType
-import ogss.oil.CustomField
-import ogss.oil.Field
-import ogss.oil.FieldLike
-import ogss.oil.Identifier
-import ogss.oil.ListType
-import ogss.oil.MapType
-import ogss.oil.SetType
-import ogss.oil.Type
-import ogss.oil.TypeContext
-import ogss.oil.View
-import ogss.oil.WithInheritance
-import ogss.oil.WithName
 import scala.collection.mutable.WeakHashMap
 import com.sun.org.apache.xml.internal.serializer.ToStream
 
